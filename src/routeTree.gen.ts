@@ -22,6 +22,7 @@ import { Route as AppContasRouteImport } from './routes/app/contas'
 import { Route as AppConquistasRouteImport } from './routes/app/conquistas'
 import { Route as AppComportamentoRouteImport } from './routes/app/comportamento'
 import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
+import { Route as AppAgenteRouteImport } from './routes/app/agente'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -88,10 +89,16 @@ const AppCartoesRoute = AppCartoesRouteImport.update({
   path: '/cartoes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAgenteRoute = AppAgenteRouteImport.update({
+  id: '/agente',
+  path: '/agente',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/app/agente'
     | '/app/cartoes'
     | '/app/comportamento'
     | '/app/conquistas'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/app/agente'
     | '/app/cartoes'
     | '/app/comportamento'
     | '/app/conquistas'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/app/agente'
     | '/app/cartoes'
     | '/app/comportamento'
     | '/app/conquistas'
@@ -281,10 +293,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCartoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/agente': {
+      id: '/app/agente'
+      path: '/agente'
+      fullPath: '/app/agente'
+      preLoaderRoute: typeof AppAgenteRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAgenteRoute: typeof AppAgenteRoute
   AppCartoesRoute: typeof AppCartoesRoute
   AppComportamentoRoute: typeof AppComportamentoRoute
   AppConquistasRoute: typeof AppConquistasRoute
@@ -299,6 +319,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgenteRoute: AppAgenteRoute,
   AppCartoesRoute: AppCartoesRoute,
   AppComportamentoRoute: AppComportamentoRoute,
   AppConquistasRoute: AppConquistasRoute,
