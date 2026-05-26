@@ -74,7 +74,21 @@ export function Sidebar() {
             Diagnóstico do Casal
           </Button>
         </div>
+        
+        {new Date().getMonth() >= 10 || new Date().getMonth() <= 1 ? (
+          <Link
+            to="/app/retrospectiva"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-md transition-colors mt-2",
+              location.pathname === '/app/retrospectiva' ? "bg-purple-100 text-purple-900 font-medium" : "text-purple-600 bg-purple-50 hover:bg-purple-100"
+            )}
+          >
+            <Trophy className="h-5 w-5" />
+            Retrospectiva 2026
+          </Link>
+        ) : null}
       </nav>
+
 
       <div className="p-4 border-t">
         <Link to="/" className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:text-red-600 transition-colors">
