@@ -83,7 +83,8 @@ function Patrimonio() {
                 <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                   {chartData.map((_, index) => <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />)}
                 </Pie>
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
+
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -97,7 +98,7 @@ function Patrimonio() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="month" />
                 <YAxis hide />
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
                 <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
