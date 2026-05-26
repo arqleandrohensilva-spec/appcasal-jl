@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp, ShieldCheck, CreditCard, Trophy } from 'lucide-react';
+import { LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp, ShieldCheck, CreditCard, Trophy, Flame, Sparkles, Brain } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
@@ -21,10 +21,11 @@ export function Sidebar() {
     { name: 'Metas', path: '/app/metas', icon: Target },
     { name: 'Dívidas', path: '/app/dividas', icon: ShieldCheck },
     { name: 'Patrimônio', path: '/app/patrimonio', icon: TrendingUp },
-    { name: 'Comportamento', path: '/app/comportamento', icon: Heart },
-    { name: 'Agente', path: '/app/agente', icon: Flame },
+    { name: 'Comportamento', path: '/app/comportamento', icon: Brain },
+    { name: 'Agente', path: '/app/agente', icon: Sparkles },
     { name: 'Relatórios', path: '/app/relatorios', icon: BarChart3 },
   ];
+
 
 
   return (
