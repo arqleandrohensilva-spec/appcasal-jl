@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, Heart } from 'lucide-react';
+import { AlertCircle, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, Heart, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/app/dashboard')({
@@ -33,12 +33,28 @@ function Dashboard() {
           <p className="text-muted-foreground">Bem-vindo ao seu dashboard financeiro</p>
         </div>
         <div className="flex items-center gap-4">
+           <div className="flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+             <Flame className="h-4 w-4 fill-current" /> 12 Semanas
+           </div>
            <div className="text-right">
              <p className="text-xs text-muted-foreground uppercase font-semibold">Saúde Financeira</p>
              <Badge className={cn("mt-1", data.color)}>{data.score}/100</Badge>
            </div>
         </div>
       </header>
+
+      {/* Alertas de Anomalia */}
+      {(data as any).gastosPorCategoria?.some((c: any) => c.value > c.prevValue * 1.5) && (
+        <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start gap-3">
+          <div className="p-2 bg-rose-100 rounded-lg text-rose-600">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="font-bold text-rose-900">Anomalia detectada!</p>
+            <p className="text-sm text-rose-700">Você gastou 2.4x mais em <b>Alimentação</b> esta semana em comparação à sua média dos últimos 3 meses.</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>

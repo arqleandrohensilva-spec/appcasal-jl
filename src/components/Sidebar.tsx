@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut } from 'lucide-react';
+import { LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp, ShieldCheck, CreditCard, Trophy } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,12 @@ export function Sidebar() {
   const navItems = [
     { name: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
     { name: 'Transações', path: '/app/transacoes', icon: Receipt },
+    { name: 'Previsão', path: '/app/previsao', icon: TrendingUp },
+    { name: 'Parcelas', path: '/app/parcelamentos', icon: CreditCard },
+    { name: 'Assinaturas', path: '/app/assinaturas', icon: ShieldCheck },
+    { name: 'Dívidas', path: '/app/dividas', icon: TrendingUp }, // Usando o mesmo ícone para simplicidade ou mude se quiser
     { name: 'Metas', path: '/app/metas', icon: Target },
+    { name: 'Conquistas', path: '/app/conquistas', icon: Trophy },
     { name: 'Relatórios', path: '/app/relatorios', icon: BarChart3 },
   ];
 

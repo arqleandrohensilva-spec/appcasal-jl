@@ -56,6 +56,39 @@ function Metas() {
           );
         })}
       </div>
+
+      <div className="pt-6">
+        <h2 className="text-xl font-bold mb-4">Sinking Funds (Fundos Reserva)</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {(data as any).sinkingFunds?.map((fund: any, idx: number) => {
+            const percent = Math.round((fund.atual / fund.alvo) * 100);
+            return (
+              <Card key={idx} className="bg-blue-50 border-blue-100">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-blue-900">{fund.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between text-xs text-blue-800">
+                    <span>{formatCurrency(fund.atual)} / {formatCurrency(fund.alvo)}</span>
+                    <span className="font-bold">{percent}%</span>
+                  </div>
+                  <Progress value={percent} className="h-2 bg-blue-200" />
+                  <div className="p-2 bg-white rounded border border-blue-100">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Aporte Mensal</p>
+                    <p className="text-sm font-bold text-blue-700">{formatCurrency(fund.aporte)}</p>
+                  </div>
+                  <p className="text-[10px] text-blue-600">Disponível em: {fund.prazo}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+          {(!(data as any).sinkingFunds || (data as any).sinkingFunds.length === 0) && (
+            <Card className="col-span-full border-dashed p-6 text-center">
+              <p className="text-sm text-muted-foreground">Nenhum sinking fund configurado.</p>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

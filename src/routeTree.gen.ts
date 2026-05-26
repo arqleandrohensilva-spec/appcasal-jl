@@ -13,8 +13,13 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
 import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
+import { Route as AppPrevisaoRouteImport } from './routes/app/previsao'
+import { Route as AppParcelamentosRouteImport } from './routes/app/parcelamentos'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
+import { Route as AppDividasRouteImport } from './routes/app/dividas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
+import { Route as AppConquistasRouteImport } from './routes/app/conquistas'
+import { Route as AppAssinaturasRouteImport } from './routes/app/assinaturas'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -36,9 +41,24 @@ const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPrevisaoRoute = AppPrevisaoRouteImport.update({
+  id: '/previsao',
+  path: '/previsao',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppParcelamentosRoute = AppParcelamentosRouteImport.update({
+  id: '/parcelamentos',
+  path: '/parcelamentos',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMetasRoute = AppMetasRouteImport.update({
   id: '/metas',
   path: '/metas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDividasRoute = AppDividasRouteImport.update({
+  id: '/dividas',
+  path: '/dividas',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -46,20 +66,40 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConquistasRoute = AppConquistasRouteImport.update({
+  id: '/conquistas',
+  path: '/conquistas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAssinaturasRoute = AppAssinaturasRouteImport.update({
+  id: '/assinaturas',
+  path: '/assinaturas',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/assinaturas': typeof AppAssinaturasRoute
+  '/app/conquistas': typeof AppConquistasRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/dividas': typeof AppDividasRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/parcelamentos': typeof AppParcelamentosRoute
+  '/app/previsao': typeof AppPrevisaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/assinaturas': typeof AppAssinaturasRoute
+  '/app/conquistas': typeof AppConquistasRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/dividas': typeof AppDividasRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/parcelamentos': typeof AppParcelamentosRoute
+  '/app/previsao': typeof AppPrevisaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
@@ -67,8 +107,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/assinaturas': typeof AppAssinaturasRoute
+  '/app/conquistas': typeof AppConquistasRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/dividas': typeof AppDividasRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/parcelamentos': typeof AppParcelamentosRoute
+  '/app/previsao': typeof AppPrevisaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
@@ -77,24 +122,39 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/app/assinaturas'
+    | '/app/conquistas'
     | '/app/dashboard'
+    | '/app/dividas'
     | '/app/metas'
+    | '/app/parcelamentos'
+    | '/app/previsao'
     | '/app/relatorios'
     | '/app/transacoes'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/app'
+    | '/app/assinaturas'
+    | '/app/conquistas'
     | '/app/dashboard'
+    | '/app/dividas'
     | '/app/metas'
+    | '/app/parcelamentos'
+    | '/app/previsao'
     | '/app/relatorios'
     | '/app/transacoes'
   id:
     | '__root__'
     | '/'
     | '/app'
+    | '/app/assinaturas'
+    | '/app/conquistas'
     | '/app/dashboard'
+    | '/app/dividas'
     | '/app/metas'
+    | '/app/parcelamentos'
+    | '/app/previsao'
     | '/app/relatorios'
     | '/app/transacoes'
   fileRoutesById: FileRoutesById
@@ -134,11 +194,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRelatoriosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/previsao': {
+      id: '/app/previsao'
+      path: '/previsao'
+      fullPath: '/app/previsao'
+      preLoaderRoute: typeof AppPrevisaoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/parcelamentos': {
+      id: '/app/parcelamentos'
+      path: '/parcelamentos'
+      fullPath: '/app/parcelamentos'
+      preLoaderRoute: typeof AppParcelamentosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/metas': {
       id: '/app/metas'
       path: '/metas'
       fullPath: '/app/metas'
       preLoaderRoute: typeof AppMetasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/dividas': {
+      id: '/app/dividas'
+      path: '/dividas'
+      fullPath: '/app/dividas'
+      preLoaderRoute: typeof AppDividasRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/dashboard': {
@@ -148,19 +229,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/conquistas': {
+      id: '/app/conquistas'
+      path: '/conquistas'
+      fullPath: '/app/conquistas'
+      preLoaderRoute: typeof AppConquistasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/assinaturas': {
+      id: '/app/assinaturas'
+      path: '/assinaturas'
+      fullPath: '/app/assinaturas'
+      preLoaderRoute: typeof AppAssinaturasRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAssinaturasRoute: typeof AppAssinaturasRoute
+  AppConquistasRoute: typeof AppConquistasRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDividasRoute: typeof AppDividasRoute
   AppMetasRoute: typeof AppMetasRoute
+  AppParcelamentosRoute: typeof AppParcelamentosRoute
+  AppPrevisaoRoute: typeof AppPrevisaoRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppTransacoesRoute: typeof AppTransacoesRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAssinaturasRoute: AppAssinaturasRoute,
+  AppConquistasRoute: AppConquistasRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDividasRoute: AppDividasRoute,
   AppMetasRoute: AppMetasRoute,
+  AppParcelamentosRoute: AppParcelamentosRoute,
+  AppPrevisaoRoute: AppPrevisaoRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppTransacoesRoute: AppTransacoesRoute,
 }

@@ -4,9 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CATEGORIES, ACCOUNTS } from '@/lib/mockData';
+import { Switch } from '@/components/ui/switch';
+import { CATEGORIES, ACCOUNTS, formatCurrency } from '@/lib/mockData';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 
 export const Route = createFileRoute('/app/transacoes')({
   component: Transacoes,
@@ -14,6 +17,13 @@ export const Route = createFileRoute('/app/transacoes')({
 
 function Transacoes() {
   const navigate = useNavigate();
+  const [isCreditCard, setIsCreditCard] = useState(false);
+  const [installments, setInstallments] = useState("1");
+  const [valor, setValor] = useState("");
+
+  const parcelasNum = parseInt(installments) || 1;
+  const valorNum = parseFloat(valor) || 0;
+  const valorParcela = valorNum / parcelasNum;
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +48,16 @@ function Transacoes() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="valor">Valor (R$)</Label>
-                <Input id="valor" type="number" step="0.01" placeholder="0,00" required />
+                <Label htmlFor="valor">Valor Total (R$)</Label>
+                <Input 
+                  id="valor" 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="0,00" 
+                  required 
+                  value={valor}
+                  onChange={(e) => setValor(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tipo">Tipo</Label>
@@ -52,6 +70,40 @@ function Transacoes() {
                 </Select>
               </div>
             </div>
+
+            <div className="flex items-center space-x-2 py-2">
+              <Switch 
+                id="pago-no-cartao" 
+                checked={isCreditCard}
+                onCheckedChange={setIsCreditCard}
+              />
+              <Label htmlFor="pago-no-cartao">Pago no cartão?</Label>
+            </div>
+
+            {isCreditCard && (
+              <div className="space-y-4 p-4 bg-orange-50 rounded-lg border border-orange-100 animate-in slide-in-from-top-2">
+                <div className="space-y-2">
+                  <Label htmlFor="parcelas">Número de parcelas</Label>
+                  <Select value={installments} onValueChange={setInstallments}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {[...Array(48)].map((_, i) => (
+                        <SelectItem key={i+1} value={(i+1).toString()}>{i+1}x</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {valorNum > 0 && (
+                  <div className="flex items-start gap-2 text-orange-700 text-sm">
+                    <AlertCircle className="h-4 w-4 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">Preview do parcelamento:</p>
+                      <p>{parcelasNum}x de {formatCurrency(valorParcela)} — de junho/2026 a {new Date(2026, 5 + parcelasNum - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
