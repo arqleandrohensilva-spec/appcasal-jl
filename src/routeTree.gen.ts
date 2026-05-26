@@ -16,6 +16,7 @@ import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
 import { Route as AppPrevisaoRouteImport } from './routes/app/previsao'
 import { Route as AppParcelamentosRouteImport } from './routes/app/parcelamentos'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
+import { Route as AppFluxoRouteImport } from './routes/app/fluxo'
 import { Route as AppDividasRouteImport } from './routes/app/dividas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppContasRouteImport } from './routes/app/contas'
@@ -58,6 +59,11 @@ const AppMetasRoute = AppMetasRouteImport.update({
   path: '/metas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFluxoRoute = AppFluxoRouteImport.update({
+  id: '/fluxo',
+  path: '/fluxo',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDividasRoute = AppDividasRouteImport.update({
   id: '/dividas',
   path: '/dividas',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
+  '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
   '/app/parcelamentos': typeof AppParcelamentosRoute
   '/app/previsao': typeof AppPrevisaoRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
+  '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
   '/app/parcelamentos': typeof AppParcelamentosRoute
   '/app/previsao': typeof AppPrevisaoRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
+  '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
   '/app/parcelamentos': typeof AppParcelamentosRoute
   '/app/previsao': typeof AppPrevisaoRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
+    | '/app/fluxo'
     | '/app/metas'
     | '/app/parcelamentos'
     | '/app/previsao'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
+    | '/app/fluxo'
     | '/app/metas'
     | '/app/parcelamentos'
     | '/app/previsao'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
+    | '/app/fluxo'
     | '/app/metas'
     | '/app/parcelamentos'
     | '/app/previsao'
@@ -239,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMetasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/fluxo': {
+      id: '/app/fluxo'
+      path: '/fluxo'
+      fullPath: '/app/fluxo'
+      preLoaderRoute: typeof AppFluxoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/dividas': {
       id: '/app/dividas'
       path: '/dividas'
@@ -291,6 +310,7 @@ interface AppRouteChildren {
   AppContasRoute: typeof AppContasRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDividasRoute: typeof AppDividasRoute
+  AppFluxoRoute: typeof AppFluxoRoute
   AppMetasRoute: typeof AppMetasRoute
   AppParcelamentosRoute: typeof AppParcelamentosRoute
   AppPrevisaoRoute: typeof AppPrevisaoRoute
@@ -305,6 +325,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppContasRoute: AppContasRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDividasRoute: AppDividasRoute,
+  AppFluxoRoute: AppFluxoRoute,
   AppMetasRoute: AppMetasRoute,
   AppParcelamentosRoute: AppParcelamentosRoute,
   AppPrevisaoRoute: AppPrevisaoRoute,
