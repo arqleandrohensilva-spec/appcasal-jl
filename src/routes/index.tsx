@@ -14,7 +14,7 @@ function Login() {
 
   const handleSelect = (profile: 'leandro' | 'jonathan') => {
     setActiveProfile(profile);
-    navigate({ to: '/dashboard' });
+    navigate({ to: '/app/dashboard' });
   };
 
   return (
@@ -48,7 +48,7 @@ function Login() {
         <Button 
           variant="outline" 
           className="w-full h-16 border-orange-500 text-orange-600 hover:bg-orange-50"
-          onClick={() => { setActiveProfile('casal'); navigate({ to: '/dashboard' }); }}
+          onClick={() => { setActiveProfile('casal'); navigate({ to: '/app/dashboard' }); }}
         >
           Ver Diagnóstico do Casal
         </Button>
