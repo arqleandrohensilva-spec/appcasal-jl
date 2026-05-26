@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
 import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
+import { Route as AppPatrimonioRouteImport } from './routes/app/patrimonio'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
 import { Route as AppFluxoRouteImport } from './routes/app/fluxo'
 import { Route as AppDividasRouteImport } from './routes/app/dividas'
@@ -39,6 +40,11 @@ const AppTransacoesRoute = AppTransacoesRouteImport.update({
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPatrimonioRoute = AppPatrimonioRouteImport.update({
+  id: '/patrimonio',
+  path: '/patrimonio',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMetasRoute = AppMetasRouteImport.update({
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
+    | '/app/patrimonio'
     | '/app/relatorios'
     | '/app/transacoes'
   fileRoutesByTo: FileRoutesByTo
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
+    | '/app/patrimonio'
     | '/app/relatorios'
     | '/app/transacoes'
   id:
@@ -155,6 +166,7 @@ export interface FileRouteTypes {
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
+    | '/app/patrimonio'
     | '/app/relatorios'
     | '/app/transacoes'
   fileRoutesById: FileRoutesById
@@ -192,6 +204,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/app/relatorios'
       preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/patrimonio': {
+      id: '/app/patrimonio'
+      path: '/patrimonio'
+      fullPath: '/app/patrimonio'
+      preLoaderRoute: typeof AppPatrimonioRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/metas': {
@@ -254,6 +273,7 @@ interface AppRouteChildren {
   AppDividasRoute: typeof AppDividasRoute
   AppFluxoRoute: typeof AppFluxoRoute
   AppMetasRoute: typeof AppMetasRoute
+  AppPatrimonioRoute: typeof AppPatrimonioRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppTransacoesRoute: typeof AppTransacoesRoute
 }
@@ -266,6 +286,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDividasRoute: AppDividasRoute,
   AppFluxoRoute: AppFluxoRoute,
   AppMetasRoute: AppMetasRoute,
+  AppPatrimonioRoute: AppPatrimonioRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppTransacoesRoute: AppTransacoesRoute,
 }
@@ -279,3 +300,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
