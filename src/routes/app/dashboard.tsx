@@ -1,11 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA, formatCurrency } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { AlertCircle, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, Heart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/app/dashboard')({
   component: Dashboard,
@@ -13,7 +15,15 @@ export const Route = createFileRoute('/app/dashboard')({
 
 function Dashboard() {
   const { activeProfile } = useAppContext();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const data = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
+
+  if (!isMounted) return null;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -116,7 +126,7 @@ function Dashboard() {
             </CardContent>
           </Card>
 
-          {activeProfile !== 'casal' && (data as any).gastosPorCategoria && (
+          {activeProfile !== 'casal' && (data as any).gastosPorCategoria && isMounted && (
             <Card>
               <CardHeader><CardTitle className="text-sm">Gastos por Categoria</CardTitle></CardHeader>
               <CardContent className="h-48">
@@ -138,6 +148,3 @@ function Dashboard() {
     </div>
   );
 }
-
-import { cn } from '@/lib/utils';
-import { Heart } from 'lucide-react';

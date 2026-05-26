@@ -13,10 +13,10 @@ export function Sidebar() {
   const currentData = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Transações', path: '/transacoes', icon: Receipt },
-    { name: 'Metas', path: '/metas', icon: Target },
-    { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
+    { name: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
+    { name: 'Transações', path: '/app/transacoes', icon: Receipt },
+    { name: 'Metas', path: '/app/metas', icon: Target },
+    { name: 'Relatórios', path: '/app/relatorios', icon: BarChart3 },
   ];
 
   return (
