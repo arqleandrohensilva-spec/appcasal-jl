@@ -45,7 +45,35 @@ function Dashboard() {
         </div>
       </header>
 
+      {/* Briefing Diário */}
+      <Card className="bg-gradient-to-r from-purple-50 via-white to-emerald-50 border-none shadow-sm relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-2">
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <CardContent className="p-5 flex gap-4">
+          <div className="p-3 bg-white rounded-2xl shadow-sm h-fit text-purple-600">
+            <Sparkles className="h-6 w-6" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <p className="font-bold text-gray-900">Bom dia, {activeProfile === 'leandro' ? 'Leandro' : activeProfile === 'jonathan' ? 'Jonathan' : 'pessoal'} ☀️</p>
+            <div className="text-sm text-gray-600 space-y-0.5">
+              <p>• Hoje vence sua fatura Nubank — R$ 2.340</p>
+              <p>• Esta semana você gastou R$ 340 — 22% abaixo da média</p>
+              <p>• {activeProfile === 'jonathan' ? 'Sexta chegando — lembre do limite de R$ 50 em delivery' : 'Sua reserva de emergência cresceu R$ 800 este mês'}</p>
+            </div>
+          </div>
+          <div className="flex items-end">
+            <Button variant="ghost" size="icon" className="text-gray-400">
+              <History className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Alertas de Anomalia */}
+
       {(data as any).gastosPorCategoria?.some((c: any) => c.value > c.prevValue * 1.5) && (
         <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start gap-3">
           <div className="p-2 bg-rose-100 rounded-lg text-rose-600">
