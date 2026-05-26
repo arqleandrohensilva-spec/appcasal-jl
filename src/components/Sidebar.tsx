@@ -20,8 +20,12 @@ export function Sidebar() {
     { name: 'Fluxo de Caixa', path: '/app/fluxo', icon: TrendingUp },
     { name: 'Metas', path: '/app/metas', icon: Target },
     { name: 'Dívidas', path: '/app/dividas', icon: ShieldCheck },
+    { name: 'Patrimônio', path: '/app/patrimonio', icon: TrendingUp },
+    { name: 'Comportamento', path: '/app/comportamento', icon: Heart },
+    { name: 'Agente', path: '/app/agente', icon: Flame },
     { name: 'Relatórios', path: '/app/relatorios', icon: BarChart3 },
   ];
+
 
   return (
     <div className="w-64 bg-white border-r h-screen flex flex-col fixed left-0 top-0">
