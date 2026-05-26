@@ -74,14 +74,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "App JL" },
+      { name: "description", content: "FinançasDuo is a personal finance app for couples to manage shared finances and track spending." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "App JL" },
+      { property: "og:description", content: "FinançasDuo is a personal finance app for couples to manage shared finances and track spending." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "App JL" },
+      { name: "twitter:description", content: "FinançasDuo is a personal finance app for couples to manage shared finances and track spending." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7fab7143-0371-4f1e-ba33-cfa6361ea6d4/id-preview-36ea9574--438430be-301f-4b3a-942f-a67f2698fcc1.lovable.app-1779837563405.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7fab7143-0371-4f1e-ba33-cfa6361ea6d4/id-preview-36ea9574--438430be-301f-4b3a-942f-a67f2698fcc1.lovable.app-1779837563405.png" },
     ],
     links: [
       {
