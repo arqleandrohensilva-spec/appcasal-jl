@@ -19,6 +19,7 @@ import { Route as AppMetasRouteImport } from './routes/app/metas'
 import { Route as AppDividasRouteImport } from './routes/app/dividas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppConquistasRouteImport } from './routes/app/conquistas'
+import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
 import { Route as AppAssinaturasRouteImport } from './routes/app/assinaturas'
 
 const AppRoute = AppRouteImport.update({
@@ -71,6 +72,11 @@ const AppConquistasRoute = AppConquistasRouteImport.update({
   path: '/conquistas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCartoesRoute = AppCartoesRouteImport.update({
+  id: '/cartoes',
+  path: '/cartoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAssinaturasRoute = AppAssinaturasRouteImport.update({
   id: '/assinaturas',
   path: '/assinaturas',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/assinaturas': typeof AppAssinaturasRoute
+  '/app/cartoes': typeof AppCartoesRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/assinaturas': typeof AppAssinaturasRoute
+  '/app/cartoes': typeof AppCartoesRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/assinaturas': typeof AppAssinaturasRoute
+  '/app/cartoes': typeof AppCartoesRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/assinaturas'
+    | '/app/cartoes'
     | '/app/conquistas'
     | '/app/dashboard'
     | '/app/dividas'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/assinaturas'
+    | '/app/cartoes'
     | '/app/conquistas'
     | '/app/dashboard'
     | '/app/dividas'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/assinaturas'
+    | '/app/cartoes'
     | '/app/conquistas'
     | '/app/dashboard'
     | '/app/dividas'
@@ -236,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConquistasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/cartoes': {
+      id: '/app/cartoes'
+      path: '/cartoes'
+      fullPath: '/app/cartoes'
+      preLoaderRoute: typeof AppCartoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/assinaturas': {
       id: '/app/assinaturas'
       path: '/assinaturas'
@@ -248,6 +267,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAssinaturasRoute: typeof AppAssinaturasRoute
+  AppCartoesRoute: typeof AppCartoesRoute
   AppConquistasRoute: typeof AppConquistasRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDividasRoute: typeof AppDividasRoute
@@ -260,6 +280,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAssinaturasRoute: AppAssinaturasRoute,
+  AppCartoesRoute: AppCartoesRoute,
   AppConquistasRoute: AppConquistasRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDividasRoute: AppDividasRoute,
@@ -279,3 +300,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
