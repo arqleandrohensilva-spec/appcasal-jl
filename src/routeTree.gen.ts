@@ -16,6 +16,7 @@ import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
 import { Route as AppPrevisaoRouteImport } from './routes/app/previsao'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
+import { Route as AppAssinaturasRouteImport } from './routes/app/assinaturas'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -52,10 +53,16 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssinaturasRoute = AppAssinaturasRouteImport.update({
+  id: '/assinaturas',
+  path: '/assinaturas',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/assinaturas': typeof AppAssinaturasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/metas': typeof AppMetasRoute
   '/app/previsao': typeof AppPrevisaoRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/assinaturas': typeof AppAssinaturasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/metas': typeof AppMetasRoute
   '/app/previsao': typeof AppPrevisaoRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/assinaturas': typeof AppAssinaturasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/metas': typeof AppMetasRoute
   '/app/previsao': typeof AppPrevisaoRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/app/assinaturas'
     | '/app/dashboard'
     | '/app/metas'
     | '/app/previsao'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/app/assinaturas'
     | '/app/dashboard'
     | '/app/metas'
     | '/app/previsao'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/app/assinaturas'
     | '/app/dashboard'
     | '/app/metas'
     | '/app/previsao'
@@ -167,10 +179,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/assinaturas': {
+      id: '/app/assinaturas'
+      path: '/assinaturas'
+      fullPath: '/app/assinaturas'
+      preLoaderRoute: typeof AppAssinaturasRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAssinaturasRoute: typeof AppAssinaturasRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppMetasRoute: typeof AppMetasRoute
   AppPrevisaoRoute: typeof AppPrevisaoRoute
@@ -179,6 +199,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAssinaturasRoute: AppAssinaturasRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppMetasRoute: AppMetasRoute,
   AppPrevisaoRoute: AppPrevisaoRoute,
