@@ -15,6 +15,7 @@ import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
 import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
 import { Route as AppPrevisaoRouteImport } from './routes/app/previsao'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
+import { Route as AppDividasRouteImport } from './routes/app/dividas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppAssinaturasRouteImport } from './routes/app/assinaturas'
 
@@ -48,6 +49,11 @@ const AppMetasRoute = AppMetasRouteImport.update({
   path: '/metas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDividasRoute = AppDividasRouteImport.update({
+  id: '/dividas',
+  path: '/dividas',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/app/assinaturas': typeof AppAssinaturasRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/dividas': typeof AppDividasRoute
   '/app/metas': typeof AppMetasRoute
   '/app/previsao': typeof AppPrevisaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRouteWithChildren
   '/app/assinaturas': typeof AppAssinaturasRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/dividas': typeof AppDividasRoute
   '/app/metas': typeof AppMetasRoute
   '/app/previsao': typeof AppPrevisaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/app/assinaturas': typeof AppAssinaturasRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/dividas': typeof AppDividasRoute
   '/app/metas': typeof AppMetasRoute
   '/app/previsao': typeof AppPrevisaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/assinaturas'
     | '/app/dashboard'
+    | '/app/dividas'
     | '/app/metas'
     | '/app/previsao'
     | '/app/relatorios'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/assinaturas'
     | '/app/dashboard'
+    | '/app/dividas'
     | '/app/metas'
     | '/app/previsao'
     | '/app/relatorios'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/assinaturas'
     | '/app/dashboard'
+    | '/app/dividas'
     | '/app/metas'
     | '/app/previsao'
     | '/app/relatorios'
@@ -172,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMetasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/dividas': {
+      id: '/app/dividas'
+      path: '/dividas'
+      fullPath: '/app/dividas'
+      preLoaderRoute: typeof AppDividasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/dashboard': {
       id: '/app/dashboard'
       path: '/dashboard'
@@ -192,6 +211,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAssinaturasRoute: typeof AppAssinaturasRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDividasRoute: typeof AppDividasRoute
   AppMetasRoute: typeof AppMetasRoute
   AppPrevisaoRoute: typeof AppPrevisaoRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
@@ -201,6 +221,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAssinaturasRoute: AppAssinaturasRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDividasRoute: AppDividasRoute,
   AppMetasRoute: AppMetasRoute,
   AppPrevisaoRoute: AppPrevisaoRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
