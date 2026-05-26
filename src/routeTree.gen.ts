@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
 import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
+import { Route as AppPrevisaoRouteImport } from './routes/app/previsao'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 
@@ -36,6 +37,11 @@ const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPrevisaoRoute = AppPrevisaoRouteImport.update({
+  id: '/previsao',
+  path: '/previsao',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMetasRoute = AppMetasRouteImport.update({
   id: '/metas',
   path: '/metas',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/previsao': typeof AppPrevisaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/previsao': typeof AppPrevisaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/previsao': typeof AppPrevisaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/dashboard'
     | '/app/metas'
+    | '/app/previsao'
     | '/app/relatorios'
     | '/app/transacoes'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/dashboard'
     | '/app/metas'
+    | '/app/previsao'
     | '/app/relatorios'
     | '/app/transacoes'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/dashboard'
     | '/app/metas'
+    | '/app/previsao'
     | '/app/relatorios'
     | '/app/transacoes'
   fileRoutesById: FileRoutesById
@@ -134,6 +146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRelatoriosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/previsao': {
+      id: '/app/previsao'
+      path: '/previsao'
+      fullPath: '/app/previsao'
+      preLoaderRoute: typeof AppPrevisaoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/metas': {
       id: '/app/metas'
       path: '/metas'
@@ -154,6 +173,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppMetasRoute: typeof AppMetasRoute
+  AppPrevisaoRoute: typeof AppPrevisaoRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppTransacoesRoute: typeof AppTransacoesRoute
 }
@@ -161,6 +181,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppMetasRoute: AppMetasRoute,
+  AppPrevisaoRoute: AppPrevisaoRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppTransacoesRoute: AppTransacoesRoute,
 }
@@ -174,3 +195,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
