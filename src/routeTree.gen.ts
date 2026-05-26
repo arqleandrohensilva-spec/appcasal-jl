@@ -20,6 +20,7 @@ import { Route as AppDividasRouteImport } from './routes/app/dividas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppContasRouteImport } from './routes/app/contas'
 import { Route as AppConquistasRouteImport } from './routes/app/conquistas'
+import { Route as AppComportamentoRouteImport } from './routes/app/comportamento'
 import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
 
 const AppRoute = AppRouteImport.update({
@@ -77,6 +78,11 @@ const AppConquistasRoute = AppConquistasRouteImport.update({
   path: '/conquistas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppComportamentoRoute = AppComportamentoRouteImport.update({
+  id: '/comportamento',
+  path: '/comportamento',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCartoesRoute = AppCartoesRouteImport.update({
   id: '/cartoes',
   path: '/cartoes',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/cartoes': typeof AppCartoesRoute
+  '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/cartoes': typeof AppCartoesRoute
+  '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/cartoes': typeof AppCartoesRoute
+  '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/cartoes'
+    | '/app/comportamento'
     | '/app/conquistas'
     | '/app/contas'
     | '/app/dashboard'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/cartoes'
+    | '/app/comportamento'
     | '/app/conquistas'
     | '/app/contas'
     | '/app/dashboard'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/cartoes'
+    | '/app/comportamento'
     | '/app/conquistas'
     | '/app/contas'
     | '/app/dashboard'
@@ -255,6 +267,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConquistasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/comportamento': {
+      id: '/app/comportamento'
+      path: '/comportamento'
+      fullPath: '/app/comportamento'
+      preLoaderRoute: typeof AppComportamentoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/cartoes': {
       id: '/app/cartoes'
       path: '/cartoes'
@@ -267,6 +286,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppCartoesRoute: typeof AppCartoesRoute
+  AppComportamentoRoute: typeof AppComportamentoRoute
   AppConquistasRoute: typeof AppConquistasRoute
   AppContasRoute: typeof AppContasRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -280,6 +300,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppCartoesRoute: AppCartoesRoute,
+  AppComportamentoRoute: AppComportamentoRoute,
   AppConquistasRoute: AppConquistasRoute,
   AppContasRoute: AppContasRoute,
   AppDashboardRoute: AppDashboardRoute,
@@ -300,3 +321,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
