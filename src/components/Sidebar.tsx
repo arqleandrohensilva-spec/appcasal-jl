@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp, ShieldCheck, CreditCard, Trophy } from 'lucide-react';
+import { LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp, ShieldCheck, CreditCard, Trophy, Flame, Sparkles, Brain } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
@@ -20,8 +20,13 @@ export function Sidebar() {
     { name: 'Fluxo de Caixa', path: '/app/fluxo', icon: TrendingUp },
     { name: 'Metas', path: '/app/metas', icon: Target },
     { name: 'Dívidas', path: '/app/dividas', icon: ShieldCheck },
+    { name: 'Patrimônio', path: '/app/patrimonio', icon: TrendingUp },
+    { name: 'Comportamento', path: '/app/comportamento', icon: Brain },
+    { name: 'Agente', path: '/app/agente', icon: Sparkles },
     { name: 'Relatórios', path: '/app/relatorios', icon: BarChart3 },
   ];
+
+
 
   return (
     <div className="w-64 bg-white border-r h-screen flex flex-col fixed left-0 top-0">
@@ -69,7 +74,21 @@ export function Sidebar() {
             Diagnóstico do Casal
           </Button>
         </div>
+        
+        {new Date().getMonth() >= 10 || new Date().getMonth() <= 1 ? (
+          <Link
+            to="/app/retrospectiva"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-md transition-colors mt-2",
+              location.pathname === '/app/retrospectiva' ? "bg-purple-100 text-purple-900 font-medium" : "text-purple-600 bg-purple-50 hover:bg-purple-100"
+            )}
+          >
+            <Trophy className="h-5 w-5" />
+            Retrospectiva 2026
+          </Link>
+        ) : null}
       </nav>
+
 
       <div className="p-4 border-t">
         <Link to="/" className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:text-red-600 transition-colors">

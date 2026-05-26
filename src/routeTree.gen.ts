@@ -12,14 +12,18 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
+import { Route as AppRetrospectivaRouteImport } from './routes/app/retrospectiva'
 import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
+import { Route as AppPatrimonioRouteImport } from './routes/app/patrimonio'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
 import { Route as AppFluxoRouteImport } from './routes/app/fluxo'
 import { Route as AppDividasRouteImport } from './routes/app/dividas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppContasRouteImport } from './routes/app/contas'
 import { Route as AppConquistasRouteImport } from './routes/app/conquistas'
+import { Route as AppComportamentoRouteImport } from './routes/app/comportamento'
 import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
+import { Route as AppAgenteRouteImport } from './routes/app/agente'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -36,9 +40,19 @@ const AppTransacoesRoute = AppTransacoesRouteImport.update({
   path: '/transacoes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRetrospectivaRoute = AppRetrospectivaRouteImport.update({
+  id: '/retrospectiva',
+  path: '/retrospectiva',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPatrimonioRoute = AppPatrimonioRouteImport.update({
+  id: '/patrimonio',
+  path: '/patrimonio',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMetasRoute = AppMetasRouteImport.update({
@@ -71,50 +85,72 @@ const AppConquistasRoute = AppConquistasRouteImport.update({
   path: '/conquistas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppComportamentoRoute = AppComportamentoRouteImport.update({
+  id: '/comportamento',
+  path: '/comportamento',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCartoesRoute = AppCartoesRouteImport.update({
   id: '/cartoes',
   path: '/cartoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgenteRoute = AppAgenteRouteImport.update({
+  id: '/agente',
+  path: '/agente',
   getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
+  '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/relatorios': typeof AppRelatoriosRoute
+  '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
+  '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/relatorios': typeof AppRelatoriosRoute
+  '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
+  '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/relatorios': typeof AppRelatoriosRoute
+  '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRouteTypes {
@@ -122,40 +158,52 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/app/agente'
     | '/app/cartoes'
+    | '/app/comportamento'
     | '/app/conquistas'
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
+    | '/app/patrimonio'
     | '/app/relatorios'
+    | '/app/retrospectiva'
     | '/app/transacoes'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/app'
+    | '/app/agente'
     | '/app/cartoes'
+    | '/app/comportamento'
     | '/app/conquistas'
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
+    | '/app/patrimonio'
     | '/app/relatorios'
+    | '/app/retrospectiva'
     | '/app/transacoes'
   id:
     | '__root__'
     | '/'
     | '/app'
+    | '/app/agente'
     | '/app/cartoes'
+    | '/app/comportamento'
     | '/app/conquistas'
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
+    | '/app/patrimonio'
     | '/app/relatorios'
+    | '/app/retrospectiva'
     | '/app/transacoes'
   fileRoutesById: FileRoutesById
 }
@@ -187,11 +235,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTransacoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/retrospectiva': {
+      id: '/app/retrospectiva'
+      path: '/retrospectiva'
+      fullPath: '/app/retrospectiva'
+      preLoaderRoute: typeof AppRetrospectivaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/relatorios': {
       id: '/app/relatorios'
       path: '/relatorios'
       fullPath: '/app/relatorios'
       preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/patrimonio': {
+      id: '/app/patrimonio'
+      path: '/patrimonio'
+      fullPath: '/app/patrimonio'
+      preLoaderRoute: typeof AppPatrimonioRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/metas': {
@@ -236,6 +298,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConquistasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/comportamento': {
+      id: '/app/comportamento'
+      path: '/comportamento'
+      fullPath: '/app/comportamento'
+      preLoaderRoute: typeof AppComportamentoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/cartoes': {
       id: '/app/cartoes'
       path: '/cartoes'
@@ -243,30 +312,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCartoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/agente': {
+      id: '/app/agente'
+      path: '/agente'
+      fullPath: '/app/agente'
+      preLoaderRoute: typeof AppAgenteRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAgenteRoute: typeof AppAgenteRoute
   AppCartoesRoute: typeof AppCartoesRoute
+  AppComportamentoRoute: typeof AppComportamentoRoute
   AppConquistasRoute: typeof AppConquistasRoute
   AppContasRoute: typeof AppContasRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDividasRoute: typeof AppDividasRoute
   AppFluxoRoute: typeof AppFluxoRoute
   AppMetasRoute: typeof AppMetasRoute
+  AppPatrimonioRoute: typeof AppPatrimonioRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
+  AppRetrospectivaRoute: typeof AppRetrospectivaRoute
   AppTransacoesRoute: typeof AppTransacoesRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgenteRoute: AppAgenteRoute,
   AppCartoesRoute: AppCartoesRoute,
+  AppComportamentoRoute: AppComportamentoRoute,
   AppConquistasRoute: AppConquistasRoute,
   AppContasRoute: AppContasRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDividasRoute: AppDividasRoute,
   AppFluxoRoute: AppFluxoRoute,
   AppMetasRoute: AppMetasRoute,
+  AppPatrimonioRoute: AppPatrimonioRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
+  AppRetrospectivaRoute: AppRetrospectivaRoute,
   AppTransacoesRoute: AppTransacoesRoute,
 }
 
