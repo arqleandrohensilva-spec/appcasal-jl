@@ -4,11 +4,10 @@ import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA, formatCurrency } from '@/lib/mockData';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar, AreaChart, Info, TrendingDown, TrendingUp } from 'lucide-react';
+import { Plus, Calendar, TrendingDown, TrendingUp } from 'lucide-react';
 import { LIFE_EVENTS } from '@/lib/premiumData';
-import { useState } from 'react';
 import { Area, AreaChart as RechartsAreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-
+import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/app/metas')({
   component: Metas,
@@ -93,7 +92,6 @@ function Metas() {
           )}
         </div>
       </div>
-      </div>
 
       <div className="pt-8 space-y-6">
         <div className="flex items-center justify-between">
@@ -173,4 +171,5 @@ function Metas() {
     </div>
   );
 }
+
 
