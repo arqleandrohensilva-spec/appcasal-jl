@@ -9,8 +9,9 @@ import { CATEGORIES, ACCOUNTS, formatCurrency, CREDIT_CARDS } from '@/lib/mockDa
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Camera, Loader2, Sparkles, TrendingUp } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
+
 
 export const Route = createFileRoute('/app/transacoes')({
   component: Transacoes,
@@ -23,6 +24,11 @@ function Transacoes() {
   const [selectedAccount, setSelectedAccount] = useState("");
   const [installments, setInstallments] = useState("1");
   const [valor, setValor] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
 
   const myCards = CREDIT_CARDS.filter(c => c.owner === activeProfile);
   const availableAccounts = [...ACCOUNTS, ...myCards.map(c => c.name)];
@@ -40,8 +46,32 @@ function Transacoes() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
       <header>
-        <h1 className="text-2xl font-bold">Nova Transação</h1>
-        <p className="text-muted-foreground">Adicione uma receita ou despesa</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Nova Transação</h1>
+            <p className="text-muted-foreground">Adicione uma receita ou despesa</p>
+          </div>
+          <Button 
+            variant="outline" 
+            className="gap-2 border-purple-200 text-purple-600 hover:bg-purple-50"
+            onClick={() => {
+              setIsScanning(true);
+              setTimeout(() => {
+                setDescription("Supermercado Pão de Açúcar");
+                setValor("234.70");
+                setCategory("Alimentação");
+                setDate("2026-05-26");
+                setIsScanning(false);
+                toast.success("Nota lida com sucesso!");
+              }, 2000);
+            }}
+            disabled={isScanning}
+          >
+            {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            {isScanning ? 'Lendo nota...' : 'Escanear nota'}
+          </Button>
+        </div>
+
       </header>
 
       <Card>
@@ -49,7 +79,7 @@ function Transacoes() {
           <form className="space-y-4" onSubmit={handleSave}>
             <div className="space-y-2">
               <Label htmlFor="descricao">Descrição</Label>
-              <Input id="descricao" placeholder="Ex: Supermercado, Salário..." required />
+              <Input id="descricao" placeholder="Ex: Supermercado, Salário..." required value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -80,7 +110,8 @@ function Transacoes() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="categoria">Categoria</Label>
-                <Select required>
+                <Select required value={category} onValueChange={setCategory}>
+
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -131,7 +162,7 @@ function Transacoes() {
 
             <div className="space-y-2">
               <Label htmlFor="data">Data</Label>
-              <Input id="data" type="date" required defaultValue={new Date().toISOString().split('T')[0]} />
+              <Input id="data" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
 
             <div className="space-y-2">
@@ -139,7 +170,24 @@ function Transacoes() {
               <Input id="obs" />
             </div>
 
+            {valorNum > 30 && category !== 'Moradia' && category !== 'Saúde' && category !== 'Educação' && (
+              <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-2 animate-in fade-in zoom-in-95 duration-300">
+                <div className="flex items-center gap-2 text-blue-700 font-bold text-sm">
+                  <TrendingUp className="h-4 w-4" />
+                  💡 Custo de Oportunidade
+                </div>
+                <p className="text-xs text-blue-600 leading-relaxed">
+                  {formatCurrency(valorNum)} investidos todo mês a 10% a.a. virariam <b>{formatCurrency(valorNum * 210)}</b> em 10 anos.
+                </p>
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" variant="outline" className="h-8 text-[10px] bg-white border-blue-200 text-blue-700 hover:bg-blue-50">Investir em vez disso</Button>
+                  <Button size="sm" variant="ghost" className="h-8 text-[10px] text-blue-600 hover:bg-blue-100">Entendido</Button>
+                </div>
+              </div>
+            )}
+
             <div className="pt-4 flex gap-3">
+
               <Button type="submit" className="flex-1">Salvar Transação</Button>
               <Button type="button" variant="outline" onClick={() => navigate({ to: '/app/dashboard' })}>Cancelar</Button>
             </div>
