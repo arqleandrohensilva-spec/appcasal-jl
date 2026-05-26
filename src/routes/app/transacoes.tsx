@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { CATEGORIES, ACCOUNTS, formatCurrency } from '@/lib/mockData';
+import { CATEGORIES, ACCOUNTS, formatCurrency, CREDIT_CARDS } from '@/lib/mockData';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { useAppContext } from '@/lib/context';
 
 export const Route = createFileRoute('/app/transacoes')({
   component: Transacoes,
@@ -17,9 +18,14 @@ export const Route = createFileRoute('/app/transacoes')({
 
 function Transacoes() {
   const navigate = useNavigate();
+  const { activeProfile } = useAppContext();
   const [isCreditCard, setIsCreditCard] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState("");
   const [installments, setInstallments] = useState("1");
   const [valor, setValor] = useState("");
+
+  const myCards = CREDIT_CARDS.filter(c => c.owner === activeProfile);
+  const availableAccounts = [...ACCOUNTS, ...myCards.map(c => c.name)];
 
   const parcelasNum = parseInt(installments) || 1;
   const valorNum = parseFloat(valor) || 0;
@@ -71,13 +77,31 @@ function Transacoes() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 py-2">
-              <Switch 
-                id="pago-no-cartao" 
-                checked={isCreditCard}
-                onCheckedChange={setIsCreditCard}
-              />
-              <Label htmlFor="pago-no-cartao">Pago no cartão?</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="categoria">Categoria</Label>
+                <Select required>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="conta">Pago com / Conta</Label>
+                <Select 
+                  required 
+                  onValueChange={(val) => {
+                    setSelectedAccount(val);
+                    setIsCreditCard(myCards.some(c => c.name === val));
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {availableAccounts.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {isCreditCard && (
@@ -105,30 +129,9 @@ function Transacoes() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="categoria">Categoria</Label>
-                <Select required>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="conta">Conta</Label>
-                <Select required>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {ACCOUNTS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="data">Data</Label>
-              <Input id="data" type="date" required />
+              <Input id="data" type="date" required defaultValue={new Date().toISOString().split('T')[0]} />
             </div>
 
             <div className="space-y-2">

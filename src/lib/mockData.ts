@@ -1,3 +1,70 @@
+export interface CreditCard {
+  id: string;
+  name: string;
+  limit: number;
+  closingDay: number;
+  dueDay: number;
+  color: string;
+  owner: 'leandro' | 'jonathan';
+}
+
+export interface BillItem {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: string;
+  installments?: string; // e.g. "1/12"
+}
+
+export interface ScheduledTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  dueDate: string;
+  type: 'payable' | 'receivable';
+  recurring: boolean;
+  frequency?: 'weekly' | 'monthly' | 'yearly';
+  category: string;
+  status: 'pending' | 'paid' | 'overdue';
+  owner: 'leandro' | 'jonathan' | 'casal';
+}
+
+export const CREDIT_CARDS: CreditCard[] = [
+  { id: 'nubank-l', name: 'Nubank', limit: 8000, closingDay: 3, dueDay: 10, color: 'purple', owner: 'leandro' },
+  { id: 'itau-l', name: 'Itaú Visa', limit: 5000, closingDay: 15, dueDay: 22, color: 'blue', owner: 'leandro' },
+  { id: 'c6-j', name: 'C6 Gold', limit: 4000, closingDay: 8, dueDay: 15, color: 'gray', owner: 'jonathan' },
+  { id: 'inter-j', name: 'Inter Mastercard', limit: 3000, closingDay: 20, dueDay: 27, color: 'orange', owner: 'jonathan' },
+];
+
+export const SCHEDULED_TRANSACTIONS: ScheduledTransaction[] = [
+  // Leandro
+  { id: 'l1', description: 'Salário', amount: 8500, dueDate: '2026-06-05', type: 'receivable', recurring: true, frequency: 'monthly', category: 'Renda', status: 'pending', owner: 'leandro' },
+  { id: 'l2', description: 'Aluguel', amount: 1800, dueDate: '2026-06-05', type: 'payable', recurring: true, frequency: 'monthly', category: 'Moradia', status: 'pending', owner: 'leandro' },
+  { id: 'l3', description: 'Condomínio', amount: 380, dueDate: '2026-06-10', type: 'payable', recurring: true, frequency: 'monthly', category: 'Moradia', status: 'pending', owner: 'leandro' },
+  { id: 'l4', description: 'Internet', amount: 119.90, dueDate: '2026-06-15', type: 'payable', recurring: true, frequency: 'monthly', category: 'Assinaturas', status: 'pending', owner: 'leandro' },
+  { id: 'l5', description: 'Spotify', amount: 21.90, dueDate: '2026-06-18', type: 'payable', recurring: true, frequency: 'monthly', category: 'Assinaturas', status: 'pending', owner: 'leandro' },
+  { id: 'l6', description: 'Freelance', amount: 1200, dueDate: '2026-06-20', type: 'receivable', recurring: true, frequency: 'monthly', category: 'Renda', status: 'pending', owner: 'leandro' },
+  // Jonathan
+  { id: 'j1', description: 'Salário', amount: 6200, dueDate: '2026-06-05', type: 'receivable', recurring: true, frequency: 'monthly', category: 'Renda', status: 'pending', owner: 'jonathan' },
+  { id: 'j2', description: 'Condomínio', amount: 1200, dueDate: '2026-06-05', type: 'payable', recurring: true, frequency: 'monthly', category: 'Moradia', status: 'pending', owner: 'jonathan' },
+  { id: 'j3', description: 'iFood Pass', amount: 29.90, dueDate: '2026-06-22', type: 'payable', recurring: true, frequency: 'monthly', category: 'Assinaturas', status: 'pending', owner: 'jonathan' },
+  { id: 'j4', description: 'Xbox Game Pass', amount: 44.90, dueDate: '2026-06-03', type: 'payable', recurring: true, frequency: 'monthly', category: 'Assinaturas', status: 'pending', owner: 'jonathan' },
+];
+
+export const BILL_ITEMS: Record<string, BillItem[]> = {
+  'nubank-l': [
+    { id: 'b1', description: 'TV 65" Samsung', amount: 291.67, date: '2026-05-20', category: 'Lazer', installments: '5/12' },
+    { id: 'b2', description: 'Curso Udemy', amount: 49.90, date: '2026-04-10', category: 'Educação', installments: '2/3' },
+    { id: 'b3', description: 'Supermercado', amount: 450, date: '2026-05-12', category: 'Alimentação' },
+  ],
+  'c6-j': [
+    { id: 'b4', description: 'Academia anual', amount: 99.00, date: '2026-01-01', category: 'Saúde', installments: '5/12' },
+    { id: 'b5', description: 'Acessório iPhone', amount: 83.33, date: '2026-03-15', category: 'Outros', installments: '3/6' },
+    { id: 'b6', description: 'Jantar', amount: 150, date: '2026-05-18', category: 'Lazer' },
+  ]
+};
+
 export const LEANDRO_DATA = {
   name: 'Leandro',
   color: 'bg-purple-600',
@@ -10,9 +77,10 @@ export const LEANDRO_DATA = {
   poupanca: 3270,
   poupancaPercent: 39,
   score: 78,
+  saldoAtual: 3840,
   gastosPorCategoria: [
     { name: 'Moradia', value: 1800, prevValue: 1800 },
-    { name: 'Alimentação', value: 900, prevValue: 375 }, // Anomalia proposital: 2.4x mais
+    { name: 'Alimentação', value: 900, prevValue: 375 },
     { name: 'Transporte', value: 620, prevValue: 600 },
     { name: 'Lazer', value: 480, prevValue: 500 },
     { name: 'Saúde', value: 430, prevValue: 400 },
@@ -29,8 +97,6 @@ export const LEANDRO_DATA = {
     { id: '1', descricao: 'Salário', valor: 8500, tipo: 'receita', categoria: 'Renda', data: '2026-05-05', conta: 'Nubank' },
     { id: '2', descricao: 'Aluguel', valor: 1800, tipo: 'despesa', categoria: 'Moradia', data: '2026-05-10', conta: 'Itaú' },
     { id: '3', descricao: 'Supermercado', valor: 450, tipo: 'despesa', categoria: 'Alimentação', data: '2026-05-12', conta: 'Nubank' },
-    { id: '4', descricao: 'Restaurante', valor: 120, tipo: 'despesa', categoria: 'Lazer', data: '2026-05-15', conta: 'Cartão de Crédito' },
-    { id: 'p1', descricao: 'TV 65" Samsung (5/12)', valor: 291.67, tipo: 'despesa', categoria: 'Lazer', data: '2026-05-20', conta: 'Cartão de Crédito', parcelado: true },
   ],
   parcelamentos: [
     { id: 'tv', nome: 'TV 65" Samsung', parcelasPagas: 5, totalParcelas: 12, valorParcela: 291.67, inicio: '2026-01-01' },
@@ -55,6 +121,7 @@ export const JONATHAN_DATA = {
   poupanca: 1220,
   poupancaPercent: 20,
   score: 65,
+  saldoAtual: 2150,
   gastosPorCategoria: [
     { name: 'Alimentação', value: 1400, prevValue: 1300 },
     { name: 'Moradia', value: 1200, prevValue: 1200 },
@@ -71,7 +138,6 @@ export const JONATHAN_DATA = {
   transacoes: [
     { id: '1', descricao: 'Pró-labore', valor: 6200, tipo: 'receita', categoria: 'Renda', data: '2026-05-05', conta: 'Bradesco' },
     { id: '2', descricao: 'Condomínio', valor: 1200, tipo: 'despesa', categoria: 'Moradia', data: '2026-05-08', conta: 'Bradesco' },
-    { id: 'p2', descricao: 'iPhone acessório (3/6)', valor: 83.33, tipo: 'despesa', categoria: 'Outros', data: '2026-05-15', conta: 'Cartão de Crédito', parcelado: true },
   ],
   parcelamentos: [
     { id: 'iphone', nome: 'iPhone acessório', parcelasPagas: 3, totalParcelas: 6, valorParcela: 83.33, inicio: '2026-03-01' },
@@ -101,6 +167,7 @@ export const CASAL_DATA = {
   poupancaPercent: 31,
   patrimonio: 28400,
   score: 72,
+  saldoAtual: 5990,
   metas: [
     { name: 'Viagem Europa', atual: 6800, alvo: 20000, prazo: '05/2027', cor: 'orange' },
   ],
@@ -116,11 +183,11 @@ export const CASAL_DATA = {
 };
 
 export const CATEGORIES = [
-  'Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Assinaturas', 'Investimentos', 'Outros'
+  'Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Assinaturas', 'Investimentos', 'Educação', 'Outros'
 ];
 
 export const ACCOUNTS = [
-  'Nubank', 'Itaú', 'Bradesco', 'Cartão de Crédito', 'Dinheiro', 'Outro'
+  'Nubank', 'Itaú', 'Bradesco', 'Dinheiro', 'Outro'
 ];
 
 export const formatCurrency = (value: number) => {
@@ -129,3 +196,9 @@ export const formatCurrency = (value: number) => {
     currency: 'BRL',
   }).format(value);
 };
+
+export const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('pt-BR');
+};
+

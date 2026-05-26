@@ -15,12 +15,11 @@ export function Sidebar() {
   const navItems = [
     { name: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
     { name: 'Transações', path: '/app/transacoes', icon: Receipt },
-    { name: 'Previsão', path: '/app/previsao', icon: TrendingUp },
-    { name: 'Parcelas', path: '/app/parcelamentos', icon: CreditCard },
-    { name: 'Assinaturas', path: '/app/assinaturas', icon: ShieldCheck },
-    { name: 'Dívidas', path: '/app/dividas', icon: TrendingUp }, // Usando o mesmo ícone para simplicidade ou mude se quiser
+    { name: 'Cartões', path: '/app/cartoes', icon: CreditCard },
+    { name: 'Contas', path: '/app/contas', icon: ShieldCheck },
+    { name: 'Fluxo de Caixa', path: '/app/fluxo', icon: TrendingUp },
     { name: 'Metas', path: '/app/metas', icon: Target },
-    { name: 'Conquistas', path: '/app/conquistas', icon: Trophy },
+    { name: 'Dívidas', path: '/app/dividas', icon: ShieldCheck },
     { name: 'Relatórios', path: '/app/relatorios', icon: BarChart3 },
   ];
 
