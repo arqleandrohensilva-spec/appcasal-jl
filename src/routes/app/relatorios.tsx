@@ -53,17 +53,19 @@ function Relatorios() {
       <Card>
         <CardHeader><CardTitle>Receita vs Gastos (Últimos 6 meses)</CardTitle></CardHeader>
         <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={mockEvolution}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="mes" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="receita" stroke="#10b981" strokeWidth={2} name="Receita" />
-              <Line type="monotone" dataKey="gastos" stroke="#ef4444" strokeWidth={2} name="Gastos" />
-            </LineChart>
-          </ResponsiveContainer>
+          {isMounted && (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={mockEvolution}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="receita" stroke="#10b981" strokeWidth={2} name="Receita" />
+                <Line type="monotone" dataKey="gastos" stroke="#ef4444" strokeWidth={2} name="Gastos" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
@@ -89,21 +91,23 @@ function Relatorios() {
           <Card>
             <CardHeader><CardTitle>Comparativo: Leandro vs Jonathan</CardTitle></CardHeader>
             <CardContent className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { category: 'Alimentação', L: 900, J: 1400 },
-                  { category: 'Moradia', L: 1800, J: 1200 },
-                  { category: 'Lazer', L: 480, J: 800 },
-                  { category: 'Transporte', L: 620, J: 580 },
-                ]}>
-                  <XAxis dataKey="category" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="L" fill="#8b5cf6" name="Leandro" />
-                  <Bar dataKey="J" fill="#10b981" name="Jonathan" />
-                </BarChart>
-              </ResponsiveContainer>
+              {isMounted && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { category: 'Alimentação', L: 900, J: 1400 },
+                    { category: 'Moradia', L: 1800, J: 1200 },
+                    { category: 'Lazer', L: 480, J: 800 },
+                    { category: 'Transporte', L: 620, J: 580 },
+                  ]}>
+                    <XAxis dataKey="category" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="L" fill="#8b5cf6" name="Leandro" />
+                    <Bar dataKey="J" fill="#10b981" name="Jonathan" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         )}
