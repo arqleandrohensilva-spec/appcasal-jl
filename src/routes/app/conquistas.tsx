@@ -27,7 +27,7 @@ function Conquistas() {
   useEffect(() => { setIsMounted(true); }, []);
 
   const data = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
-  const unlocked = data.conquistas || [];
+  const unlocked = (data as any).conquistas || [];
 
   const triggerConfetti = () => {
     confetti({
