@@ -24,6 +24,11 @@ function fmtShort(iso: string) {
   const [, m, d] = iso.split('-');
   return `${d}/${m}`;
 }
+const WEEKDAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+function weekdayBR(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return WEEKDAYS[new Date(y, m - 1, d).getDay()];
+}
 
 const RANGES = [
   { label: '30 dias', days: 30 },
