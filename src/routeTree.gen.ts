@@ -12,16 +12,20 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
+import { Route as AppScannerRouteImport } from './routes/app/scanner'
 import { Route as AppRetrospectivaRouteImport } from './routes/app/retrospectiva'
 import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
+import { Route as AppPossoGastarRouteImport } from './routes/app/posso-gastar'
 import { Route as AppPatrimonioRouteImport } from './routes/app/patrimonio'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
 import { Route as AppFluxoRouteImport } from './routes/app/fluxo'
 import { Route as AppDividasRouteImport } from './routes/app/dividas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppContasRouteImport } from './routes/app/contas'
+import { Route as AppConsorcioRouteImport } from './routes/app/consorcio'
 import { Route as AppConquistasRouteImport } from './routes/app/conquistas'
 import { Route as AppComportamentoRouteImport } from './routes/app/comportamento'
+import { Route as AppComparadorRouteImport } from './routes/app/comparador'
 import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
 import { Route as AppAgenteRouteImport } from './routes/app/agente'
 
@@ -40,6 +44,11 @@ const AppTransacoesRoute = AppTransacoesRouteImport.update({
   path: '/transacoes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppScannerRoute = AppScannerRouteImport.update({
+  id: '/scanner',
+  path: '/scanner',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRetrospectivaRoute = AppRetrospectivaRouteImport.update({
   id: '/retrospectiva',
   path: '/retrospectiva',
@@ -48,6 +57,11 @@ const AppRetrospectivaRoute = AppRetrospectivaRouteImport.update({
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPossoGastarRoute = AppPossoGastarRouteImport.update({
+  id: '/posso-gastar',
+  path: '/posso-gastar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPatrimonioRoute = AppPatrimonioRouteImport.update({
@@ -80,6 +94,11 @@ const AppContasRoute = AppContasRouteImport.update({
   path: '/contas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConsorcioRoute = AppConsorcioRouteImport.update({
+  id: '/consorcio',
+  path: '/consorcio',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConquistasRoute = AppConquistasRouteImport.update({
   id: '/conquistas',
   path: '/conquistas',
@@ -88,6 +107,11 @@ const AppConquistasRoute = AppConquistasRouteImport.update({
 const AppComportamentoRoute = AppComportamentoRouteImport.update({
   id: '/comportamento',
   path: '/comportamento',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComparadorRoute = AppComparadorRouteImport.update({
+  id: '/comparador',
+  path: '/comparador',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCartoesRoute = AppCartoesRouteImport.update({
@@ -106,16 +130,20 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
+  '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
+  '/app/consorcio': typeof AppConsorcioRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
   '/app/patrimonio': typeof AppPatrimonioRoute
+  '/app/posso-gastar': typeof AppPossoGastarRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
+  '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRoutesByTo {
@@ -123,16 +151,20 @@ export interface FileRoutesByTo {
   '/app': typeof AppRouteWithChildren
   '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
+  '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
+  '/app/consorcio': typeof AppConsorcioRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
   '/app/patrimonio': typeof AppPatrimonioRoute
+  '/app/posso-gastar': typeof AppPossoGastarRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
+  '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRoutesById {
@@ -141,16 +173,20 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
+  '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
+  '/app/consorcio': typeof AppConsorcioRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
   '/app/patrimonio': typeof AppPatrimonioRoute
+  '/app/posso-gastar': typeof AppPossoGastarRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
+  '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRouteTypes {
@@ -160,16 +196,20 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/agente'
     | '/app/cartoes'
+    | '/app/comparador'
     | '/app/comportamento'
     | '/app/conquistas'
+    | '/app/consorcio'
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
     | '/app/patrimonio'
+    | '/app/posso-gastar'
     | '/app/relatorios'
     | '/app/retrospectiva'
+    | '/app/scanner'
     | '/app/transacoes'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -177,16 +217,20 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/agente'
     | '/app/cartoes'
+    | '/app/comparador'
     | '/app/comportamento'
     | '/app/conquistas'
+    | '/app/consorcio'
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
     | '/app/patrimonio'
+    | '/app/posso-gastar'
     | '/app/relatorios'
     | '/app/retrospectiva'
+    | '/app/scanner'
     | '/app/transacoes'
   id:
     | '__root__'
@@ -194,16 +238,20 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/agente'
     | '/app/cartoes'
+    | '/app/comparador'
     | '/app/comportamento'
     | '/app/conquistas'
+    | '/app/consorcio'
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
     | '/app/patrimonio'
+    | '/app/posso-gastar'
     | '/app/relatorios'
     | '/app/retrospectiva'
+    | '/app/scanner'
     | '/app/transacoes'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTransacoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/scanner': {
+      id: '/app/scanner'
+      path: '/scanner'
+      fullPath: '/app/scanner'
+      preLoaderRoute: typeof AppScannerRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/retrospectiva': {
       id: '/app/retrospectiva'
       path: '/retrospectiva'
@@ -247,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/app/relatorios'
       preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/posso-gastar': {
+      id: '/app/posso-gastar'
+      path: '/posso-gastar'
+      fullPath: '/app/posso-gastar'
+      preLoaderRoute: typeof AppPossoGastarRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/patrimonio': {
@@ -291,6 +353,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppContasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/consorcio': {
+      id: '/app/consorcio'
+      path: '/consorcio'
+      fullPath: '/app/consorcio'
+      preLoaderRoute: typeof AppConsorcioRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/conquistas': {
       id: '/app/conquistas'
       path: '/conquistas'
@@ -303,6 +372,13 @@ declare module '@tanstack/react-router' {
       path: '/comportamento'
       fullPath: '/app/comportamento'
       preLoaderRoute: typeof AppComportamentoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/comparador': {
+      id: '/app/comparador'
+      path: '/comparador'
+      fullPath: '/app/comparador'
+      preLoaderRoute: typeof AppComparadorRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/cartoes': {
@@ -325,32 +401,40 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAgenteRoute: typeof AppAgenteRoute
   AppCartoesRoute: typeof AppCartoesRoute
+  AppComparadorRoute: typeof AppComparadorRoute
   AppComportamentoRoute: typeof AppComportamentoRoute
   AppConquistasRoute: typeof AppConquistasRoute
+  AppConsorcioRoute: typeof AppConsorcioRoute
   AppContasRoute: typeof AppContasRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDividasRoute: typeof AppDividasRoute
   AppFluxoRoute: typeof AppFluxoRoute
   AppMetasRoute: typeof AppMetasRoute
   AppPatrimonioRoute: typeof AppPatrimonioRoute
+  AppPossoGastarRoute: typeof AppPossoGastarRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppRetrospectivaRoute: typeof AppRetrospectivaRoute
+  AppScannerRoute: typeof AppScannerRoute
   AppTransacoesRoute: typeof AppTransacoesRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAgenteRoute: AppAgenteRoute,
   AppCartoesRoute: AppCartoesRoute,
+  AppComparadorRoute: AppComparadorRoute,
   AppComportamentoRoute: AppComportamentoRoute,
   AppConquistasRoute: AppConquistasRoute,
+  AppConsorcioRoute: AppConsorcioRoute,
   AppContasRoute: AppContasRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDividasRoute: AppDividasRoute,
   AppFluxoRoute: AppFluxoRoute,
   AppMetasRoute: AppMetasRoute,
   AppPatrimonioRoute: AppPatrimonioRoute,
+  AppPossoGastarRoute: AppPossoGastarRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppRetrospectivaRoute: AppRetrospectivaRoute,
+  AppScannerRoute: AppScannerRoute,
   AppTransacoesRoute: AppTransacoesRoute,
 }
 

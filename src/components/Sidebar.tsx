@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp, ShieldCheck, CreditCard, Trophy, Flame, Sparkles, Brain, Calculator } from 'lucide-react';
+import { LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp, ShieldCheck, CreditCard, Trophy, Flame, Sparkles, Brain, Calculator, MessageCircleQuestion, ScanLine, Scale } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,9 @@ export function Sidebar() {
 
   const navItems = [
     { name: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
+    { name: 'Posso Gastar?', path: '/app/posso-gastar', icon: MessageCircleQuestion },
+    { name: 'À vista ou Parcelado?', path: '/app/comparador', icon: Scale },
+    { name: 'Scanner de Nota', path: '/app/scanner', icon: ScanLine },
     { name: 'Transações', path: '/app/transacoes', icon: Receipt },
     { name: 'Cartões', path: '/app/cartoes', icon: CreditCard },
     { name: 'Contas', path: '/app/contas', icon: ShieldCheck },
