@@ -125,6 +125,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const groupId = uid();
     const valuePerInstallment = input.amount / n;
     const sign = input.type === 'receita' ? 1 : -1;
+    const todayISO = new Date().toISOString().slice(0, 10);
 
     const created: UserTransaction[] = Array.from({ length: n }, (_, i) => ({
       id: uid(),
@@ -144,24 +145,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     setTransactions(prev => [...created, ...prev]);
 
-    // Atualiza saldo da conta (somente para a parcela atual, em pagamentos à vista de conta)
-    if (input.accountId && n === 1) {
-      setAccounts(prev => prev.map(a =>
-        a.id === input.accountId ? { ...a, balance: a.balance + sign * Math.abs(input.amount) } : a
-      ));
+    // Atualiza saldo da conta APENAS para parcelas já ocorridas (data <= hoje).
+    // Lançamentos futuros impactam só a projeção — não o saldo "agora".
+    if (input.accountId) {
+      const realizedDelta = created
+        .filter(t => !t.cardId && t.date <= todayISO)
+        .reduce((s, t) => s + t.amount, 0);
+      if (realizedDelta !== 0) {
+        setAccounts(prev => prev.map(a =>
+          a.id === input.accountId ? { ...a, balance: a.balance + realizedDelta } : a
+        ));
+      }
     }
 
     return n;
   };
 
   const removeTransaction: DataContextType['removeTransaction'] = (id, removeGroup) => {
+    const todayISO = new Date().toISOString().slice(0, 10);
     setTransactions(prev => {
       const target = prev.find(t => t.id === id);
       if (!target) return prev;
-      if (removeGroup && target.groupId) {
-        return prev.filter(t => t.groupId !== target.groupId);
+      const toRemove = removeGroup && target.groupId
+        ? prev.filter(t => t.groupId === target.groupId)
+        : [target];
+
+      // Reverte saldo das parcelas já realizadas em conta
+      const revertByAccount = new Map<string, number>();
+      for (const t of toRemove) {
+        if (t.accountId && !t.cardId && t.date <= todayISO) {
+          revertByAccount.set(t.accountId, (revertByAccount.get(t.accountId) || 0) - t.amount);
+        }
       }
-      return prev.filter(t => t.id !== id);
+      if (revertByAccount.size > 0) {
+        setAccounts(accs => accs.map(a =>
+          revertByAccount.has(a.id) ? { ...a, balance: a.balance + (revertByAccount.get(a.id) || 0) } : a
+        ));
+      }
+
+      const ids = new Set(toRemove.map(t => t.id));
+      return prev.filter(t => !ids.has(t.id));
     });
   };
 
