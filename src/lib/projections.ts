@@ -74,14 +74,9 @@ export function projectDailyBalance(
   today.setHours(0, 0, 0, 0);
   const rangeStart = toISO(addDays(today, fromDays - 31));
   const rangeEnd = toISO(addDays(today, toDays + 31));
-  // import dinâmico para evitar dependência circular em build
-  const { expandRecurring } = require('./finance') as typeof import('./finance');
-  const txs = expandRecurring(ownTxs, rangeStart, rangeEnd);
+  // import direto (sem ciclo: finance.ts não importa projections.ts)
+  const txs = expandRecurringInline(ownTxs, rangeStart, rangeEnd);
 
-  // Saldo "agora" (hoje) = soma das contas. Como o saldo da conta já reflete
-  // os lançamentos à vista passados, reconstruímos retroativamente.
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
   const todayISO = toISO(today);
   const currentCash = accs.reduce((s, a) => s + a.balance, 0);
 
