@@ -26,7 +26,7 @@ function SimuladorConsorcio() {
   const [embutidoPct, setEmbutidoPct] = useState(20);
   const [aluguel, setAluguel] = useState(1400);
   const [prazo, setPrazo] = useState(15);
-  if (!mounted) return null;
+
 
 
   const calc = useMemo(() => {
