@@ -241,7 +241,7 @@ function Dashboard() {
             </CardContent>
           </Card>
 
-          {activeProfile !== 'casal' && (data as any).gastosPorCategoria && isMounted && (
+          {(data as any).gastosPorCategoria?.length > 0 && isMounted && (
             <Card>
               <CardHeader><CardTitle className="text-sm">Gastos por Categoria</CardTitle></CardHeader>
               <CardContent className="h-48">
