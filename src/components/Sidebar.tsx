@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp,
   ShieldCheck, CreditCard, Trophy, Sparkles, Brain, Calculator,
   MessageCircleQuestion, ScanLine, Scale, ChevronDown, Wallet, Landmark,
-  PieChart, Bot,
+  PieChart, Bot, CalendarDays,
 } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
@@ -47,6 +47,7 @@ const GROUPS: NavGroup[] = [
       { name: 'Cartões', path: '/app/cartoes', icon: CreditCard },
       { name: 'Contas', path: '/app/contas', icon: ShieldCheck },
       { name: 'Fluxo de Caixa', path: '/app/fluxo', icon: TrendingUp },
+      { name: 'Projeção Diária', path: '/app/projecao', icon: CalendarDays },
     ],
   },
   {
