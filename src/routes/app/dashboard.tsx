@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA, formatCurrency } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DailyBalanceProjection, CardRecommendationWidget } from '@/components/dashboard/BalanceProjection';
 import { CoupleDiagnostic } from '@/components/dashboard/CoupleDiagnostic';
+import { useData } from '@/lib/store';
+import { monthlyStats, goalProgress } from '@/lib/finance';
 
 
 export const Route = createFileRoute('/app/dashboard')({
@@ -19,15 +21,51 @@ export const Route = createFileRoute('/app/dashboard')({
 
 function Dashboard() {
   const { activeProfile } = useAppContext();
+  const { transactions, accounts, goals, contributions } = useData();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const data = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
+  const mockProfile = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
+
+  const now = new Date();
+  const stats = useMemo(
+    () => monthlyStats(transactions, activeProfile, now.getFullYear(), now.getMonth()),
+    [transactions, activeProfile, now.getFullYear(), now.getMonth()],
+  );
+  const saldoTotal = useMemo(
+    () => accounts
+      .filter(a => activeProfile === 'casal' || a.owner === activeProfile)
+      .reduce((s, a) => s + a.balance, 0),
+    [accounts, activeProfile],
+  );
+  const userGoals = useMemo(
+    () => goals.filter(g => activeProfile === 'casal' || g.owner === activeProfile).slice(0, 3),
+    [goals, activeProfile],
+  );
+
+  // Dados de exibição: combina perfil mockado (nome/score/cor) com cálculos reais
+  const data: any = {
+    ...mockProfile,
+    receita: stats.receita,
+    gastos: stats.gastos,
+    poupanca: saldoTotal,
+    patrimonio: saldoTotal,
+    gastosPorCategoria: stats.porCategoria.slice(0, 6).map(c => ({ ...c, prevValue: c.value })),
+    metas: userGoals.length > 0
+      ? userGoals.map(g => ({
+          name: g.name,
+          alvo: g.target,
+          atual: goalProgress(contributions, g.id),
+          prazo: g.deadline,
+        }))
+      : [],
+  };
 
   if (!isMounted) return null;
+
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
