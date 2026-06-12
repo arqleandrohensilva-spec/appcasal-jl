@@ -24,11 +24,11 @@ export function filterByOwner<T extends { owner: UserProfile }>(items: T[], prof
 export function expandRecurring(
   transactions: UserTransaction[],
   fromISO: string,
-  toISO: string,
+  toISOStr: string,
 ): UserTransaction[] {
   const result: UserTransaction[] = [];
   const from = parseISO(fromISO);
-  const to = parseISO(toISO);
+  const to = parseISO(toISOStr);
 
   for (const t of transactions) {
     // sempre inclui a instância original
