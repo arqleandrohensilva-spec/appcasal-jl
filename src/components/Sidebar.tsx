@@ -4,13 +4,17 @@ import {
   LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp,
   ShieldCheck, CreditCard, Trophy, Sparkles, Brain, Calculator,
   MessageCircleQuestion, ScanLine, Scale, ChevronDown, Wallet, Landmark,
-  PieChart, Bot, CalendarDays,
+  PieChart, Bot, CalendarDays, Check, Users,
 } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 type NavItem = { name: string; path: string; icon: any; badge?: string };
 type NavGroup = { id: string; label: string; icon: any; items: NavItem[] };
