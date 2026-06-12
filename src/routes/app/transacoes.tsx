@@ -188,6 +188,24 @@ function Transacoes() {
                   )}
                 </div>
               )}
+              {canRecur && (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
+                  <Label className="text-sm">Repete automaticamente?</Label>
+                  <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Não repete (lançamento único)</SelectItem>
+                      <SelectItem value="weekly">Toda semana</SelectItem>
+                      <SelectItem value="monthly">Todo mês</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {recurrence !== 'none' && (
+                    <p className="text-xs text-emerald-700">
+                      ✓ Vai aparecer automaticamente {recurrence === 'weekly' ? 'toda semana' : 'todo mês'} na projeção e nos relatórios — sem precisar lançar de novo.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <Button type="submit" className="w-full">
                 {isInstallment && parcelasNum > 1
