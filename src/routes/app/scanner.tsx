@@ -4,13 +4,14 @@ import { useAppContext } from '@/lib/context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { CATEGORIES, formatCurrency } from '@/lib/mockData';
 import { ScanLine, Upload, Loader2, Sparkles, CheckCircle2, Camera, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useData } from '@/lib/store';
+
 
 export const Route = createFileRoute('/app/scanner')({
   component: Scanner,
@@ -63,6 +64,7 @@ const MOCK_RECEIPTS: ExtractedReceipt[] = [
 function Scanner() {
   const { activeProfile } = useAppContext();
   const navigate = useNavigate();
+  const { addTransaction, accounts } = useData();
   const accent = activeProfile === 'leandro' ? 'purple' : activeProfile === 'jonathan' ? 'emerald' : 'orange';
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -98,7 +100,22 @@ function Scanner() {
   };
 
   const save = () => {
-    toast.success(`${result?.items.length} itens lançados em transações!`);
+    if (!result) return;
+    const ownerProfile = activeProfile === 'casal' ? 'leandro' : activeProfile;
+    const acc = accounts.find(a => a.owner === ownerProfile);
+    for (const item of result.items) {
+      addTransaction({
+        description: `${result.merchant} · ${item.description}`,
+        amount: item.total,
+        date: result.date,
+        category: item.category,
+        paymentMethod: acc ? 'Conta' : 'Dinheiro',
+        accountId: acc?.id,
+        type: 'despesa',
+        owner: ownerProfile,
+      });
+    }
+    toast.success(`${result.items.length} itens lançados em transações!`);
     navigate({ to: '/app/transacoes' });
   };
 
@@ -109,6 +126,8 @@ function Scanner() {
       items: result.items.map(it => it.id === id ? { ...it, ...patch } : it)
     });
   };
+
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">

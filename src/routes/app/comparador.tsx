@@ -1,15 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '@/lib/context';
-import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA, formatCurrency } from '@/lib/mockData';
+import { formatCurrency } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Scale, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useData } from '@/lib/store';
+import { monthlyStats } from '@/lib/finance';
 
 export const Route = createFileRoute('/app/comparador')({
   component: Comparador,
@@ -17,24 +18,31 @@ export const Route = createFileRoute('/app/comparador')({
 
 function Comparador() {
   const { activeProfile } = useAppContext();
-  const data = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
+  const { transactions, accounts } = useData();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const accent = activeProfile === 'leandro' ? 'purple' : activeProfile === 'jonathan' ? 'emerald' : 'orange';
 
   const [valor, setValor] = useState('1800');
   const [parcelas, setParcelas] = useState(6);
-  const [juros, setJuros] = useState('2.5'); // % ao mês
+  const [juros, setJuros] = useState('2.5');
   const [descricao, setDescricao] = useState('Notebook novo');
+
+  const now = new Date();
+  const stats = useMemo(() => monthlyStats(transactions, activeProfile, now.getFullYear(), now.getMonth()), [transactions, activeProfile]);
+  const saldo = useMemo(
+    () => accounts.filter(a => activeProfile === 'casal' || a.owner === activeProfile).reduce((s, a) => s + a.balance, 0),
+    [accounts, activeProfile],
+  );
 
   const valorNum = parseFloat(valor) || 0;
   const jurosNum = parseFloat(juros) / 100 || 0;
-  const saldo = (data as any).saldoAtual ?? 3840;
-  const sobraMes = data.receita - data.gastos;
+  const sobraMes = stats.receita - stats.gastos;
 
-  // À vista
   const saldoAposVista = saldo - valorNum;
   const podeAVista = saldoAposVista >= 800;
 
-  // Parcelado (sistema Price)
   const valorParcela = jurosNum > 0
     ? (valorNum * jurosNum) / (1 - Math.pow(1 + jurosNum, -parcelas))
     : valorNum / parcelas;
@@ -43,10 +51,7 @@ function Comparador() {
   const sobraAposParcela = sobraMes - valorParcela;
   const comprometeMeta = sobraAposParcela < 500;
 
-  // Oportunidade: investir o dinheiro à vista a 1% am
-  const rendimento = jurosNum > 0
-    ? valorNum * (Math.pow(1.01, parcelas) - 1)
-    : 0;
+  const rendimento = valorNum * (Math.pow(1.01, parcelas) - 1);
 
   let veredicto: 'vista' | 'parcelado' | 'esperar' = 'vista';
   let resumo = '';
@@ -58,11 +63,13 @@ function Comparador() {
     resumo = `Pagar à vista é a melhor escolha. Você economiza ${formatCurrency(jurosTotais)} em juros, e mesmo deixando o dinheiro rendendo só faria ${formatCurrency(rendimento)} no mesmo período.`;
   } else if (!podeAVista && comprometeMeta) {
     veredicto = 'esperar';
-    resumo = `Nenhuma das duas opções é segura agora. À vista zera sua reserva e parcelar derruba sua sobra abaixo de ${formatCurrency(500)}, comprometendo metas. Espere acumular ou negocie um valor menor.`;
+    resumo = `Nenhuma das duas opções é segura agora. À vista zera sua reserva e parcelar derruba sua sobra abaixo de ${formatCurrency(500)}. Espere acumular ou negocie um valor menor.`;
   } else {
     veredicto = 'vista';
     resumo = `Pagar à vista mantém sua reserva saudável (${formatCurrency(saldoAposVista)} restantes) e evita ${formatCurrency(jurosTotais)} em juros.`;
   }
+
+  if (!mounted) return null;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -70,7 +77,7 @@ function Comparador() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Scale className={`h-6 w-6 text-${accent}-600`} /> À vista ou Parcelado?
         </h1>
-        <p className="text-muted-foreground">Compare juros, impacto na sobra mensal e custo de oportunidade antes de decidir.</p>
+        <p className="text-muted-foreground">Saldo atual: <b>{formatCurrency(saldo)}</b> · Sobra mensal típica: <b>{formatCurrency(sobraMes)}</b></p>
       </header>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -78,7 +85,7 @@ function Comparador() {
           <CardHeader><CardTitle className="text-base">Dados da compra</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>O que você quer comprar</Label>
+              <Label>O que quer comprar</Label>
               <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
             </div>
             <div className="space-y-2">
@@ -90,9 +97,9 @@ function Comparador() {
               <Slider value={[parcelas]} onValueChange={([v]) => setParcelas(v)} min={2} max={24} step={1} />
             </div>
             <div className="space-y-2">
-              <Label>Juros do parcelamento (% ao mês)</Label>
+              <Label>Juros (% ao mês)</Label>
               <Input type="number" step="0.1" value={juros} onChange={(e) => setJuros(e.target.value)} />
-              <p className="text-[10px] text-muted-foreground">Cartão típico: 2% a 3% a.m. Algumas lojas oferecem "sem juros" — use 0%.</p>
+              <p className="text-[10px] text-muted-foreground">Cartão típico: 2-3% a.m. Se "sem juros", use 0%.</p>
             </div>
           </CardContent>
         </Card>
@@ -151,8 +158,8 @@ function Comparador() {
               <div>
                 <p className="font-bold mb-1">Custo de oportunidade</p>
                 <p className="text-blue-800">
-                  Se você pagasse à vista e investisse a diferença ({formatCurrency(valorParcela)}/mês) a 1% a.m. por {parcelas} meses,
-                  acumularia cerca de <b>{formatCurrency(rendimento)}</b>. Compare com os <b>{formatCurrency(jurosTotais)}</b> de juros do parcelamento.
+                  Investindo {formatCurrency(valorNum)} a 1% a.m. por {parcelas} meses, renderia cerca de <b>{formatCurrency(rendimento)}</b>.
+                  Compare com os <b>{formatCurrency(jurosTotais)}</b> de juros do parcelamento.
                 </p>
               </div>
             </CardContent>

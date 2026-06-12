@@ -1,4 +1,4 @@
-import { useMemo, useState, type ElementType } from 'react';
+import { useEffect, useMemo, useState, type ElementType } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -19,12 +19,15 @@ function chanceContemplacao(pct: number) {
 }
 
 function SimuladorConsorcio() {
-  // valores reais do plano do casal
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [credito, setCredito] = useState(200000);
   const [lanceLivre, setLanceLivre] = useState(33800);
   const [embutidoPct, setEmbutidoPct] = useState(20);
   const [aluguel, setAluguel] = useState(1400);
   const [prazo, setPrazo] = useState(15);
+
+
 
   const calc = useMemo(() => {
     const n = prazo * 12;
@@ -56,6 +59,10 @@ function SimuladorConsorcio() {
     { name: 'Lance embutido', valor: calc.embutido, fill: '#a855f7' },
     { name: 'Crédito efetivo', valor: calc.creditoEfetivo, fill: '#10b981' },
   ];
+
+  if (!mounted) return null;
+
+
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

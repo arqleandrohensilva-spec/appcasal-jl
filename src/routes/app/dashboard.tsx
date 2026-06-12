@@ -13,6 +13,8 @@ import { DailyBalanceProjection, CardRecommendationWidget } from '@/components/d
 import { CoupleDiagnostic } from '@/components/dashboard/CoupleDiagnostic';
 import { useData } from '@/lib/store';
 import { monthlyStats, goalProgress } from '@/lib/finance';
+import { openCardBills, categoryAnomalies, pendingThisMonth } from '@/lib/insights';
+
 
 
 export const Route = createFileRoute('/app/dashboard')({
@@ -21,7 +23,7 @@ export const Route = createFileRoute('/app/dashboard')({
 
 function Dashboard() {
   const { activeProfile } = useAppContext();
-  const { transactions, accounts, goals, contributions } = useData();
+  const { transactions, accounts, cards, goals, contributions } = useData();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -45,8 +47,13 @@ function Dashboard() {
     () => goals.filter(g => activeProfile === 'casal' || g.owner === activeProfile).slice(0, 3),
     [goals, activeProfile],
   );
+  const upcomingBills = useMemo(
+    () => openCardBills(transactions, cards, activeProfile).slice(0, 3),
+    [transactions, cards, activeProfile],
+  );
+  const anomalies = useMemo(() => categoryAnomalies(transactions, activeProfile), [transactions, activeProfile]);
+  const pendentes = useMemo(() => pendingThisMonth(transactions, cards, activeProfile), [transactions, cards, activeProfile]);
 
-  // Dados de exibição: combina perfil mockado (nome/score/cor) com cálculos reais
   const data: any = {
     ...mockProfile,
     receita: stats.receita,
@@ -63,6 +70,7 @@ function Dashboard() {
         }))
       : [],
   };
+
 
   if (!isMounted) return null;
 
@@ -97,11 +105,15 @@ function Dashboard() {
             <Sparkles className="h-6 w-6" />
           </div>
           <div className="flex-1 space-y-1">
-            <p className="font-bold text-gray-900">Bom dia, {activeProfile === 'leandro' ? 'Leandro' : activeProfile === 'jonathan' ? 'Jonathan' : 'pessoal'} ☀️</p>
+            <p className="font-bold text-gray-900">Olá, {activeProfile === 'leandro' ? 'Leandro' : activeProfile === 'jonathan' ? 'Jonathan' : 'pessoal'} ☀️</p>
             <div className="text-sm text-gray-600 space-y-0.5">
-              <p>• Hoje vence sua fatura Nubank — R$ 2.340</p>
-              <p>• Esta semana você gastou R$ 340 — 22% abaixo da média</p>
-              <p>• {activeProfile === 'jonathan' ? 'Sexta chegando — lembre do limite de R$ 50 em delivery' : 'Sua reserva de emergência cresceu R$ 800 este mês'}</p>
+              {upcomingBills.length > 0 ? (
+                <p>• Próxima fatura: <b>{upcomingBills[0].cardName}</b> — {formatCurrency(upcomingBills[0].total)} em {upcomingBills[0].dueDate}</p>
+              ) : (
+                <p>• Sem faturas em aberto 🎉</p>
+              )}
+              <p>• Este mês você gastou <b>{formatCurrency(stats.gastos)}</b> e recebeu <b>{formatCurrency(stats.receita)}</b> — sobra de {formatCurrency(stats.receita - stats.gastos)}</p>
+              <p>• Compromissos pendentes do mês: <b>{formatCurrency(pendentes)}</b></p>
             </div>
           </div>
           <div className="flex items-end">
@@ -112,19 +124,21 @@ function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Alertas de Anomalia */}
-
-      {(data as any).gastosPorCategoria?.some((c: any) => c.value > c.prevValue * 1.5) && (
+      {/* Alertas de Anomalia (reais) */}
+      {anomalies.length > 0 && (
         <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start gap-3">
           <div className="p-2 bg-rose-100 rounded-lg text-rose-600">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
             <p className="font-bold text-rose-900">Anomalia detectada!</p>
-            <p className="text-sm text-rose-700">Você gastou 2.4x mais em <b>Alimentação</b> esta semana em comparação à sua média dos últimos 3 meses.</p>
+            <p className="text-sm text-rose-700">
+              Você gastou {anomalies[0].ratio.toFixed(1)}x mais em <b>{anomalies[0].category}</b> ({formatCurrency(anomalies[0].current)}) este mês vs. média dos últimos 3 ({formatCurrency(anomalies[0].avg3m)}).
+            </p>
           </div>
         </div>
       )}
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -227,7 +241,7 @@ function Dashboard() {
             </CardContent>
           </Card>
 
-          {activeProfile !== 'casal' && (data as any).gastosPorCategoria && isMounted && (
+          {(data as any).gastosPorCategoria?.length > 0 && isMounted && (
             <Card>
               <CardHeader><CardTitle className="text-sm">Gastos por Categoria</CardTitle></CardHeader>
               <CardContent className="h-48">

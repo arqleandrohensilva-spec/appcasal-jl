@@ -1,12 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useAppContext } from '@/lib/context';
 import { formatCurrency } from '@/lib/mockData';
-import { PATRIMONIO_ASSETS } from '@/lib/premiumData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { ArrowUpRight, TrendingUp, Building2, Car, Wallet, Landmark } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Wallet, Landmark, CreditCard, Building2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useData } from '@/lib/store';
+import { useMemo } from 'react';
+import { totalLiabilities, openCardBills } from '@/lib/insights';
+import { monthlyEvolution } from '@/lib/finance';
 
 export const Route = createFileRoute('/app/patrimonio')({
   component: Patrimonio,
@@ -14,37 +16,49 @@ export const Route = createFileRoute('/app/patrimonio')({
 
 function Patrimonio() {
   const { activeProfile } = useAppContext();
-  
-  const userAssets = PATRIMONIO_ASSETS.filter(a => activeProfile === 'casal' ? true : a.owner === activeProfile);
-  const totalAssets = userAssets.reduce((acc, a) => acc + a.value, 0);
-  
-  // Mocked passives
-  const passives = activeProfile === 'leandro' ? 3230 : activeProfile === 'jonathan' ? 3900 : 7130;
-  const netWorth = totalAssets - passives;
-  const growth = activeProfile === 'leandro' ? 2340 : 420;
+  const { accounts, transactions, cards } = useData();
 
-  const chartData = [
-    { name: 'Investimentos', value: userAssets.filter(a => ['CDB', 'Tesouro Direto', 'Ações'].includes(a.type)).reduce((acc, a) => acc + a.value, 0) },
-    { name: 'Imóveis', value: userAssets.filter(a => a.type === 'Imóvel').reduce((acc, a) => acc + a.value, 0) },
-    { name: 'Veículos', value: userAssets.filter(a => a.type === 'Veículo').reduce((acc, a) => acc + a.value, 0) },
-    { name: 'Liquidez', value: activeProfile === 'leandro' ? 5040 : 2900 },
+  const ownAccounts = useMemo(
+    () => accounts.filter(a => activeProfile === 'casal' || a.owner === activeProfile),
+    [accounts, activeProfile],
+  );
+
+  const totalAssets = ownAccounts.reduce((s, a) => s + a.balance, 0);
+  const passives = useMemo(() => totalLiabilities(transactions, cards, activeProfile), [transactions, cards, activeProfile]);
+  const netWorth = totalAssets - passives;
+
+  const evolution = useMemo(() => monthlyEvolution(transactions, activeProfile, 6), [transactions, activeProfile]);
+  // Aprox: patrimônio mês a mês = patrimônio atual ajustado pelo saldoDoMes acumulado reverso
+  const historyData = useMemo(() => {
+    let cur = netWorth;
+    const out: { month: string; value: number }[] = [];
+    for (let i = evolution.length - 1; i >= 0; i--) {
+      out.unshift({ month: evolution[i].mes, value: cur });
+      cur = cur - evolution[i].saldo;
+    }
+    return out;
+  }, [evolution, netWorth]);
+
+  const composition = [
+    { name: 'Corrente', value: ownAccounts.filter(a => a.type === 'corrente').reduce((s, a) => s + a.balance, 0) },
+    { name: 'Poupança', value: ownAccounts.filter(a => a.type === 'poupanca').reduce((s, a) => s + a.balance, 0) },
+    { name: 'Investimentos', value: ownAccounts.filter(a => a.type === 'investimento').reduce((s, a) => s + a.balance, 0) },
+    { name: 'Dinheiro', value: ownAccounts.filter(a => a.type === 'dinheiro').reduce((s, a) => s + a.balance, 0) },
   ].filter(d => d.value > 0);
 
   const colors = ['#8b5cf6', '#34d399', '#f59e0b', '#3b82f6'];
 
-  const historyData = [
-    { month: 'Jan', value: netWorth * 0.9 },
-    { month: 'Fev', value: netWorth * 0.92 },
-    { month: 'Mar', value: netWorth * 0.95 },
-    { month: 'Abr', value: netWorth * 0.98 },
-    { month: 'Mai', value: netWorth },
-  ];
+  const bills = useMemo(() => openCardBills(transactions, cards, activeProfile), [transactions, cards, activeProfile]);
+
+  const growth = historyData.length > 1 ? netWorth - historyData[historyData.length - 2].value : 0;
+  const growthPct = historyData.length > 1 && historyData[historyData.length - 2].value > 0
+    ? (growth / historyData[historyData.length - 2].value) * 100 : 0;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header>
         <h1 className="text-2xl font-bold">Patrimônio</h1>
-        <p className="text-muted-foreground">Visão consolidada de seus ativos e passivos</p>
+        <p className="text-muted-foreground">Visão consolidada — calculada a partir das suas contas e cartões.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -52,24 +66,26 @@ function Patrimonio() {
           <CardHeader className="pb-2 text-gray-400 text-xs uppercase font-bold tracking-wider">Patrimônio Líquido</CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{formatCurrency(netWorth)}</div>
-            <div className="flex items-center gap-1 text-emerald-400 text-sm mt-2">
-              <ArrowUpRight className="h-4 w-4" />
-              {formatCurrency(growth)} este mês (+8.2%)
-            </div>
+            {growth !== 0 && (
+              <div className={`flex items-center gap-1 text-sm mt-2 ${growth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {growth >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                {formatCurrency(Math.abs(growth))} este mês ({growthPct.toFixed(1)}%)
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2 text-muted-foreground text-xs uppercase font-bold tracking-wider">Total Ativos</CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalAssets)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Investimentos, Bens e Contas</p>
+            <p className="text-xs text-muted-foreground mt-1">{ownAccounts.length} conta(s)</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2 text-muted-foreground text-xs uppercase font-bold tracking-wider">Total Passivos</CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-rose-600">{formatCurrency(passives)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Dívidas e Faturas em aberto</p>
+            <p className="text-xs text-muted-foreground mt-1">{bills.length} fatura(s) em aberto</p>
           </CardContent>
         </Card>
       </div>
@@ -78,27 +94,30 @@ function Patrimonio() {
         <Card>
           <CardHeader><CardTitle>Composição dos Ativos</CardTitle></CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                  {chartData.map((_, index) => <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />)}
-                </Pie>
-                <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
-
-              </PieChart>
-            </ResponsiveContainer>
+            {composition.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center pt-16">Adicione contas em "Contas"</p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={composition} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                    {composition.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Evolução</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Evolução (6 meses)</CardTitle></CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={historyData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="month" />
                 <YAxis hide />
-                <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
                 <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -113,23 +132,19 @@ function Patrimonio() {
         </TabsList>
         <TabsContent value="ativos" className="space-y-4 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {userAssets.map(asset => (
-              <Card key={asset.id}>
+            {ownAccounts.map(a => (
+              <Card key={a.id}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-gray-100 rounded-lg">
-                      {asset.type === 'Veículo' ? <Car className="h-5 w-5" /> : asset.type === 'Imóvel' ? <Building2 className="h-5 w-5" /> : <TrendingUp className="h-5 w-5" />}
+                      {a.type === 'investimento' ? <TrendingUp className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
                     </div>
                     <div>
-                      <p className="font-medium">{asset.name}</p>
-                      <p className="text-xs text-muted-foreground">{asset.type} • {asset.institution || 'Bem próprio'}</p>
+                      <p className="font-medium">{a.name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{a.type}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold">{formatCurrency(asset.value)}</p>
-                    {asset.yieldAnnual && <p className="text-[10px] text-emerald-600">+{asset.yieldAnnual}% a.a.</p>}
-                    {asset.depreciationAnnual && <p className="text-[10px] text-rose-600">-{asset.depreciationAnnual}% a.a.</p>}
-                  </div>
+                  <p className="font-bold">{formatCurrency(a.balance)}</p>
                 </CardContent>
               </Card>
             ))}
@@ -139,30 +154,26 @@ function Patrimonio() {
           <Card>
             <CardContent className="p-0">
               <div className="divide-y">
-                <div className="p-4 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <Wallet className="h-5 w-5 text-gray-400" />
-                    <span>Faturas de Cartão</span>
+                {bills.length === 0 && (
+                  <p className="p-6 text-sm text-muted-foreground text-center">Nenhuma fatura em aberto.</p>
+                )}
+                {bills.map(b => (
+                  <div key={`${b.cardId}-${b.dueDate}`} className="p-4 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium">Fatura {b.cardName}</p>
+                        <p className="text-xs text-muted-foreground">Vence {b.dueDate} · {b.itemCount} compra(s)</p>
+                      </div>
+                    </div>
+                    <span className="font-bold">{formatCurrency(b.total)}</span>
                   </div>
-                  <span className="font-bold">{formatCurrency(passives)}</span>
-                </div>
-                <div className="p-4 flex justify-between items-center bg-gray-50/50">
-                  <div className="flex items-center gap-3">
-                    <Landmark className="h-5 w-5 text-gray-400" />
-                    <span>Empréstimos</span>
-                  </div>
-                  <span className="font-bold">{formatCurrency(0)}</span>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-      
-      <div className="bg-gray-100 p-6 rounded-2xl text-center">
-        <p className="text-muted-foreground mb-2">Projeção em 5 anos no ritmo atual</p>
-        <p className="text-4xl font-black text-gray-900">{formatCurrency(netWorth * 1.5)}</p>
-      </div>
     </div>
   );
 }

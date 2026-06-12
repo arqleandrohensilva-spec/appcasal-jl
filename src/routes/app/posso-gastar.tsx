@@ -1,13 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppContext } from '@/lib/context';
-import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA, formatCurrency } from '@/lib/mockData';
-import { Card, CardContent } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/mockData';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircleQuestion, Send, Sparkles, CheckCircle2, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useData } from '@/lib/store';
+import { monthlyStats } from '@/lib/finance';
+import { pendingThisMonth } from '@/lib/insights';
 
 export const Route = createFileRoute('/app/posso-gastar')({
   component: PossoGastar,
@@ -21,48 +24,45 @@ interface Message {
   breakdown?: { label: string; value: string; tone?: 'good' | 'bad' | 'neutral' }[];
 }
 
-function analyze(question: string, data: typeof LEANDRO_DATA): Message {
+interface Ctx {
+  saldo: number;
+  sobraMes: number;
+  pendentes: number;
+  reservaMinima: number;
+}
+
+function analyze(question: string, ctx: Ctx): Message {
   const id = Math.random().toString(36).slice(2);
   const match = question.match(/(\d+[\.,]?\d*)/);
   const valor = match ? parseFloat(match[1].replace(',', '.')) : 0;
 
-  const saldo = data.saldoAtual ?? 3840;
-  const receitaMes = data.receita;
-  const gastosMes = data.gastos;
-  const sobraMes = receitaMes - gastosMes;
-  const compromissosPendentes = 1380; // parcelas + contas restantes do mês
-  const sobraProjetada = saldo - compromissosPendentes - valor;
-  const reservaMinima = 800;
+  if (valor === 0) {
+    return { id, role: 'assistant', content: 'Diga um valor, por exemplo: "posso gastar R$ 300 hoje?"' };
+  }
 
+  const sobraProjetada = ctx.saldo - ctx.pendentes - valor;
   let verdict: 'yes' | 'no' | 'careful' = 'yes';
   let texto = '';
 
-  if (valor === 0) {
-    return {
-      id, role: 'assistant',
-      content: 'Diga um valor, por exemplo: "posso gastar R$ 300 hoje?" ou "dá pra pagar uma viagem de R$ 2.000 esse mês?"'
-    };
-  }
-
   if (sobraProjetada < 0) {
     verdict = 'no';
-    texto = `Não recomendo gastar ${formatCurrency(valor)} agora. Depois dos compromissos pendentes do mês, sua sobra projetada ficaria em ${formatCurrency(sobraProjetada)} — você entraria no vermelho.`;
-  } else if (sobraProjetada < reservaMinima) {
+    texto = `Não recomendo gastar ${formatCurrency(valor)} agora. Depois dos compromissos do mês, sua sobra projetada ficaria em ${formatCurrency(sobraProjetada)} — você entraria no vermelho.`;
+  } else if (sobraProjetada < ctx.reservaMinima) {
     verdict = 'careful';
-    texto = `Dá pra pagar ${formatCurrency(valor)}, mas com cuidado. Sua sobra projetada cairia para ${formatCurrency(sobraProjetada)}, abaixo do colchão mínimo de ${formatCurrency(reservaMinima)} que você costuma manter.`;
+    texto = `Dá pra pagar ${formatCurrency(valor)}, mas com cuidado. Sua sobra projetada cairia para ${formatCurrency(sobraProjetada)}, abaixo do colchão mínimo de ${formatCurrency(ctx.reservaMinima)}.`;
   } else {
     verdict = 'yes';
-    texto = `Sim, pode gastar ${formatCurrency(valor)}. Mesmo depois dos compromissos do mês, ainda sobrariam ${formatCurrency(sobraProjetada)} — folga saudável.`;
+    texto = `Sim, pode gastar ${formatCurrency(valor)}. Ainda sobrariam ${formatCurrency(sobraProjetada)} depois dos compromissos do mês — folga saudável.`;
   }
 
   return {
     id, role: 'assistant', content: texto, verdict,
     breakdown: [
-      { label: 'Saldo atual', value: formatCurrency(saldo), tone: 'neutral' },
-      { label: 'Compromissos pendentes do mês', value: `− ${formatCurrency(compromissosPendentes)}`, tone: 'bad' },
-      { label: 'Gasto que você quer fazer', value: `− ${formatCurrency(valor)}`, tone: 'bad' },
-      { label: 'Sobra projetada', value: formatCurrency(sobraProjetada), tone: sobraProjetada >= reservaMinima ? 'good' : 'bad' },
-      { label: 'Sobra mensal típica', value: formatCurrency(sobraMes), tone: 'neutral' },
+      { label: 'Saldo atual', value: formatCurrency(ctx.saldo), tone: 'neutral' },
+      { label: 'Compromissos pendentes do mês', value: `− ${formatCurrency(ctx.pendentes)}`, tone: 'bad' },
+      { label: 'Gasto solicitado', value: `− ${formatCurrency(valor)}`, tone: 'bad' },
+      { label: 'Sobra projetada', value: formatCurrency(sobraProjetada), tone: sobraProjetada >= ctx.reservaMinima ? 'good' : 'bad' },
+      { label: 'Sobra mensal típica', value: formatCurrency(ctx.sobraMes), tone: 'neutral' },
     ],
   };
 }
@@ -76,12 +76,26 @@ const SUGGESTIONS = [
 
 function PossoGastar() {
   const { activeProfile } = useAppContext();
-  const data = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
+  const { transactions, accounts, cards } = useData();
   const accent = activeProfile === 'leandro' ? 'purple' : activeProfile === 'jonathan' ? 'emerald' : 'orange';
 
+  const ctx: Ctx = useMemo(() => {
+    const now = new Date();
+    const stats = monthlyStats(transactions, activeProfile, now.getFullYear(), now.getMonth());
+    const saldo = accounts.filter(a => activeProfile === 'casal' || a.owner === activeProfile).reduce((s, a) => s + a.balance, 0);
+    const pendentes = pendingThisMonth(transactions, cards, activeProfile);
+    return {
+      saldo,
+      sobraMes: stats.receita - stats.gastos,
+      pendentes,
+      reservaMinima: Math.max(800, stats.gastos * 0.2),
+    };
+  }, [transactions, accounts, cards, activeProfile]);
+
+  const name = activeProfile === 'leandro' ? 'Leandro' : activeProfile === 'jonathan' ? 'Jonathan' : 'pessoal';
   const [messages, setMessages] = useState<Message[]>([{
     id: 'init', role: 'assistant',
-    content: `Oi, ${data.name}! Pergunte se pode gastar algo agora e eu olho seu saldo, parcelas e compromissos do mês antes de responder.`
+    content: `Oi, ${name}! Pergunte se pode gastar algo e eu olho seu saldo (${formatCurrency(ctx.saldo)}) e compromissos do mês antes de responder.`
   }]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
@@ -93,14 +107,13 @@ function PossoGastar() {
 
   const ask = (q: string) => {
     if (!q.trim()) return;
-    const userMsg: Message = { id: Math.random().toString(36).slice(2), role: 'user', content: q };
-    setMessages(m => [...m, userMsg]);
+    setMessages(m => [...m, { id: Math.random().toString(36).slice(2), role: 'user', content: q }]);
     setInput('');
     setThinking(true);
     setTimeout(() => {
-      setMessages(m => [...m, analyze(q, data as typeof LEANDRO_DATA)]);
+      setMessages(m => [...m, analyze(q, ctx)]);
       setThinking(false);
-    }, 900);
+    }, 600);
   };
 
   return (
@@ -109,7 +122,7 @@ function PossoGastar() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <MessageCircleQuestion className={`h-6 w-6 text-${accent}-600`} /> Posso Gastar?
         </h1>
-        <p className="text-muted-foreground">Pergunte em linguagem natural — a IA olha seus dados reais antes de responder.</p>
+        <p className="text-muted-foreground">Análise baseada no seu saldo real, compromissos do mês e sobra projetada.</p>
       </header>
 
       <Card className="flex-1 flex flex-col overflow-hidden">
@@ -168,18 +181,14 @@ function PossoGastar() {
             ))}
           </div>
           <form onSubmit={(e) => { e.preventDefault(); ask(input); }} className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ex: posso gastar R$ 300 hoje?"
-              className="flex-1"
-            />
+            <Input value={input} onChange={(e) => setInput(e.target.value)}
+              placeholder="Ex: posso gastar R$ 300 hoje?" className="flex-1" />
             <Button type="submit" className={`bg-${accent}-600 hover:bg-${accent}-700 gap-2`}>
               <Send className="h-4 w-4" /> Perguntar
             </Button>
           </form>
           <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-            <Sparkles className="h-3 w-3" /> Respostas baseadas no seu saldo, parcelas e compromissos do mês.
+            <Sparkles className="h-3 w-3" /> Saldo {formatCurrency(ctx.saldo)} · Compromissos {formatCurrency(ctx.pendentes)} · Sobra mensal {formatCurrency(ctx.sobraMes)}
           </p>
         </div>
       </Card>
