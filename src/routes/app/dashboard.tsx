@@ -10,6 +10,7 @@ import { AlertCircle, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight,
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DailyBalanceProjection, CardRecommendationWidget } from '@/components/dashboard/BalanceProjection';
+import { CoupleDiagnostic } from '@/components/dashboard/CoupleDiagnostic';
 
 
 export const Route = createFileRoute('/app/dashboard')({
@@ -119,6 +120,9 @@ function Dashboard() {
           </Card>
         )}
       </div>
+
+      {/* Diagnóstico exclusivo do casal */}
+      {activeProfile === 'casal' && <CoupleDiagnostic />}
 
       {/* Projeção diária de saldo + Recomendação de cartão */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
