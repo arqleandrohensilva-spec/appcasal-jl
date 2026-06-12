@@ -10,6 +10,7 @@ import { AlertCircle, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight,
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DailyBalanceProjection, CardRecommendationWidget } from '@/components/dashboard/BalanceProjection';
+import { CoupleDiagnostic } from '@/components/dashboard/CoupleDiagnostic';
 
 
 export const Route = createFileRoute('/app/dashboard')({
