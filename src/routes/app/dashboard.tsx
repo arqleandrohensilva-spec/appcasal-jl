@@ -13,6 +13,8 @@ import { DailyBalanceProjection, CardRecommendationWidget } from '@/components/d
 import { CoupleDiagnostic } from '@/components/dashboard/CoupleDiagnostic';
 import { useData } from '@/lib/store';
 import { monthlyStats, goalProgress } from '@/lib/finance';
+import { openCardBills, categoryAnomalies, pendingThisMonth } from '@/lib/insights';
+
 
 
 export const Route = createFileRoute('/app/dashboard')({
@@ -21,7 +23,7 @@ export const Route = createFileRoute('/app/dashboard')({
 
 function Dashboard() {
   const { activeProfile } = useAppContext();
-  const { transactions, accounts, goals, contributions } = useData();
+  const { transactions, accounts, cards, goals, contributions } = useData();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -45,8 +47,13 @@ function Dashboard() {
     () => goals.filter(g => activeProfile === 'casal' || g.owner === activeProfile).slice(0, 3),
     [goals, activeProfile],
   );
+  const upcomingBills = useMemo(
+    () => openCardBills(transactions, cards, activeProfile).slice(0, 3),
+    [transactions, cards, activeProfile],
+  );
+  const anomalies = useMemo(() => categoryAnomalies(transactions, activeProfile), [transactions, activeProfile]);
+  const pendentes = useMemo(() => pendingThisMonth(transactions, cards, activeProfile), [transactions, cards, activeProfile]);
 
-  // Dados de exibição: combina perfil mockado (nome/score/cor) com cálculos reais
   const data: any = {
     ...mockProfile,
     receita: stats.receita,
@@ -63,6 +70,7 @@ function Dashboard() {
         }))
       : [],
   };
+
 
   if (!isMounted) return null;
 
