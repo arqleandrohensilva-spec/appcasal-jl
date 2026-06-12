@@ -1,5 +1,6 @@
 import type { UserAccount, UserCard, UserTransaction } from './store';
 import type { UserProfile } from './context';
+import { expandRecurring } from './finance';
 
 export interface DayProjection {
   date: string; // yyyy-mm-dd
