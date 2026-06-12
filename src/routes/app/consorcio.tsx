@@ -60,6 +60,10 @@ function SimuladorConsorcio() {
     { name: 'Crédito efetivo', valor: calc.creditoEfetivo, fill: '#10b981' },
   ];
 
+  if (!mounted) return null;
+
+
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header>
