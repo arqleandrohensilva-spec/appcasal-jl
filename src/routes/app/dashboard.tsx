@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { AlertCircle, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, Heart, Flame, Sparkles, X, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { DailyBalanceProjection, CardRecommendationWidget } from '@/components/dashboard/BalanceProjection';
 
 
 export const Route = createFileRoute('/app/dashboard')({
@@ -117,6 +118,14 @@ function Dashboard() {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Projeção diária de saldo + Recomendação de cartão */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <DailyBalanceProjection />
+        </div>
+        <CardRecommendationWidget />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
