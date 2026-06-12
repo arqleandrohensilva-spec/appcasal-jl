@@ -93,15 +93,52 @@ export function Sidebar() {
       </div>
 
       <div className="px-4 mb-4">
-        <div className={cn('flex items-center gap-3 p-3 rounded-lg border', currentData.ringColor)}>
-          <Avatar className={currentData.color}>
-            <AvatarFallback className="text-white">{currentData.initials}</AvatarFallback>
-          </Avatar>
-          <div className="overflow-hidden">
-            <p className="font-medium truncate text-sm">{currentData.name}</p>
-            <p className="text-xs text-muted-foreground">Score: {currentData.score}</p>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className={cn(
+              'w-full flex items-center gap-3 p-3 rounded-lg border transition-colors hover:bg-gray-50 group',
+              currentData.ringColor,
+            )}>
+              <Avatar className={currentData.color}>
+                <AvatarFallback className="text-white">{currentData.initials}</AvatarFallback>
+              </Avatar>
+              <div className="overflow-hidden flex-1 text-left">
+                <p className="font-medium truncate text-sm">{currentData.name}</p>
+                <p className="text-xs text-muted-foreground">Score: {currentData.score}</p>
+              </div>
+              <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-gray-700 shrink-0" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Trocar perfil
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {([
+              { id: 'leandro', data: LEANDRO_DATA, icon: null },
+              { id: 'jonathan', data: JONATHAN_DATA, icon: null },
+              { id: 'casal', data: CASAL_DATA, icon: Heart },
+            ] as const).map(({ id, data, icon: Icon }) => (
+              <DropdownMenuItem
+                key={id}
+                onClick={() => setActiveProfile(id)}
+                className="gap-2 cursor-pointer"
+              >
+                <Avatar className={cn('h-6 w-6', data.color)}>
+                  <AvatarFallback className="text-white text-[10px]">{data.initials}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="text-sm font-medium flex items-center gap-1">
+                    {Icon && <Icon className="h-3 w-3 fill-current text-rose-500" />}
+                    {data.name}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Score: {data.score}</p>
+                </div>
+                {activeProfile === id && <Check className="h-4 w-4 text-emerald-600" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-4">
