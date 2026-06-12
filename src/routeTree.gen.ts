@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
+import { Route as AppScannerRouteImport } from './routes/app/scanner'
 import { Route as AppRetrospectivaRouteImport } from './routes/app/retrospectiva'
 import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
 import { Route as AppPossoGastarRouteImport } from './routes/app/posso-gastar'
@@ -41,6 +42,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppTransacoesRoute = AppTransacoesRouteImport.update({
   id: '/transacoes',
   path: '/transacoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppScannerRoute = AppScannerRouteImport.update({
+  id: '/scanner',
+  path: '/scanner',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRetrospectivaRoute = AppRetrospectivaRouteImport.update({
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/app/posso-gastar': typeof AppPossoGastarRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
+  '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRoutesByTo {
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/app/posso-gastar': typeof AppPossoGastarRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
+  '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRoutesById {
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/app/posso-gastar': typeof AppPossoGastarRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
+  '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
 }
 export interface FileRouteTypes {
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/app/posso-gastar'
     | '/app/relatorios'
     | '/app/retrospectiva'
+    | '/app/scanner'
     | '/app/transacoes'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/app/posso-gastar'
     | '/app/relatorios'
     | '/app/retrospectiva'
+    | '/app/scanner'
     | '/app/transacoes'
   id:
     | '__root__'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/app/posso-gastar'
     | '/app/relatorios'
     | '/app/retrospectiva'
+    | '/app/scanner'
     | '/app/transacoes'
   fileRoutesById: FileRoutesById
 }
@@ -269,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/transacoes'
       fullPath: '/app/transacoes'
       preLoaderRoute: typeof AppTransacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/scanner': {
+      id: '/app/scanner'
+      path: '/scanner'
+      fullPath: '/app/scanner'
+      preLoaderRoute: typeof AppScannerRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/retrospectiva': {
@@ -395,6 +414,7 @@ interface AppRouteChildren {
   AppPossoGastarRoute: typeof AppPossoGastarRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppRetrospectivaRoute: typeof AppRetrospectivaRoute
+  AppScannerRoute: typeof AppScannerRoute
   AppTransacoesRoute: typeof AppTransacoesRoute
 }
 
@@ -414,6 +434,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPossoGastarRoute: AppPossoGastarRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppRetrospectivaRoute: AppRetrospectivaRoute,
+  AppScannerRoute: AppScannerRoute,
   AppTransacoesRoute: AppTransacoesRoute,
 }
 
