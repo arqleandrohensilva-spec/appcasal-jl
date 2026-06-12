@@ -72,6 +72,7 @@ function Transacoes() {
       installments: parcelasNum,
       type,
       owner,
+      recurrence: canRecur ? recurrence : 'none',
     });
 
     if (count > 1) {
