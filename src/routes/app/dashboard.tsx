@@ -208,16 +208,19 @@ function Dashboard() {
           <Card>
             <CardHeader><CardTitle>Metas</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              {data.metas.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhuma meta cadastrada. Crie em "Metas".</p>
+              )}
               {data.metas.map((meta: any, idx: number) => {
-                const percent = Math.round((meta.atual / meta.alvo) * 100);
+                const percent = meta.alvo > 0 ? Math.round((meta.atual / meta.alvo) * 100) : 0;
                 return (
                   <div key={idx} className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{meta.name}</span>
                       <span className="text-muted-foreground">{percent}%</span>
                     </div>
-                    <Progress value={percent} className="h-2" />
-                    <p className="text-[10px] text-muted-foreground">Faltam {formatCurrency(meta.alvo - meta.atual)}</p>
+                    <Progress value={Math.min(percent, 100)} className="h-2" />
+                    <p className="text-[10px] text-muted-foreground">Faltam {formatCurrency(Math.max(meta.alvo - meta.atual, 0))}</p>
                   </div>
                 );
               })}
