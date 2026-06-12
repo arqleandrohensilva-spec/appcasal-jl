@@ -105,7 +105,7 @@ export function DailyBalanceProjection() {
               <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={6} />
               <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`} />
               <Tooltip
-                formatter={(v: number) => formatCurrency(v)}
+                formatter={(v: any) => formatCurrency(Number(v))}
                 labelFormatter={(l) => `Dia ${l}`}
               />
               <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" />
