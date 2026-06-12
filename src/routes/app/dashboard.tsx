@@ -121,6 +121,9 @@ function Dashboard() {
         )}
       </div>
 
+      {/* Diagnóstico exclusivo do casal */}
+      {activeProfile === 'casal' && <CoupleDiagnostic />}
+
       {/* Projeção diária de saldo + Recomendação de cartão */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
