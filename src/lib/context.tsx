@@ -10,19 +10,21 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [activeProfile, setActiveProfile] = useState<UserProfile>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('activeProfile');
-      return (saved as UserProfile) || 'leandro';
-    }
-    return 'leandro';
-  });
+  // Sempre começa com 'leandro' para casar SSR ↔ client; lê do LS depois de hidratar.
+  const [activeProfile, setActiveProfileState] = useState<UserProfile>('leandro');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('activeProfile', activeProfile);
-    }
-  }, [activeProfile]);
+    try {
+      const saved = localStorage.getItem('activeProfile') as UserProfile | null;
+      if (saved && saved !== activeProfile) setActiveProfileState(saved);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const setActiveProfile = (p: UserProfile) => {
+    setActiveProfileState(p);
+    try { localStorage.setItem('activeProfile', p); } catch {}
+  };
 
   return (
     <AppContext.Provider value={{ activeProfile, setActiveProfile }}>
