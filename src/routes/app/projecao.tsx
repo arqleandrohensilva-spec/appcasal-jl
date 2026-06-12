@@ -295,7 +295,7 @@ function ProjecaoPage() {
                             {isToday && <Badge className="bg-purple-600 text-white text-[10px]">Hoje</Badge>}
                           </div>
                           <p className="text-[10px] text-muted-foreground">
-                            {new Date(d.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
+                            {weekdayBR(d.date)}
                           </p>
                         </td>
                         <td className={cn("p-3 text-right tabular-nums", d.delta > 0 ? "text-emerald-600" : d.delta < 0 ? "text-rose-600" : "text-muted-foreground")}>
