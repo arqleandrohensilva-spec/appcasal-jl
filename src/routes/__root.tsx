@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppProvider } from "@/lib/context";
+import { DataProvider } from "@/lib/store";
 import { Toaster } from "@/components/ui/sonner";
 import {
   Outlet,
@@ -120,8 +121,10 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider>
-        <Outlet />
-        <Toaster position="top-right" />
+        <DataProvider>
+          <Outlet />
+          <Toaster position="top-right" />
+        </DataProvider>
       </AppProvider>
     </QueryClientProvider>
   );
