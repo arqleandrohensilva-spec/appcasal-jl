@@ -1,5 +1,6 @@
 import type { UserAccount, UserCard, UserTransaction } from './store';
 import type { UserProfile } from './context';
+import { expandRecurring } from './finance';
 
 export interface DayProjection {
   date: string; // yyyy-mm-dd
@@ -67,12 +68,16 @@ export function projectDailyBalance(
 ): DayProjection[] {
   const accs = filterByOwner(accounts, profile);
   const cds = filterByOwner(cards, profile);
-  const txs = filterByOwner(transactions, profile);
+  const ownTxs = filterByOwner(transactions, profile);
 
-  // Saldo "agora" (hoje) = soma das contas. Como o saldo da conta já reflete
-  // os lançamentos à vista passados, reconstruímos retroativamente.
+  // Expande recorrências dentro do range de projeção (com folga)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const rangeStart = toISO(addDays(today, fromDays - 31));
+  const rangeEnd = toISO(addDays(today, toDays + 31));
+  // import direto (sem ciclo: finance.ts não importa projections.ts)
+  const txs = expandRecurring(ownTxs, rangeStart, rangeEnd);
+
   const todayISO = toISO(today);
   const currentCash = accs.reduce((s, a) => s + a.balance, 0);
 

@@ -19,26 +19,50 @@ export interface UserAccount {
   owner: UserProfile;
 }
 
+export type Recurrence = 'none' | 'weekly' | 'monthly';
+
 export interface UserTransaction {
   id: string;
-  groupId?: string; // identifica todas as parcelas do mesmo lançamento
+  groupId?: string;
   description: string;
   amount: number; // positivo = receita, negativo = despesa
   date: string; // ISO yyyy-mm-dd
   category: string;
-  paymentMethod: string; // nome de conta ou cartão
+  paymentMethod: string;
   cardId?: string;
   accountId?: string;
   installmentInfo?: { current: number; total: number };
   type: 'receita' | 'despesa';
   owner: UserProfile;
   createdAt: string;
+  recurrence?: Recurrence; // se definido, a tx repete a partir da data
+  recurrenceEndDate?: string; // ISO; opcional
+}
+
+export interface UserGoal {
+  id: string;
+  name: string;
+  target: number;
+  deadline: string; // ISO
+  owner: UserProfile;
+  createdAt: string;
+}
+
+export interface GoalContribution {
+  id: string;
+  goalId: string;
+  amount: number;
+  date: string;
+  owner: UserProfile;
+  note?: string;
 }
 
 interface DataContextType {
   cards: UserCard[];
   accounts: UserAccount[];
   transactions: UserTransaction[];
+  goals: UserGoal[];
+  contributions: GoalContribution[];
   addCard: (c: Omit<UserCard, 'id'>) => void;
   removeCard: (id: string) => void;
   addAccount: (a: Omit<UserAccount, 'id'>) => void;
@@ -51,17 +75,23 @@ interface DataContextType {
     paymentMethod: string;
     cardId?: string;
     accountId?: string;
-    installments?: number; // 1 = à vista
+    installments?: number;
     type: 'receita' | 'despesa';
     owner: UserProfile;
-  }) => number; // returns number of records created
+    recurrence?: Recurrence;
+    recurrenceEndDate?: string;
+  }) => number;
   removeTransaction: (id: string, removeGroup?: boolean) => void;
+  addGoal: (g: Omit<UserGoal, 'id' | 'createdAt'>) => void;
+  removeGoal: (id: string) => void;
+  contributeGoal: (input: Omit<GoalContribution, 'id'>) => void;
+  removeContribution: (id: string) => void;
   resetAll: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'financasduo:data:v1';
+const STORAGE_KEY = 'financasduo:data:v2';
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
 function addMonths(iso: string, months: number) {
@@ -70,7 +100,6 @@ function addMonths(iso: string, months: number) {
   return d.toISOString().slice(0, 10);
 }
 
-// Seed inicial — só usado se não houver nada salvo
 const SEED_CARDS: UserCard[] = [
   { id: 'seed-nu-l', name: 'Nubank', limit: 8000, closingDay: 3, dueDay: 10, color: 'purple', owner: 'leandro' },
   { id: 'seed-c6-j', name: 'C6 Gold', limit: 4000, closingDay: 8, dueDay: 15, color: 'gray', owner: 'jonathan' },
@@ -85,8 +114,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [cards, setCards] = useState<UserCard[]>(SEED_CARDS);
   const [accounts, setAccounts] = useState<UserAccount[]>(SEED_ACCOUNTS);
   const [transactions, setTransactions] = useState<UserTransaction[]>([]);
+  const [goals, setGoals] = useState<UserGoal[]>([]);
+  const [contributions, setContributions] = useState<GoalContribution[]>([]);
 
-  // Carrega do localStorage só no cliente (evita hydration mismatch)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -95,28 +125,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (parsed.cards) setCards(parsed.cards);
         if (parsed.accounts) setAccounts(parsed.accounts);
         if (parsed.transactions) setTransactions(parsed.transactions);
+        if (parsed.goals) setGoals(parsed.goals);
+        if (parsed.contributions) setContributions(parsed.contributions);
       }
     } catch {}
     setHydrated(true);
   }, []);
 
-  // Persiste quando algo muda (apenas depois da hidratação)
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cards, accounts, transactions }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        cards, accounts, transactions, goals, contributions,
+      }));
     } catch {}
-  }, [cards, accounts, transactions, hydrated]);
+  }, [cards, accounts, transactions, goals, contributions, hydrated]);
 
   const addCard: DataContextType['addCard'] = (c) =>
     setCards(prev => [...prev, { ...c, id: uid() }]);
-
   const removeCard: DataContextType['removeCard'] = (id) =>
     setCards(prev => prev.filter(c => c.id !== id));
-
   const addAccount: DataContextType['addAccount'] = (a) =>
     setAccounts(prev => [...prev, { ...a, id: uid() }]);
-
   const removeAccount: DataContextType['removeAccount'] = (id) =>
     setAccounts(prev => prev.filter(a => a.id !== id));
 
@@ -126,6 +156,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const valuePerInstallment = input.amount / n;
     const sign = input.type === 'receita' ? 1 : -1;
     const todayISO = new Date().toISOString().slice(0, 10);
+    const recurrence = input.recurrence && input.recurrence !== 'none' ? input.recurrence : undefined;
 
     const created: UserTransaction[] = Array.from({ length: n }, (_, i) => ({
       id: uid(),
@@ -141,12 +172,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       type: input.type,
       owner: input.owner,
       createdAt: new Date().toISOString(),
+      // Recorrência só faz sentido para tx única (sem parcelamento)
+      recurrence: n === 1 ? recurrence : undefined,
+      recurrenceEndDate: n === 1 ? input.recurrenceEndDate : undefined,
     }));
 
     setTransactions(prev => [...created, ...prev]);
 
-    // Atualiza saldo da conta APENAS para parcelas já ocorridas (data <= hoje).
-    // Lançamentos futuros impactam só a projeção — não o saldo "agora".
     if (input.accountId) {
       const realizedDelta = created
         .filter(t => !t.cardId && t.date <= todayISO)
@@ -170,7 +202,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ? prev.filter(t => t.groupId === target.groupId)
         : [target];
 
-      // Reverte saldo das parcelas já realizadas em conta
       const revertByAccount = new Map<string, number>();
       for (const t of toRemove) {
         if (t.accountId && !t.cardId && t.date <= todayISO) {
@@ -188,18 +219,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const addGoal: DataContextType['addGoal'] = (g) =>
+    setGoals(prev => [...prev, { ...g, id: uid(), createdAt: new Date().toISOString() }]);
+  const removeGoal: DataContextType['removeGoal'] = (id) => {
+    setGoals(prev => prev.filter(g => g.id !== id));
+    setContributions(prev => prev.filter(c => c.goalId !== id));
+  };
+  const contributeGoal: DataContextType['contributeGoal'] = (input) =>
+    setContributions(prev => [...prev, { ...input, id: uid() }]);
+  const removeContribution: DataContextType['removeContribution'] = (id) =>
+    setContributions(prev => prev.filter(c => c.id !== id));
+
   const resetAll = () => {
     setCards(SEED_CARDS);
     setAccounts(SEED_ACCOUNTS);
     setTransactions([]);
+    setGoals([]);
+    setContributions([]);
   };
 
   return (
     <DataContext.Provider value={{
-      cards, accounts, transactions,
+      cards, accounts, transactions, goals, contributions,
       addCard, removeCard,
       addAccount, removeAccount,
       addTransaction, removeTransaction,
+      addGoal, removeGoal, contributeGoal, removeContribution,
       resetAll,
     }}>
       {children}

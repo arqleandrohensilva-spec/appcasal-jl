@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA, formatCurrency } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DailyBalanceProjection, CardRecommendationWidget } from '@/components/dashboard/BalanceProjection';
 import { CoupleDiagnostic } from '@/components/dashboard/CoupleDiagnostic';
+import { useData } from '@/lib/store';
+import { monthlyStats, goalProgress } from '@/lib/finance';
 
 
 export const Route = createFileRoute('/app/dashboard')({
@@ -19,15 +21,51 @@ export const Route = createFileRoute('/app/dashboard')({
 
 function Dashboard() {
   const { activeProfile } = useAppContext();
+  const { transactions, accounts, goals, contributions } = useData();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const data = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
+  const mockProfile = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
+
+  const now = new Date();
+  const stats = useMemo(
+    () => monthlyStats(transactions, activeProfile, now.getFullYear(), now.getMonth()),
+    [transactions, activeProfile, now.getFullYear(), now.getMonth()],
+  );
+  const saldoTotal = useMemo(
+    () => accounts
+      .filter(a => activeProfile === 'casal' || a.owner === activeProfile)
+      .reduce((s, a) => s + a.balance, 0),
+    [accounts, activeProfile],
+  );
+  const userGoals = useMemo(
+    () => goals.filter(g => activeProfile === 'casal' || g.owner === activeProfile).slice(0, 3),
+    [goals, activeProfile],
+  );
+
+  // Dados de exibição: combina perfil mockado (nome/score/cor) com cálculos reais
+  const data: any = {
+    ...mockProfile,
+    receita: stats.receita,
+    gastos: stats.gastos,
+    poupanca: saldoTotal,
+    patrimonio: saldoTotal,
+    gastosPorCategoria: stats.porCategoria.slice(0, 6).map(c => ({ ...c, prevValue: c.value })),
+    metas: userGoals.length > 0
+      ? userGoals.map(g => ({
+          name: g.name,
+          alvo: g.target,
+          atual: goalProgress(contributions, g.id),
+          prazo: g.deadline,
+        }))
+      : [],
+  };
 
   if (!isMounted) return null;
+
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -136,49 +174,53 @@ function Dashboard() {
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle>Últimas Transações</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {((data as any).transacoes || []).map((t: any) => (
-                <div key={t.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-full bg-gray-100", t.tipo === 'receita' ? 'text-emerald-600' : 'text-red-600')}>
-                      {t.tipo === 'receita' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+            <div className="space-y-3">
+              {transactions
+                .filter(t => activeProfile === 'casal' || t.owner === activeProfile)
+                .slice(0, 8)
+                .map((t) => (
+                  <div key={t.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("p-2 rounded-full bg-gray-100", t.type === 'receita' ? 'text-emerald-600' : 'text-red-600')}>
+                        {t.type === 'receita' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{t.description}</p>
+                        <p className="text-xs text-muted-foreground">{t.category} • {t.date} {t.recurrence && t.recurrence !== 'none' ? '· 🔁' : ''}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{t.descricao}</p>
-                      <p className="text-xs text-muted-foreground">{t.categoria} • {t.data}</p>
+                    <div className={cn("font-bold text-sm", t.type === 'receita' ? 'text-emerald-600' : 'text-red-600')}>
+                      {t.type === 'receita' ? '+' : ''}{formatCurrency(t.amount)}
                     </div>
                   </div>
-                  <div className={cn("font-bold", t.tipo === 'receita' ? 'text-emerald-600' : 'text-red-600')}>
-                    {t.tipo === 'receita' ? '+' : '-'} {formatCurrency(t.valor)}
-                  </div>
-                </div>
-              ))}
-              {activeProfile === 'casal' && (
-                <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
-                  <h4 className="font-bold text-orange-800 flex items-center gap-2">
-                    <Heart className="h-4 w-4 fill-current" /> IA do Casal
-                  </h4>
-                  <p className="text-sm text-orange-700 mt-1">Identificamos que vocês podem economizar R$ 180,00 cancelando assinaturas duplicadas de streaming.</p>
-                </div>
+                ))}
+              {transactions.filter(t => activeProfile === 'casal' || t.owner === activeProfile).length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-6">
+                  Nenhuma transação ainda. Cadastre em "Transações".
+                </p>
               )}
             </div>
           </CardContent>
         </Card>
 
+
         <div className="space-y-6">
           <Card>
             <CardHeader><CardTitle>Metas</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              {data.metas.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhuma meta cadastrada. Crie em "Metas".</p>
+              )}
               {data.metas.map((meta: any, idx: number) => {
-                const percent = Math.round((meta.atual / meta.alvo) * 100);
+                const percent = meta.alvo > 0 ? Math.round((meta.atual / meta.alvo) * 100) : 0;
                 return (
                   <div key={idx} className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{meta.name}</span>
                       <span className="text-muted-foreground">{percent}%</span>
                     </div>
-                    <Progress value={percent} className="h-2" />
-                    <p className="text-[10px] text-muted-foreground">Faltam {formatCurrency(meta.alvo - meta.atual)}</p>
+                    <Progress value={Math.min(percent, 100)} className="h-2" />
+                    <p className="text-[10px] text-muted-foreground">Faltam {formatCurrency(Math.max(meta.alvo - meta.atual, 0))}</p>
                   </div>
                 );
               })}
