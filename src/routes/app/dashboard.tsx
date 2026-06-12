@@ -174,34 +174,35 @@ function Dashboard() {
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle>Últimas Transações</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {((data as any).transacoes || []).map((t: any) => (
-                <div key={t.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-full bg-gray-100", t.tipo === 'receita' ? 'text-emerald-600' : 'text-red-600')}>
-                      {t.tipo === 'receita' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+            <div className="space-y-3">
+              {transactions
+                .filter(t => activeProfile === 'casal' || t.owner === activeProfile)
+                .slice(0, 8)
+                .map((t) => (
+                  <div key={t.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("p-2 rounded-full bg-gray-100", t.type === 'receita' ? 'text-emerald-600' : 'text-red-600')}>
+                        {t.type === 'receita' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{t.description}</p>
+                        <p className="text-xs text-muted-foreground">{t.category} • {t.date} {t.recurrence && t.recurrence !== 'none' ? '· 🔁' : ''}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{t.descricao}</p>
-                      <p className="text-xs text-muted-foreground">{t.categoria} • {t.data}</p>
+                    <div className={cn("font-bold text-sm", t.type === 'receita' ? 'text-emerald-600' : 'text-red-600')}>
+                      {t.type === 'receita' ? '+' : ''}{formatCurrency(t.amount)}
                     </div>
                   </div>
-                  <div className={cn("font-bold", t.tipo === 'receita' ? 'text-emerald-600' : 'text-red-600')}>
-                    {t.tipo === 'receita' ? '+' : '-'} {formatCurrency(t.valor)}
-                  </div>
-                </div>
-              ))}
-              {activeProfile === 'casal' && (
-                <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
-                  <h4 className="font-bold text-orange-800 flex items-center gap-2">
-                    <Heart className="h-4 w-4 fill-current" /> IA do Casal
-                  </h4>
-                  <p className="text-sm text-orange-700 mt-1">Identificamos que vocês podem economizar R$ 180,00 cancelando assinaturas duplicadas de streaming.</p>
-                </div>
+                ))}
+              {transactions.filter(t => activeProfile === 'casal' || t.owner === activeProfile).length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-6">
+                  Nenhuma transação ainda. Cadastre em "Transações".
+                </p>
               )}
             </div>
           </CardContent>
         </Card>
+
 
         <div className="space-y-6">
           <Card>
