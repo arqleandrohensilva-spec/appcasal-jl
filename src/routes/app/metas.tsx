@@ -1,13 +1,21 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppContext } from '@/lib/context';
-import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA, formatCurrency } from '@/lib/mockData';
+import { formatCurrency } from '@/lib/mockData';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar, TrendingDown, TrendingUp } from 'lucide-react';
-import { LIFE_EVENTS } from '@/lib/premiumData';
-import { Area, AreaChart as RechartsAreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Calendar, Trash2, Heart } from 'lucide-react';
+import { useData } from '@/lib/store';
+import { goalProgress, goalProgressByOwner } from '@/lib/finance';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+} from '@/components/ui/dialog';
 
 export const Route = createFileRoute('/app/metas')({
   component: Metas,
@@ -15,7 +23,9 @@ export const Route = createFileRoute('/app/metas')({
 
 function Metas() {
   const { activeProfile } = useAppContext();
-  const data = activeProfile === 'leandro' ? LEANDRO_DATA : activeProfile === 'jonathan' ? JONATHAN_DATA : CASAL_DATA;
+  const { goals, contributions, addGoal, removeGoal, contributeGoal } = useData();
+
+  const myGoals = goals.filter(g => activeProfile === 'casal' || g.owner === activeProfile);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -24,152 +34,198 @@ function Metas() {
           <h1 className="text-2xl font-bold">Minhas Metas</h1>
           <p className="text-muted-foreground">Acompanhe seu progresso financeiro</p>
         </div>
-        <Button className={data.color}>
-          <Plus className="h-4 w-4 mr-2" /> Nova Meta
-        </Button>
+        <NewGoalDialog onCreate={(g) => {
+          addGoal({ ...g, owner: activeProfile === 'casal' ? 'casal' : activeProfile });
+          toast.success('Meta criada!');
+        }} />
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {data.metas.map((meta: any, idx: number) => {
-          const percent = Math.round((meta.atual / meta.alvo) * 100);
-          return (
-            <Card key={idx}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg">{meta.name}</CardTitle>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3 mr-1" /> {meta.prazo}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-2xl font-bold">{formatCurrency(meta.atual)}</p>
-                    <p className="text-xs text-muted-foreground">de {formatCurrency(meta.alvo)}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-emerald-600">{percent}%</span>
-                  </div>
-                </div>
-                <Progress value={percent} className="h-3" />
-                <div className="pt-2">
-                  <p className="text-sm text-muted-foreground">Faltam {formatCurrency(meta.alvo - meta.atual)} para atingir o objetivo.</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="pt-6">
-        <h2 className="text-xl font-bold mb-4">Sinking Funds (Fundos Reserva)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(data as any).sinkingFunds?.map((fund: any, idx: number) => {
-            const percent = Math.round((fund.atual / fund.alvo) * 100);
+      {myGoals.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="p-10 text-center">
+            <p className="text-muted-foreground mb-3">Nenhuma meta ainda. Crie a primeira para acompanhar seu progresso.</p>
+            <NewGoalDialog onCreate={(g) => {
+              addGoal({ ...g, owner: activeProfile === 'casal' ? 'casal' : activeProfile });
+              toast.success('Meta criada!');
+            }} />
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {myGoals.map((meta) => {
+            const current = goalProgress(contributions, meta.id);
+            const percent = meta.target > 0 ? Math.round((current / meta.target) * 100) : 0;
+            const byOwner = goalProgressByOwner(contributions, meta.id);
+            const isCouple = meta.owner === 'casal';
             return (
-              <Card key={idx} className="bg-blue-50 border-blue-100">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-blue-900">{fund.name}</CardTitle>
+              <Card key={meta.id}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {isCouple && <Heart className="h-4 w-4 fill-rose-500 text-rose-500" />}
+                    {meta.name}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3 mr-1" /> {meta.deadline}
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
+                      removeGoal(meta.id);
+                      toast.success('Meta removida');
+                    }}>
+                      <Trash2 className="h-3 w-3 text-rose-500" />
+                    </Button>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between text-xs text-blue-800">
-                    <span>{formatCurrency(fund.atual)} / {formatCurrency(fund.alvo)}</span>
-                    <span className="font-bold">{percent}%</span>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-2xl font-bold">{formatCurrency(current)}</p>
+                      <p className="text-xs text-muted-foreground">de {formatCurrency(meta.target)}</p>
+                    </div>
+                    <span className={cn("text-2xl font-bold", percent >= 100 ? "text-emerald-600" : "text-purple-600")}>
+                      {percent}%
+                    </span>
                   </div>
-                  <Progress value={percent} className="h-2 bg-blue-200" />
-                  <div className="p-2 bg-white rounded border border-blue-100">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Aporte Mensal</p>
-                    <p className="text-sm font-bold text-blue-700">{formatCurrency(fund.aporte)}</p>
-                  </div>
-                  <p className="text-[10px] text-blue-600">Disponível em: {fund.prazo}</p>
+                  <Progress value={Math.min(percent, 100)} className="h-3" />
+
+                  {isCouple && (current > 0) && (
+                    <div className="flex h-2 rounded-full overflow-hidden bg-gray-100">
+                      <div className="bg-purple-500" style={{ width: `${(byOwner.leandro / Math.max(current, 1)) * 100}%` }} />
+                      <div className="bg-emerald-500" style={{ width: `${(byOwner.jonathan / Math.max(current, 1)) * 100}%` }} />
+                    </div>
+                  )}
+                  {isCouple && (
+                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                      <span>L: {formatCurrency(byOwner.leandro)}</span>
+                      <span>J: {formatCurrency(byOwner.jonathan)}</span>
+                    </div>
+                  )}
+
+                  <p className="text-sm text-muted-foreground">
+                    Faltam {formatCurrency(Math.max(meta.target - current, 0))} para atingir.
+                  </p>
+
+                  <ContributeDialog
+                    onContribute={(amount, who) => {
+                      contributeGoal({
+                        goalId: meta.id,
+                        amount,
+                        owner: who,
+                        date: new Date().toISOString().slice(0, 10),
+                      });
+                      toast.success(`+ ${formatCurrency(amount)} adicionado!`);
+                    }}
+                    activeProfile={activeProfile}
+                    isCouple={isCouple}
+                  />
                 </CardContent>
               </Card>
             );
           })}
-          {(!(data as any).sinkingFunds || (data as any).sinkingFunds.length === 0) && (
-            <Card className="col-span-full border-dashed p-6 text-center">
-              <p className="text-sm text-muted-foreground">Nenhum sinking fund configurado.</p>
-            </Card>
-          )}
         </div>
-      </div>
-
-      <div className="pt-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Planejamento de Grandes Eventos de Vida</h2>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Evento
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-4">
-            {LIFE_EVENTS.map(event => (
-              <Card key={event.id} className="cursor-pointer hover:border-purple-500 transition-colors">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-2xl", event.color)}>
-                    {event.icon}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold">{event.name}</h4>
-                    <p className="text-xs text-muted-foreground">{event.date} • {formatCurrency(event.estimatedCost)}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            <Card className="border-dashed flex items-center justify-center p-6 text-muted-foreground hover:text-purple-600 hover:border-purple-300 transition-colors cursor-pointer">
-              <div className="text-center">
-                <Plus className="h-6 w-6 mx-auto mb-1" />
-                <span className="text-sm">Criar evento personalizado</span>
-              </div>
-            </Card>
-          </div>
-
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Simulação de Impacto no Patrimônio</CardTitle>
-              <div className="flex gap-4 text-xs">
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded-full" /> Sem evento</div>
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded-full" /> Com evento</div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsAreaChart data={[
-                    { year: '2026', sem: 28400, com: 28400 },
-                    { year: '2027', sem: 45000, com: 20000 },
-                    { year: '2028', sem: 68000, com: -12000 },
-                    { year: '2029', sem: 95000, com: 5000 },
-                    { year: '2030', sem: 130000, com: 45000 },
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="year" />
-                    <YAxis hide />
-                    <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
-                    <Area type="monotone" dataKey="sem" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} />
-                    <Area type="monotone" dataKey="com" stroke="#10b981" fill="#10b981" fillOpacity={0.2} />
-                  </RechartsAreaChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                <div className="p-3 bg-rose-50 rounded-xl">
-                  <p className="text-[10px] text-rose-600 uppercase font-bold">Impacto 1º Ano</p>
-                  <div className="flex items-center gap-1">
-                    <TrendingDown className="h-4 w-4 text-rose-500" />
-                    <span className="font-bold text-rose-700">-R$ 58.400</span>
-                  </div>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-xl">
-                  <p className="text-[10px] text-blue-600 uppercase font-bold">Dica de Absorção</p>
-                  <p className="text-xs font-bold text-blue-700 mt-1">Guardar +R$ 1.200/mês</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
 
+function NewGoalDialog({ onCreate }: { onCreate: (g: { name: string; target: number; deadline: string }) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [target, setTarget] = useState('');
+  const [deadline, setDeadline] = useState('');
 
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button><Plus className="h-4 w-4 mr-2" /> Nova Meta</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Nova meta</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Viagem, Reserva, Casa nova" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Valor alvo (R$)</Label>
+              <Input type="number" step="0.01" value={target} onChange={e => setTarget(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Prazo</Label>
+              <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={() => {
+              if (!name || !target || !deadline) {
+                toast.error('Preencha todos os campos');
+                return;
+              }
+              onCreate({ name, target: parseFloat(target), deadline });
+              setName(''); setTarget(''); setDeadline('');
+              setOpen(false);
+            }}
+          >Criar meta</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ContributeDialog({
+  onContribute, activeProfile, isCouple,
+}: {
+  onContribute: (amount: number, owner: 'leandro' | 'jonathan' | 'casal') => void;
+  activeProfile: 'leandro' | 'jonathan' | 'casal';
+  isCouple: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [who, setWho] = useState<'leandro' | 'jonathan' | 'casal'>(
+    isCouple ? (activeProfile === 'casal' ? 'leandro' : activeProfile) : activeProfile,
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full"><Plus className="h-3 w-3 mr-1" /> Adicionar aporte</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Adicionar aporte</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Valor (R$)</Label>
+            <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
+          </div>
+          {isCouple && (
+            <div className="space-y-2">
+              <Label>Quem contribuiu?</Label>
+              <Select value={who} onValueChange={(v) => setWho(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="leandro">Leandro</SelectItem>
+                  <SelectItem value="jonathan">Jonathan</SelectItem>
+                  <SelectItem value="casal">Casal (compartilhado)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={() => {
+              const v = parseFloat(amount);
+              if (!v || v <= 0) { toast.error('Valor inválido'); return; }
+              onContribute(v, who);
+              setAmount('');
+              setOpen(false);
+            }}
+          >Confirmar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
