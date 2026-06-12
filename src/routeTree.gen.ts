@@ -15,6 +15,7 @@ import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
 import { Route as AppScannerRouteImport } from './routes/app/scanner'
 import { Route as AppRetrospectivaRouteImport } from './routes/app/retrospectiva'
 import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
+import { Route as AppProjecaoRouteImport } from './routes/app/projecao'
 import { Route as AppPossoGastarRouteImport } from './routes/app/posso-gastar'
 import { Route as AppPatrimonioRouteImport } from './routes/app/patrimonio'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
@@ -57,6 +58,11 @@ const AppRetrospectivaRoute = AppRetrospectivaRouteImport.update({
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjecaoRoute = AppProjecaoRouteImport.update({
+  id: '/projecao',
+  path: '/projecao',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPossoGastarRoute = AppPossoGastarRouteImport.update({
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/app/metas': typeof AppMetasRoute
   '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/posso-gastar': typeof AppPossoGastarRoute
+  '/app/projecao': typeof AppProjecaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
@@ -162,6 +169,7 @@ export interface FileRoutesByTo {
   '/app/metas': typeof AppMetasRoute
   '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/posso-gastar': typeof AppPossoGastarRoute
+  '/app/projecao': typeof AppProjecaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
@@ -184,6 +192,7 @@ export interface FileRoutesById {
   '/app/metas': typeof AppMetasRoute
   '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/posso-gastar': typeof AppPossoGastarRoute
+  '/app/projecao': typeof AppProjecaoRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
@@ -207,6 +216,7 @@ export interface FileRouteTypes {
     | '/app/metas'
     | '/app/patrimonio'
     | '/app/posso-gastar'
+    | '/app/projecao'
     | '/app/relatorios'
     | '/app/retrospectiva'
     | '/app/scanner'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/app/metas'
     | '/app/patrimonio'
     | '/app/posso-gastar'
+    | '/app/projecao'
     | '/app/relatorios'
     | '/app/retrospectiva'
     | '/app/scanner'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/app/metas'
     | '/app/patrimonio'
     | '/app/posso-gastar'
+    | '/app/projecao'
     | '/app/relatorios'
     | '/app/retrospectiva'
     | '/app/scanner'
@@ -302,6 +314,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/app/relatorios'
       preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/projecao': {
+      id: '/app/projecao'
+      path: '/projecao'
+      fullPath: '/app/projecao'
+      preLoaderRoute: typeof AppProjecaoRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/posso-gastar': {
@@ -412,6 +431,7 @@ interface AppRouteChildren {
   AppMetasRoute: typeof AppMetasRoute
   AppPatrimonioRoute: typeof AppPatrimonioRoute
   AppPossoGastarRoute: typeof AppPossoGastarRoute
+  AppProjecaoRoute: typeof AppProjecaoRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppRetrospectivaRoute: typeof AppRetrospectivaRoute
   AppScannerRoute: typeof AppScannerRoute
@@ -432,6 +452,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMetasRoute: AppMetasRoute,
   AppPatrimonioRoute: AppPatrimonioRoute,
   AppPossoGastarRoute: AppPossoGastarRoute,
+  AppProjecaoRoute: AppProjecaoRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppRetrospectivaRoute: AppRetrospectivaRoute,
   AppScannerRoute: AppScannerRoute,
