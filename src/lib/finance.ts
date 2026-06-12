@@ -55,14 +55,14 @@ export function expandRecurring(
           date: toISO(d),
           groupId: t.id,
           installmentInfo: undefined,
-          recurrence: undefined, // a cópia não recursa
+          recurrence: undefined,
         });
       }
       i += 1;
-      if (i > 600) break; // safety
+      if (i > 600) break;
     }
 
-    // gera ocorrências para trás (caso a tx tenha sido cadastrada com data passada e queiramos histórico)
+    // gera ocorrências para trás
     i = 1;
     while (true) {
       const d = parseISO(t.date);
