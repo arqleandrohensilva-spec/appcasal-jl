@@ -76,7 +76,7 @@ export function projectDailyBalance(
   const rangeStart = toISO(addDays(today, fromDays - 31));
   const rangeEnd = toISO(addDays(today, toDays + 31));
   // import direto (sem ciclo: finance.ts não importa projections.ts)
-  const txs = expandRecurringInline(ownTxs, rangeStart, rangeEnd);
+  const txs = expandRecurring(ownTxs, rangeStart, rangeEnd);
 
   const todayISO = toISO(today);
   const currentCash = accs.reduce((s, a) => s + a.balance, 0);
