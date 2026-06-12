@@ -31,19 +31,22 @@ function Transacoes() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [category, setCategory] = useState('');
   const [type, setType] = useState<'receita' | 'despesa'>('despesa');
-  const [paymentId, setPaymentId] = useState(''); // "card:<id>" ou "account:<id>"
+  const [paymentId, setPaymentId] = useState('');
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
+  const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>('none');
 
   const valorNum = parseFloat(amount) || 0;
   const parcelasNum = isInstallment ? Math.max(2, Math.min(parseInt(installments) || 2, 60)) : 1;
   const valorParcela = valorNum / parcelasNum;
 
   const isCardSelected = paymentId.startsWith('card:');
+  const canRecur = !isInstallment;
 
   const reset = () => {
     setDescription(''); setAmount(''); setCategory('');
     setPaymentId(''); setIsInstallment(false); setInstallments('2');
+    setRecurrence('none');
     setDate(new Date().toISOString().slice(0, 10));
   };
 
