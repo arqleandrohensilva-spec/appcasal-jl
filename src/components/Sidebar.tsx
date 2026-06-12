@@ -14,6 +14,9 @@ export function Sidebar() {
 
   const navItems = [
     { name: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
+    { name: 'Posso Gastar?', path: '/app/posso-gastar', icon: MessageCircleQuestion },
+    { name: 'À vista ou Parcelado?', path: '/app/comparador', icon: Scale },
+    { name: 'Scanner de Nota', path: '/app/scanner', icon: ScanLine },
     { name: 'Transações', path: '/app/transacoes', icon: Receipt },
     { name: 'Cartões', path: '/app/cartoes', icon: CreditCard },
     { name: 'Contas', path: '/app/contas', icon: ShieldCheck },

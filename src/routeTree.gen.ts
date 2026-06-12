@@ -20,6 +20,7 @@ import { Route as AppFluxoRouteImport } from './routes/app/fluxo'
 import { Route as AppDividasRouteImport } from './routes/app/dividas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppContasRouteImport } from './routes/app/contas'
+import { Route as AppConsorcioRouteImport } from './routes/app/consorcio'
 import { Route as AppConquistasRouteImport } from './routes/app/conquistas'
 import { Route as AppComportamentoRouteImport } from './routes/app/comportamento'
 import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
@@ -80,6 +81,11 @@ const AppContasRoute = AppContasRouteImport.update({
   path: '/contas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConsorcioRoute = AppConsorcioRouteImport.update({
+  id: '/consorcio',
+  path: '/consorcio',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConquistasRoute = AppConquistasRouteImport.update({
   id: '/conquistas',
   path: '/conquistas',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
+  '/app/consorcio': typeof AppConsorcioRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
+  '/app/consorcio': typeof AppConsorcioRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/conquistas': typeof AppConquistasRoute
+  '/app/consorcio': typeof AppConsorcioRoute
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
     | '/app/cartoes'
     | '/app/comportamento'
     | '/app/conquistas'
+    | '/app/consorcio'
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/app/cartoes'
     | '/app/comportamento'
     | '/app/conquistas'
+    | '/app/consorcio'
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/app/cartoes'
     | '/app/comportamento'
     | '/app/conquistas'
+    | '/app/consorcio'
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
@@ -291,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppContasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/consorcio': {
+      id: '/app/consorcio'
+      path: '/consorcio'
+      fullPath: '/app/consorcio'
+      preLoaderRoute: typeof AppConsorcioRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/conquistas': {
       id: '/app/conquistas'
       path: '/conquistas'
@@ -327,6 +346,7 @@ interface AppRouteChildren {
   AppCartoesRoute: typeof AppCartoesRoute
   AppComportamentoRoute: typeof AppComportamentoRoute
   AppConquistasRoute: typeof AppConquistasRoute
+  AppConsorcioRoute: typeof AppConsorcioRoute
   AppContasRoute: typeof AppContasRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDividasRoute: typeof AppDividasRoute
@@ -343,6 +363,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCartoesRoute: AppCartoesRoute,
   AppComportamentoRoute: AppComportamentoRoute,
   AppConquistasRoute: AppConquistasRoute,
+  AppConsorcioRoute: AppConsorcioRoute,
   AppContasRoute: AppContasRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDividasRoute: AppDividasRoute,
