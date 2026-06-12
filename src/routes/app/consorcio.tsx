@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ElementType } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -250,7 +250,7 @@ function ResultCard({
   sub,
   accent,
 }: {
-  icon: React.ElementType;
+  icon: ElementType;
   label: string;
   value: string;
   sub: string;
