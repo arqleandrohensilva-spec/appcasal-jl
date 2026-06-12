@@ -67,7 +67,16 @@ export function projectDailyBalance(
 ): DayProjection[] {
   const accs = filterByOwner(accounts, profile);
   const cds = filterByOwner(cards, profile);
-  const txs = filterByOwner(transactions, profile);
+  const ownTxs = filterByOwner(transactions, profile);
+
+  // Expande recorrências dentro do range de projeção (com folga)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const rangeStart = toISO(addDays(today, fromDays - 31));
+  const rangeEnd = toISO(addDays(today, toDays + 31));
+  // import dinâmico para evitar dependência circular em build
+  const { expandRecurring } = require('./finance') as typeof import('./finance');
+  const txs = expandRecurring(ownTxs, rangeStart, rangeEnd);
 
   // Saldo "agora" (hoje) = soma das contas. Como o saldo da conta já reflete
   // os lançamentos à vista passados, reconstruímos retroativamente.
