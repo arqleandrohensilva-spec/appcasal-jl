@@ -92,7 +92,7 @@ const SUGGESTIONS = [
 function PossoGastar() {
   const { activeProfile } = useAppContext();
   const { transactions, accounts, cards } = useData();
-  const accent = activeProfile === 'leandro' ? 'purple' : activeProfile === 'jonathan' ? 'emerald' : 'orange';
+  const a = accentFor(activeProfile);
 
   const ctx: Ctx = useMemo(() => {
     const now = new Date();
@@ -135,7 +135,7 @@ function PossoGastar() {
     <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in duration-500 h-[calc(100vh-3rem)] flex flex-col">
       <header>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <MessageCircleQuestion className={`h-6 w-6 text-${accent}-600`} /> Posso Gastar?
+          <MessageCircleQuestion className={cn('h-6 w-6', a.text)} /> Posso Gastar?
         </h1>
         <p className="text-muted-foreground">Análise baseada no seu saldo real, compromissos do mês e sobra projetada.</p>
       </header>
@@ -146,7 +146,7 @@ function PossoGastar() {
             <div key={m.id} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
               <div className={cn(
                 'max-w-[85%] rounded-2xl px-4 py-3 text-sm space-y-3',
-                m.role === 'user' ? `bg-${accent}-600 text-white` : 'bg-gray-100 text-gray-900'
+                m.role === 'user' ? cn(a.bg, 'text-white') : 'bg-gray-100 text-gray-900'
               )}>
                 {m.verdict && (
                   <Badge className={cn(
