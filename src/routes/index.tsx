@@ -75,6 +75,25 @@ function AuthPage() {
     setBusy(false);
   };
 
+  const handleForgot = async () => {
+    const target = (email || window.prompt('Informe seu e-mail para receber o link de redefinição:') || '').trim();
+    if (!target) return;
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(target, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (error) toast.error(mapError(error.message));
+    else toast.success('Enviamos um link de redefinição para seu e-mail.');
+  };
+      if (jerr) toast.error('Conta criada, mas código de convite inválido.');
+      else toast.success('Conta criada e workspace conectado!');
+    } else {
+      toast.success('Conta criada!');
+    }
+    setBusy(false);
+  };
+
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-6 w-6" /></div>;
