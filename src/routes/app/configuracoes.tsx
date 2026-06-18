@@ -12,12 +12,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Settings, User, Users, Moon, Sun, Copy, Check, LogOut,
-  Download, AlertTriangle, Mail, Shield, Sparkles, RefreshCw, Save,
+  Download, AlertTriangle, Mail, Shield, Sparkles, RefreshCw, Save, Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/components/ThemeProvider';
 import { useData } from '@/lib/store';
 import { downloadCSV, transactionsToCSV } from '@/lib/csv';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/app/configuracoes')({
@@ -35,6 +36,7 @@ function Configuracoes() {
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [savingName, setSavingName] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const copyInvite = () => {
     if (!workspace?.invite_code) return;
@@ -85,6 +87,23 @@ function Configuracoes() {
     setRegenerating(false);
     if (r.ok) toast.success('Novo código gerado! O antigo deixou de funcionar.');
     else toast.error(r.error || 'Erro ao gerar novo código');
+  };
+
+  const handleResetData = async () => {
+    if (!workspace) return;
+    setResetting(true);
+    const wsId = workspace.id;
+    const tables = ['goal_contributions', 'transactions', 'goals', 'budgets', 'cards', 'accounts', 'chat_messages', 'chat_threads'] as const;
+    for (const t of tables) {
+      const { error } = await supabase.from(t).delete().eq('workspace_id', wsId);
+      if (error) {
+        setResetting(false);
+        toast.error(`Erro ao limpar ${t}: ${error.message}`);
+        return;
+      }
+    }
+    toast.success('Dados do workspace resetados!');
+    setTimeout(() => window.location.reload(), 600);
   };
 
   return (
@@ -274,6 +293,44 @@ function Configuracoes() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base text-red-600">
+            <Trash2 className="h-4 w-4" /> Resetar dados
+          </CardTitle>
+          <CardDescription>
+            Apaga transações, metas, orçamentos, contas, cartões e histórico do assistente deste workspace. Seu perfil e o workspace continuam.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" disabled={resetting} className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
+                <Trash2 className="h-4 w-4" /> {resetting ? 'Apagando...' : 'Resetar dados do app'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-500" /> Apagar todos os dados?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação remove permanentemente transações, metas, contribuições, orçamentos, contas, cartões e histórico do assistente do workspace <strong>{workspace?.name}</strong>. Não dá para desfazer. Exporte um CSV antes se quiser guardar uma cópia.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetData} className="bg-red-600 hover:bg-red-700">
+                  Sim, apagar tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+
+
 
       <Card className="border-red-200">
         <CardHeader>
