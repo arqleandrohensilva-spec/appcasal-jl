@@ -36,6 +36,7 @@ function Configuracoes() {
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [savingName, setSavingName] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const copyInvite = () => {
     if (!workspace?.invite_code) return;
