@@ -170,9 +170,30 @@ function Configuracoes() {
             <Label className="text-sm">Código de convite</Label>
             <div className="flex gap-2">
               <Input readOnly value={workspace?.invite_code ?? '...'} className="font-mono" />
-              <Button variant="outline" size="icon" onClick={copyInvite}>
+              <Button variant="outline" size="icon" onClick={copyInvite} title="Copiar código">
                 {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="icon" title="Gerar novo código" disabled={regenerating}>
+                    <RefreshCw className={`h-4 w-4 ${regenerating ? 'animate-spin' : ''}`} />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-500" /> Gerar novo código?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      O código atual deixará de funcionar imediatamente. Quem já está no workspace continua dentro — mas qualquer link ou código antigo compartilhado não servirá mais.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRegenerate}>Gerar novo</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
             <p className="text-xs text-muted-foreground">
               Compartilhe apenas com seu parceiro(a) — quem tiver esse código entra no mesmo espaço.
