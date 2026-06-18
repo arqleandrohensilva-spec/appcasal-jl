@@ -11,6 +11,7 @@ import { Scale, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, Sparkles 
 import { cn } from '@/lib/utils';
 import { useData } from '@/lib/store';
 import { monthlyStats } from '@/lib/finance';
+import { accentFor } from '@/lib/accent';
 
 export const Route = createFileRoute('/app/comparador')({
   component: Comparador,
@@ -22,7 +23,7 @@ function Comparador() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const accent = activeProfile === 'leandro' ? 'purple' : activeProfile === 'jonathan' ? 'emerald' : 'orange';
+  const a = accentFor(activeProfile);
 
   const [valor, setValor] = useState('1800');
   const [parcelas, setParcelas] = useState(6);
@@ -75,7 +76,7 @@ function Comparador() {
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       <header>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Scale className={`h-6 w-6 text-${accent}-600`} /> À vista ou Parcelado?
+          <Scale className={cn('h-6 w-6', a.text)} /> À vista ou Parcelado?
         </h1>
         <p className="text-muted-foreground">Saldo atual: <b>{formatCurrency(saldo)}</b> · Sobra mensal típica: <b>{formatCurrency(sobraMes)}</b></p>
       </header>
@@ -108,13 +109,13 @@ function Comparador() {
           <Card className={cn(
             'border-2',
             veredicto === 'vista' && 'border-emerald-300 bg-emerald-50/30',
-            veredicto === 'parcelado' && `border-${accent}-300`,
+            veredicto === 'parcelado' && a.border,
             veredicto === 'esperar' && 'border-amber-300 bg-amber-50/30',
           )}>
             <CardContent className="p-6 space-y-3">
               <div className="flex items-center gap-2">
                 {veredicto === 'vista' && <Badge className="bg-emerald-600 gap-1"><CheckCircle2 className="h-3 w-3" /> Pague à vista</Badge>}
-                {veredicto === 'parcelado' && <Badge className={`bg-${accent}-600 gap-1`}><CheckCircle2 className="h-3 w-3" /> Parcele com segurança</Badge>}
+                {veredicto === 'parcelado' && <Badge className={cn(a.bg, 'gap-1')}><CheckCircle2 className="h-3 w-3" /> Parcele com segurança</Badge>}
                 {veredicto === 'esperar' && <Badge className="bg-amber-600 gap-1"><AlertTriangle className="h-3 w-3" /> Melhor esperar</Badge>}
                 <span className="text-sm text-muted-foreground">para "{descricao}"</span>
               </div>
@@ -137,7 +138,7 @@ function Comparador() {
               </CardContent>
             </Card>
 
-            <Card className={cn(veredicto === 'parcelado' && `ring-2 ring-${accent}-400`)}>
+            <Card className={cn(veredicto === 'parcelado' && cn('ring-2', a.ring))}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <TrendingDown className="h-4 w-4 text-rose-600" /> Em {parcelas}x
