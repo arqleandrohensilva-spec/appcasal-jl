@@ -3,9 +3,13 @@ import { createFileRoute } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Calculator, Home, TrendingUp, Wallet, Target, Sparkles } from 'lucide-react';
+import { Calculator, Home, TrendingUp, Wallet, Target, Sparkles, Save } from 'lucide-react';
 import { formatCurrency } from '@/lib/mockData';
+import { useData } from '@/lib/store';
+import { useAppContext } from '@/lib/context';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/app/consorcio')({
   component: SimuladorConsorcio,
@@ -21,11 +25,38 @@ function chanceContemplacao(pct: number) {
 function SimuladorConsorcio() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  const { goals, contributions, contributeGoal } = useData();
+  const { activeProfile } = useAppContext();
+
+  // Goal cujo nome contenha "lance" + "cons" (ex.: "Lance do consórcio")
+  const lanceGoal = useMemo(
+    () =>
+      goals.find(
+        (g) =>
+          /lance/i.test(g.name) &&
+          /cons/i.test(g.name) &&
+          (activeProfile === 'casal' || g.owner === activeProfile),
+      ),
+    [goals, activeProfile],
+  );
+
+  const lanceAcumulado = useMemo(() => {
+    if (!lanceGoal) return 0;
+    return contributions
+      .filter((c) => c.goalId === lanceGoal.id)
+      .reduce((s, c) => s + c.amount, 0);
+  }, [contributions, lanceGoal]);
+
   const [credito, setCredito] = useState(200000);
-  const [lanceLivre, setLanceLivre] = useState(33800);
+  const [lanceLivre, setLanceLivre] = useState(lanceAcumulado > 0 ? lanceAcumulado : 33800);
   const [embutidoPct, setEmbutidoPct] = useState(20);
   const [aluguel, setAluguel] = useState(1400);
   const [prazo, setPrazo] = useState(15);
+
+  // Sincroniza com o valor acumulado quando a meta carrega/muda
+  useEffect(() => {
+    if (lanceAcumulado > 0) setLanceLivre(lanceAcumulado);
+  }, [lanceAcumulado]);
 
 
 
