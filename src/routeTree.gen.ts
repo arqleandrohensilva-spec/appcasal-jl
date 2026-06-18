@@ -18,6 +18,7 @@ import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
 import { Route as AppProjecaoRouteImport } from './routes/app/projecao'
 import { Route as AppPossoGastarRouteImport } from './routes/app/posso-gastar'
 import { Route as AppPatrimonioRouteImport } from './routes/app/patrimonio'
+import { Route as AppOrcamentoRouteImport } from './routes/app/orcamento'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
 import { Route as AppFluxoRouteImport } from './routes/app/fluxo'
 import { Route as AppDividasRouteImport } from './routes/app/dividas'
@@ -73,6 +74,11 @@ const AppPossoGastarRoute = AppPossoGastarRouteImport.update({
 const AppPatrimonioRoute = AppPatrimonioRouteImport.update({
   id: '/patrimonio',
   path: '/patrimonio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrcamentoRoute = AppOrcamentoRouteImport.update({
+  id: '/orcamento',
+  path: '/orcamento',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMetasRoute = AppMetasRouteImport.update({
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/orcamento': typeof AppOrcamentoRoute
   '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/posso-gastar': typeof AppPossoGastarRoute
   '/app/projecao': typeof AppProjecaoRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/orcamento': typeof AppOrcamentoRoute
   '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/posso-gastar': typeof AppPossoGastarRoute
   '/app/projecao': typeof AppProjecaoRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/app/dividas': typeof AppDividasRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
+  '/app/orcamento': typeof AppOrcamentoRoute
   '/app/patrimonio': typeof AppPatrimonioRoute
   '/app/posso-gastar': typeof AppPossoGastarRoute
   '/app/projecao': typeof AppProjecaoRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
+    | '/app/orcamento'
     | '/app/patrimonio'
     | '/app/posso-gastar'
     | '/app/projecao'
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
+    | '/app/orcamento'
     | '/app/patrimonio'
     | '/app/posso-gastar'
     | '/app/projecao'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '/app/dividas'
     | '/app/fluxo'
     | '/app/metas'
+    | '/app/orcamento'
     | '/app/patrimonio'
     | '/app/posso-gastar'
     | '/app/projecao'
@@ -335,6 +347,13 @@ declare module '@tanstack/react-router' {
       path: '/patrimonio'
       fullPath: '/app/patrimonio'
       preLoaderRoute: typeof AppPatrimonioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/orcamento': {
+      id: '/app/orcamento'
+      path: '/orcamento'
+      fullPath: '/app/orcamento'
+      preLoaderRoute: typeof AppOrcamentoRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/metas': {
@@ -429,6 +448,7 @@ interface AppRouteChildren {
   AppDividasRoute: typeof AppDividasRoute
   AppFluxoRoute: typeof AppFluxoRoute
   AppMetasRoute: typeof AppMetasRoute
+  AppOrcamentoRoute: typeof AppOrcamentoRoute
   AppPatrimonioRoute: typeof AppPatrimonioRoute
   AppPossoGastarRoute: typeof AppPossoGastarRoute
   AppProjecaoRoute: typeof AppProjecaoRoute
@@ -450,6 +470,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDividasRoute: AppDividasRoute,
   AppFluxoRoute: AppFluxoRoute,
   AppMetasRoute: AppMetasRoute,
+  AppOrcamentoRoute: AppOrcamentoRoute,
   AppPatrimonioRoute: AppPatrimonioRoute,
   AppPossoGastarRoute: AppPossoGastarRoute,
   AppProjecaoRoute: AppProjecaoRoute,
@@ -468,13 +489,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

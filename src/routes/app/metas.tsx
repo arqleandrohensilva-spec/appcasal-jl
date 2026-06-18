@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Calendar, Trash2, Heart } from 'lucide-react';
-import { useData } from '@/lib/store';
+import { Plus, Calendar, Trash2, Heart, Pencil } from 'lucide-react';
+import { useData, type UserGoal } from '@/lib/store';
 import { goalProgress, goalProgressByOwner } from '@/lib/finance';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -23,7 +23,7 @@ export const Route = createFileRoute('/app/metas')({
 
 function Metas() {
   const { activeProfile } = useAppContext();
-  const { goals, contributions, addGoal, removeGoal, contributeGoal } = useData();
+  const { goals, contributions, addGoal, updateGoal, removeGoal, contributeGoal } = useData();
 
   const myGoals = goals.filter(g => activeProfile === 'casal' || g.owner === activeProfile);
 
@@ -64,10 +64,11 @@ function Metas() {
                     {isCouple && <Heart className="h-4 w-4 fill-rose-500 text-rose-500" />}
                     {meta.name}
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <div className="flex items-center text-xs text-muted-foreground mr-2">
                       <Calendar className="h-3 w-3 mr-1" /> {meta.deadline}
                     </div>
+                    <EditGoalButton goal={meta} onSave={(p) => { updateGoal(meta.id, p); toast.success('Meta atualizada'); }} />
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
                       removeGoal(meta.id);
                       toast.success('Meta removida');
@@ -125,6 +126,40 @@ function Metas() {
         </div>
       )}
     </div>
+  );
+}
+
+function EditGoalButton({ goal, onSave }: { goal: UserGoal; onSave: (p: Partial<Omit<UserGoal, 'id' | 'createdAt'>>) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(goal.name);
+  const [target, setTarget] = useState(String(goal.target));
+  const [deadline, setDeadline] = useState(goal.deadline);
+  return (
+    <Dialog open={open} onOpenChange={(o) => {
+      setOpen(o);
+      if (o) { setName(goal.name); setTarget(String(goal.target)); setDeadline(goal.deadline); }
+    }}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-7 w-7"><Pencil className="h-3 w-3" /></Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Editar meta</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2"><Label>Nome</Label><Input value={name} onChange={e => setName(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>Valor alvo (R$)</Label><Input type="number" step="0.01" value={target} onChange={e => setTarget(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Prazo</Label><Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} /></div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => {
+            if (!name || !target || !deadline) { toast.error('Preencha tudo'); return; }
+            onSave({ name, target: parseFloat(target), deadline });
+            setOpen(false);
+          }}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

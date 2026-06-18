@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppProvider } from "@/lib/context";
 import { DataProvider } from "@/lib/store";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import {
   Outlet,
@@ -106,6 +107,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body>
         {children}
@@ -120,12 +122,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <DataProvider>
-          <Outlet />
-          <Toaster position="top-right" />
-        </DataProvider>
-      </AppProvider>
+      <ThemeProvider>
+        <AppProvider>
+          <DataProvider>
+            <Outlet />
+            <Toaster position="top-right" />
+          </DataProvider>
+        </AppProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

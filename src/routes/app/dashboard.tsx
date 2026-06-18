@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DailyBalanceProjection, CardRecommendationWidget } from '@/components/dashboard/BalanceProjection';
 import { CoupleDiagnostic } from '@/components/dashboard/CoupleDiagnostic';
+import { BudgetWidget } from '@/components/dashboard/BudgetWidget';
 import { useData } from '@/lib/store';
 import { monthlyStats, goalProgress } from '@/lib/finance';
 import { openCardBills, categoryAnomalies, pendingThisMonth } from '@/lib/insights';
@@ -23,7 +24,7 @@ export const Route = createFileRoute('/app/dashboard')({
 
 function Dashboard() {
   const { activeProfile } = useAppContext();
-  const { transactions, accounts, cards, goals, contributions } = useData();
+  const { transactions, accounts, cards, goals, contributions, budgets } = useData();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -53,6 +54,36 @@ function Dashboard() {
   );
   const anomalies = useMemo(() => categoryAnomalies(transactions, activeProfile), [transactions, activeProfile]);
   const pendentes = useMemo(() => pendingThisMonth(transactions, cards, activeProfile), [transactions, cards, activeProfile]);
+
+  // Briefing inteligente
+  const briefing = useMemo(() => {
+    const items: { text: string; tone: 'info' | 'warn' | 'good' }[] = [];
+    const sobra = stats.receita - stats.gastos;
+    if (upcomingBills[0]) {
+      const days = Math.max(0, Math.ceil((new Date(upcomingBills[0].dueDate).getTime() - Date.now()) / 86400000));
+      items.push({
+        text: `Próxima fatura: ${upcomingBills[0].cardName} — ${formatCurrency(upcomingBills[0].total)} ${days === 0 ? 'vence hoje' : `em ${days} dia${days === 1 ? '' : 's'}`}`,
+        tone: days <= 3 ? 'warn' : 'info',
+      });
+    }
+    if (sobra > 0) items.push({ text: `Sobra estimada do mês: ${formatCurrency(sobra)}`, tone: 'good' });
+    else if (sobra < 0) items.push({ text: `Atenção: gastos ${formatCurrency(-sobra)} acima da receita`, tone: 'warn' });
+    items.push({ text: `Compromissos pendentes do mês: ${formatCurrency(pendentes)}`, tone: 'info' });
+    if (anomalies[0]) items.push({
+      text: `${anomalies[0].category} ${Math.round((anomalies[0].ratio - 1) * 100)}% acima da média (3m)`,
+      tone: 'warn',
+    });
+    // Orçamentos estourados
+    const myBudgets = budgets.filter(b => activeProfile === 'casal' ? true : b.owner === activeProfile);
+    for (const b of myBudgets) {
+      const spent = stats.porCategoria.find(c => c.name === b.category)?.value || 0;
+      if (b.monthlyLimit > 0 && spent / b.monthlyLimit >= 1) {
+        items.push({ text: `Orçamento de ${b.category} estourado (${formatCurrency(spent)} de ${formatCurrency(b.monthlyLimit)})`, tone: 'warn' });
+        break;
+      }
+    }
+    return items.slice(0, 4);
+  }, [upcomingBills, stats, pendentes, anomalies, budgets, activeProfile]);
 
   const data: any = {
     ...mockProfile,
@@ -105,15 +136,16 @@ function Dashboard() {
             <Sparkles className="h-6 w-6" />
           </div>
           <div className="flex-1 space-y-1">
-            <p className="font-bold text-gray-900">Olá, {activeProfile === 'leandro' ? 'Leandro' : activeProfile === 'jonathan' ? 'Jonathan' : 'pessoal'} ☀️</p>
-            <div className="text-sm text-gray-600 space-y-0.5">
-              {upcomingBills.length > 0 ? (
-                <p>• Próxima fatura: <b>{upcomingBills[0].cardName}</b> — {formatCurrency(upcomingBills[0].total)} em {upcomingBills[0].dueDate}</p>
-              ) : (
-                <p>• Sem faturas em aberto 🎉</p>
-              )}
-              <p>• Este mês você gastou <b>{formatCurrency(stats.gastos)}</b> e recebeu <b>{formatCurrency(stats.receita)}</b> — sobra de {formatCurrency(stats.receita - stats.gastos)}</p>
-              <p>• Compromissos pendentes do mês: <b>{formatCurrency(pendentes)}</b></p>
+            <p className="font-bold text-gray-900 dark:text-foreground">Olá, {activeProfile === 'leandro' ? 'Leandro' : activeProfile === 'jonathan' ? 'Jonathan' : 'pessoal'} ☀️</p>
+            <div className="text-sm text-gray-600 dark:text-muted-foreground space-y-0.5">
+              {briefing.length === 0 ? (
+                <p>• Sem novidades — cadastre transações para ver insights aqui.</p>
+              ) : briefing.map((b, i) => (
+                <p key={i} className={cn(
+                  b.tone === 'warn' && 'text-rose-700 dark:text-rose-400',
+                  b.tone === 'good' && 'text-emerald-700 dark:text-emerald-400',
+                )}>• {b.text}</p>
+              ))}
             </div>
           </div>
           <div className="flex items-end">
@@ -219,6 +251,7 @@ function Dashboard() {
 
 
         <div className="space-y-6">
+          <BudgetWidget />
           <Card>
             <CardHeader><CardTitle>Metas</CardTitle></CardHeader>
             <CardContent className="space-y-4">

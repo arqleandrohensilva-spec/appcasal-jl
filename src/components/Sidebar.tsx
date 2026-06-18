@@ -4,8 +4,9 @@ import {
   LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp,
   ShieldCheck, CreditCard, Trophy, Sparkles, Brain, Calculator,
   MessageCircleQuestion, ScanLine, Scale, ChevronDown, Wallet, Landmark,
-  PieChart, Bot, CalendarDays, Check, Users,
+  PieChart, Bot, CalendarDays, Check, Users, Moon, Sun, PiggyBank,
 } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
@@ -60,6 +61,7 @@ const GROUPS: NavGroup[] = [
     icon: Landmark,
     items: [
       { name: 'Metas', path: '/app/metas', icon: Target },
+      { name: 'Orçamento', path: '/app/orcamento', icon: PiggyBank },
       { name: 'Patrimônio', path: '/app/patrimonio', icon: PieChart },
       { name: 'Consórcio', path: '/app/consorcio', icon: Calculator },
       { name: 'Dívidas', path: '/app/dividas', icon: ShieldCheck },
@@ -69,6 +71,7 @@ const GROUPS: NavGroup[] = [
 
 export function Sidebar() {
   const { activeProfile, setActiveProfile } = useAppContext();
+  const { theme, toggle: toggleTheme } = useTheme();
   const location = useLocation();
 
   const currentData =
@@ -86,10 +89,21 @@ export function Sidebar() {
   const showRetro = month >= 10 || month <= 1;
 
   return (
-    <div className="w-64 bg-white border-r h-screen flex flex-col fixed left-0 top-0">
-      <div className="p-6 pb-4">
-        <h1 className="text-xl font-bold text-gray-900">FinançasDuo</h1>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Finanças para casal</p>
+    <div className="w-64 bg-card text-card-foreground border-r border-border h-screen flex flex-col fixed left-0 top-0">
+      <div className="p-6 pb-4 flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">FinançasDuo</h1>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Finanças para casal</p>
+        </div>
+        <Button
+          size="icon" variant="ghost"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          onClick={toggleTheme}
+          aria-label="Alternar tema"
+          title={theme === 'dark' ? 'Mudar para claro' : 'Mudar para escuro'}
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
       </div>
 
       <div className="px-4 mb-4">

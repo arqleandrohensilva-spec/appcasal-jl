@@ -1,71 +1,66 @@
-# Diagnóstico do Casal — Funcionalidades propostas
+# Plano de Melhorias
 
-Quando o perfil ativo é **Casal**, o dashboard ganha um painel exclusivo que combina os dados de Leandro + Jonathan (contas, cartões e transações dos dois). Hoje esse modo só repete os mesmos cards individuais. A ideia é torná-lo o **cérebro financeiro do casal**.
+Vou executar em 3 ondas. As ondas 1 e 2 são frontend puro (localStorage) e entregam ganho imediato. A onda 3 é a migração para Lovable Cloud, que toca tudo — por isso fica separada e te peço confirmação antes.
 
-## 1. Melhor cartão do casal (prioridade — você pediu)
+## Onda 1 — Polimento + edição + exportação (entrego de uma vez)
 
-Widget que considera **todos os cartões dos dois** e responde:
-- "Quero gastar R$ X hoje. Qual cartão usar?"
-- Ranking por **margem de segurança** na data do vencimento (saldo projetado da conta do dono - fatura total).
-- Mostra: dono do cartão, data de vencimento, fatura atual, saldo projetado do dono no vencimento, sobra após pagar.
-- Avisa se **nenhum dos dois** consegue pagar com folga e sugere dividir em parcelas ou usar conta.
+**Correções**
+- Corrigir warning de hydration no `Slider` do Comparador e Consórcio (já existe `mounted` em alguns, padronizar com um wrapper `<ClientOnly>`).
 
-Já temos `recommendCardForPurchase` — basta rodar em modo casal somando ambos os perfis.
+**UX / Tema**
+- Adicionar toggle Dark/Light na sidebar, persistido em localStorage, com transição suave. Usa tokens já existentes em `src/styles.css`.
+- Briefing diário mais inteligente: substituir o texto fixo por mensagens dinâmicas baseadas em `pendingThisMonth`, `categoryAnomalies`, `openCardBills` e saldo projetado (ex.: "Fatura do Nubank fecha em 2 dias — R$ 1.240", "Alimentação 62% acima da média de 3 meses", "Sobra estimada do mês: R$ 1.890").
 
-## 2. Saldo consolidado do casal (dia a dia)
+**Edição/exclusão facilitadas**
+- Diálogo de edição para Transação, Meta, Cartão e Conta (hoje só dá pra criar e excluir).
+- Adicionar `updateTransaction`, `updateGoal`, `updateCard`, `updateAccount` no `store.tsx`.
+- Filtros e busca na página de Transações (por descrição, categoria, mês, tipo).
 
-Versão "casal" da Projeção Diária:
-- Soma saldos das contas dos dois.
-- Mostra **duas linhas** no gráfico: saldo Leandro + saldo Jonathan + linha total.
-- Destaca dias críticos: "Dia 10/07 a conta do Leandro fica negativa, mas o Jonathan tem folga — transferir R$ X resolve".
-- Sugestões de **transferência entre contas** para equilibrar.
+**Exportar / importar**
+- Botão "Exportar CSV" em Transações (gera arquivo direto no navegador, sem servidor).
+- Botão "Importar extrato" com upload CSV. Suporta:
+  - Formato Nubank (Data, Valor, Identificador, Descrição)
+  - Formato genérico (Data, Descrição, Valor, Categoria opcional)
+  - Tela de mapeamento de colunas + preview antes de confirmar
+  - Detecção de duplicatas por (data + valor + descrição)
 
-## 3. Quem paga o quê este mês
+## Onda 2 — Orçamento mensal por categoria
 
-Tabela de **divisão de despesas compartilhadas**:
-- Lista contas marcadas como "compartilhadas" (categoria casa, mercado, etc.).
-- Calcula quanto cada um pagou no mês.
-- Mostra **saldo entre eles**: "Jonathan deve R$ 240 ao Leandro" ou "Está empatado".
-- Botão "Quitar dívida" registra uma transferência.
+- Nova entidade `Budget { id, category, monthlyLimit, owner }` no store.
+- Nova página `/app/orcamento`:
+  - Lista de categorias com gasto do mês vs limite (barra de progresso colorida).
+  - Cadastrar/editar limite por categoria e por perfil.
+  - Alerta visual quando passa de 80% (amarelo) e 100% (vermelho).
+- Card "Orçamento" no Dashboard mostrando as 3 categorias mais próximas do limite.
+- Alerta no Briefing Diário quando alguma categoria estourar.
+- Item de menu novo na sidebar.
 
-## 4. Capacidade de compra conjunta
+## Onda 3 — Lovable Cloud (só depois da sua confirmação)
 
-Card "Podemos comprar?":
-- Input: valor de um objetivo (ex: R$ 5.000 viagem).
-- Mostra: quanto tempo levaria juntando a sobra mensal dos dois, ou se cabe parcelando em quantos meses considerando renda + gastos fixos do casal.
+Esta onda é uma migração grande: todos os dados saem do localStorage e vão para o banco. Requer:
 
-## 5. Fatura do mês consolidada
+- Ativar Lovable Cloud (cria backend automático).
+- Login com Email/Senha + Google (sem precisar de conta externa).
+- Tabelas: `profiles`, `accounts`, `cards`, `transactions`, `goals`, `goal_contributions`, `budgets` + RLS por usuário (e regra especial para o perfil "casal" — provavelmente via campo `couple_id` ligando 2 contas).
+- Migrar `src/lib/store.tsx` de localStorage para queries no Supabase (server functions onde fizer sentido).
+- Tela de login + rota `_authenticated` protegendo `/app/*`.
+- Botão "Importar do dispositivo atual" no primeiro login pra trazer os dados do localStorage pra Cloud, sem perder histórico.
 
-Visão única de **todas as faturas de cartão dos dois** ordenadas por data de vencimento, com total do mês e alerta: "Próximos 30 dias: R$ 4.820 em faturas. Saldo combinado projetado: R$ 5.100. Margem apertada."
+**Por que separar:** essa onda mexe em praticamente todos os arquivos de página e introduz auth. Se algo der errado, é melhor isolar do polimento. Também preciso fazer perguntas suas antes (ex.: como você quer modelar o "casal" — duas contas separadas que compartilham dados, ou uma conta única com 2 perfis dentro?).
 
-## 6. Comparativo de comportamento
+## Ordem de execução
 
-Mini-cards lado a lado:
-- Quem gasta mais por categoria neste mês.
-- Quem está dentro do orçamento e quem estourou.
-- "Categoria onde mais divergem": ex. Leandro gasta 3x mais em delivery.
+1. Confirmar este plano.
+2. Executar Onda 1 inteira em uma sequência de edits.
+3. Executar Onda 2.
+4. Te chamar pra alinhar as perguntas da Onda 3 (modelo do "casal", login Google ou só email, etc.) antes de migrar.
 
-## 7. Metas conjuntas com contribuição individual
+## Detalhes técnicos relevantes
 
-Para cada meta do casal, mostrar quanto cada um já contribuiu (barra dividida em duas cores) e o ritmo de cada um.
+- Toggle de tema: classe `dark` no `<html>`, hook `useTheme` + `localStorage('theme')`, evita FOUC com script inline no `__root.tsx`.
+- CSV export: gerado no client via `Blob` + `URL.createObjectURL` — zero dependência nova.
+- CSV import: parsing manual (regex CSV simples) ou `papaparse` (~45kb). Vou usar `papaparse` pra lidar com vírgulas dentro de aspas.
+- Edição de transação: se a tx faz parte de grupo (parcelamento) ou tem recorrência, o diálogo pergunta "editar só esta" ou "editar todas".
+- Budget: cálculo do consumido reusa `monthlyStats().porCategoria` que já existe em `src/lib/finance.ts`.
 
-## Plano de implementação (técnico)
-
-- Criar `src/components/dashboard/CoupleDiagnostic.tsx` agrupando os widgets acima.
-- Renderizar **apenas quando `activeProfile === 'casal'`**, entre o grid de KPIs e a Projeção Diária.
-- Ampliar `src/lib/projections.ts`:
-  - `projectCoupleBalance(accounts, cards, transactions)` — projeção com séries separadas por dono + total.
-  - `recommendCardForPurchase` já aceita `profile='casal'` — usar direto.
-- Adicionar flag opcional `shared?: boolean` em `UserTransaction` (não-quebrante) para alimentar o item 3.
-- Sem backend novo — tudo roda em cima do `useData()` existente.
-
-## Escopo desta entrega
-
-Sugiro começar pelos 3 mais úteis no dia a dia:
-1. **Melhor cartão do casal** (o que você pediu)
-2. **Saldo consolidado dia a dia** com alerta de desequilíbrio entre contas
-3. **Fatura do mês consolidada** com alerta de margem
-
-Os itens 3 (divisão), 4 (capacidade), 6 (comparativo) e 7 (metas) ficam para uma segunda leva, ou me diz se quer puxar algum deles pra frente.
-
-Aprova assim, ou quer trocar/adicionar algum item antes de eu implementar?
+Posso começar pela Onda 1?
