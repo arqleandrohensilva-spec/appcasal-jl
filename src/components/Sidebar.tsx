@@ -72,6 +72,14 @@ const GROUPS: NavGroup[] = [
       { name: 'Dívidas', path: '/app/dividas', icon: ShieldCheck },
     ],
   },
+  {
+    id: 'conta',
+    label: 'Conta',
+    icon: Settings,
+    items: [
+      { name: 'Configurações', path: '/app/configuracoes', icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: boolean; onCloseMobile?: () => void } = {}) {
