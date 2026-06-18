@@ -198,7 +198,7 @@ function PossoGastar() {
           <form onSubmit={(e) => { e.preventDefault(); ask(input); }} className="flex gap-2">
             <Input value={input} onChange={(e) => setInput(e.target.value)}
               placeholder="Ex: posso gastar R$ 300 hoje?" className="flex-1" />
-            <Button type="submit" className={`bg-${accent}-600 hover:bg-${accent}-700 gap-2`}>
+            <Button type="submit" className={cn(a.bg, a.bgHover, 'gap-2')}>
               <Send className="h-4 w-4" /> Perguntar
             </Button>
           </form>
