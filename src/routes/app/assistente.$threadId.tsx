@@ -135,67 +135,86 @@ function ChatWindow({
     await sendMessage({ text: text.trim() });
   };
 
+  const threadList = (
+    <>
+      <Button onClick={onNewThread} className="w-full mb-3" size="sm">
+        <Plus className="h-4 w-4 mr-2" /> Nova conversa
+      </Button>
+      <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+        {threads.length === 0 && (
+          <p className="text-xs text-muted-foreground p-2">Nenhuma conversa ainda.</p>
+        )}
+        {threads.map(t => (
+          <div key={t.id} className="group flex items-center">
+            <Link
+              to="/app/assistente/$threadId"
+              params={{ threadId: t.id }}
+              className={cn(
+                "flex-1 truncate text-sm px-2 py-2 rounded-md hover:bg-muted transition-colors flex items-center gap-2 min-w-0",
+                t.id === threadId && "bg-muted font-medium",
+              )}
+            >
+              <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-60" />
+              <span className="truncate">{t.title}</span>
+            </Link>
+            <button
+              onClick={() => {
+                if (confirm("Excluir esta conversa?")) onDeleteThread(t.id);
+              }}
+              className="md:opacity-0 md:group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive shrink-0"
+              aria-label="Excluir conversa"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+
   return (
-    <div className="grid grid-cols-[260px_1fr] gap-4 h-[calc(100vh-3rem)]">
-      {/* Lista de threads */}
-      <Card className="p-3 flex flex-col overflow-hidden">
-        <Button onClick={onNewThread} className="w-full mb-3" size="sm">
-          <Plus className="h-4 w-4 mr-2" /> Nova conversa
-        </Button>
-        <div className="flex-1 overflow-y-auto space-y-1">
-          {threads.length === 0 && (
-            <p className="text-xs text-muted-foreground p-2">Nenhuma conversa ainda.</p>
-          )}
-          {threads.map(t => (
-            <div key={t.id} className="group flex items-center">
-              <Link
-                to="/app/assistente/$threadId"
-                params={{ threadId: t.id }}
-                className={cn(
-                  "flex-1 truncate text-sm px-2 py-2 rounded-md hover:bg-muted transition-colors flex items-center gap-2",
-                  t.id === threadId && "bg-muted font-medium",
-                )}
-              >
-                <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                <span className="truncate">{t.title}</span>
-              </Link>
-              <button
-                onClick={() => {
-                  if (confirm("Excluir esta conversa?")) onDeleteThread(t.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive"
-                aria-label="Excluir conversa"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
+    <div className="md:grid md:grid-cols-[260px_1fr] md:gap-4 h-[calc(100dvh-7rem)] md:h-[calc(100dvh-3rem)] flex flex-col min-w-0">
+      {/* Lista de threads — desktop */}
+      <Card className="p-3 hidden md:flex flex-col overflow-hidden">
+        {threadList}
       </Card>
 
       {/* Chat */}
-      <Card className="flex flex-col overflow-hidden">
-        <div className="border-b p-4 flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center">
+      <Card className="flex flex-col overflow-hidden flex-1 min-h-0 min-w-0">
+        <div className="border-b p-3 md:p-4 flex items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 shrink-0">
+                <PanelLeft className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[85vw] max-w-[320px] p-3 flex flex-col">
+              <SheetHeader>
+                <SheetTitle className="text-left text-sm">Conversas</SheetTitle>
+              </SheetHeader>
+              {threadList}
+            </SheetContent>
+          </Sheet>
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shrink-0">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
-          <div>
-            <h2 className="font-semibold text-sm">Assistente Financeiro</h2>
-            <p className="text-xs text-muted-foreground">Análises personalizadas do seu workspace</p>
+          <div className="min-w-0">
+            <h2 className="font-semibold text-sm truncate">Assistente Financeiro</h2>
+            <p className="text-xs text-muted-foreground truncate">Análises do seu workspace</p>
           </div>
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6 min-h-0">
           {messages.length === 0 && (
-            <div className="text-center py-12">
+            <div className="text-center py-8 md:py-12">
               <div className="h-14 w-14 mx-auto rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center mb-4">
                 <Sparkles className="h-7 w-7 text-white" />
               </div>
               <h3 className="font-semibold">Olá! Como posso ajudar?</h3>
-              <p className="text-sm text-muted-foreground mt-1 mb-6">
+              <p className="text-sm text-muted-foreground mt-1 mb-6 px-2">
                 Pergunte sobre suas finanças. Eu vejo suas transações, metas, orçamentos e cartões.
               </p>
-              <div className="grid grid-cols-2 gap-2 max-w-lg mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg mx-auto">
                 {QUICK_PROMPTS.map(q => (
                   <button
                     key={q}
@@ -208,6 +227,7 @@ function ChatWindow({
               </div>
             </div>
           )}
+
 
           {messages.map((m) => {
             const text = m.parts.map(p => (p.type === "text" ? p.text : "")).join("");
