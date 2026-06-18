@@ -1,8 +1,9 @@
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router';
-import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Loader2, Menu } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { useAuth } from '@/lib/auth';
+import { Button } from '@/components/ui/button';
 
 export const Route = createFileRoute('/app')({
   ssr: false,
@@ -12,6 +13,7 @@ export const Route = createFileRoute('/app')({
 function AppLayout() {
   const { loading, user } = useAuth();
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: '/' });
@@ -23,9 +25,17 @@ function AppLayout() {
 
   return (
     <div className="flex bg-background text-foreground min-h-screen">
-      <Sidebar />
-      <main className="flex-1 ml-64 min-h-screen p-6">
-        <Outlet />
+      <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
+      <main className="flex-1 min-w-0 md:ml-64 min-h-screen">
+        <header className="md:hidden sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/95 backdrop-blur px-3 h-12">
+          <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setMobileOpen(true)} aria-label="Abrir menu">
+            <Menu className="h-5 w-5" />
+          </Button>
+          <h1 className="text-sm font-semibold">FinançasDuo</h1>
+        </header>
+        <div className="p-4 md:p-6 min-w-0">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
