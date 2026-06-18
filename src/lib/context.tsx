@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useAuth } from './auth';
 
 export type UserProfile = 'leandro' | 'jonathan' | 'casal';
 
@@ -10,15 +11,19 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  // Sempre começa com 'leandro' para casar SSR ↔ client; lê do LS depois de hidratar.
+  const { profile } = useAuth();
   const [activeProfile, setActiveProfileState] = useState<UserProfile>('leandro');
+
+  // Sync active profile with logged-in user's pessoa
+  useEffect(() => {
+    if (profile?.pessoa) setActiveProfileState(profile.pessoa);
+  }, [profile?.pessoa]);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('activeProfile') as UserProfile | null;
-      if (saved && saved !== activeProfile) setActiveProfileState(saved);
+      if (saved) setActiveProfileState(saved);
     } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setActiveProfile = (p: UserProfile) => {
