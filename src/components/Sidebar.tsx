@@ -6,6 +6,7 @@ import {
   ShieldCheck, CreditCard, Trophy, Sparkles, Brain, Calculator,
   MessageCircleQuestion, ScanLine, Scale, ChevronDown, Wallet, Landmark,
   PieChart, Bot, CalendarDays, Check, Users, Moon, Sun, PiggyBank, Copy, UserPlus, Settings,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAppContext } from '@/lib/context';
@@ -56,6 +57,7 @@ const GROUPS: NavGroup[] = [
       { name: 'Transações', path: '/app/transacoes', icon: Receipt },
       { name: 'Cartões', path: '/app/cartoes', icon: CreditCard },
       { name: 'Contas', path: '/app/contas', icon: ShieldCheck },
+      { name: 'Transferir', path: '/app/transferencia', icon: ArrowLeftRight },
       { name: 'Fluxo de Caixa', path: '/app/fluxo', icon: TrendingUp },
       { name: 'Projeção Diária', path: '/app/projecao', icon: CalendarDays },
     ],
