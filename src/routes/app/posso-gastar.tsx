@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircleQuestion, Send, Sparkles, CheckCircle2, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { accentFor } from '@/lib/accent';
 import { useData } from '@/lib/store';
 import { monthlyStats } from '@/lib/finance';
 import { pendingThisMonth } from '@/lib/insights';
@@ -31,20 +32,24 @@ interface Ctx {
   reservaMinima: number;
 }
 
-function analyze(question: string, ctx: Ctx): Message {
-  const id = Math.random().toString(36).slice(2);
-  // Aceita formatos BR: "200", "200,00", "2.000,50", "2000.50"
+function parseValor(question: string): number {
+  // Aceita "200", "200,00", "2.000", "2.000,50", "2000.50"
   const match = question.match(/(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?|\d+(?:\.\d+)?)/);
-  let valor = 0;
-  if (match) {
-    const raw = match[1];
-    const hasComma = raw.includes(',');
-    // Se tem vírgula, pontos são separadores de milhar
-    const normalized = hasComma
+  if (!match) return 0;
+  const raw = match[1];
+  const hasComma = raw.includes(',');
+  // Padrão BR de milhar (ex.: 2.000 ou 2.000,50): pontos são separadores de milhar
+  const isThousands = /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(raw);
+  const normalized =
+    isThousands || hasComma
       ? raw.replace(/\./g, '').replace(',', '.')
       : raw;
-    valor = parseFloat(normalized) || 0;
-  }
+  return parseFloat(normalized) || 0;
+}
+
+function analyze(question: string, ctx: Ctx): Message {
+  const id = Math.random().toString(36).slice(2);
+  const valor = parseValor(question);
 
   if (valor === 0) {
     return { id, role: 'assistant', content: 'Diga um valor, por exemplo: "posso gastar R$ 300 hoje?"' };
