@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { CATEGORIES, formatCurrency, formatDate } from '@/lib/mockData';
-import { useData } from '@/lib/store';
+import { useData, type UserTransaction } from '@/lib/store';
 import { useAppContext } from '@/lib/context';
 import { toast } from 'sonner';
-import { AlertCircle, Trash2, Receipt, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Trash2, Receipt, Pencil, Search, Download, Upload, X } from 'lucide-react';
+import { downloadCSV, transactionsToCSV, parseCSV, dedupeAgainstExisting, type ParsedRow } from '@/lib/csv';
 
 export const Route = createFileRoute('/app/transacoes')({
   component: Transacoes,
@@ -19,12 +21,15 @@ export const Route = createFileRoute('/app/transacoes')({
 
 function Transacoes() {
   const { activeProfile } = useAppContext();
-  const { cards, accounts, transactions, addTransaction, removeTransaction } = useData();
+  const { cards, accounts, transactions, addTransaction, updateTransaction, removeTransaction } = useData();
 
   const owner = activeProfile === 'casal' ? 'leandro' : activeProfile;
   const myCards = cards.filter(c => c.owner === owner);
   const myAccounts = accounts.filter(a => a.owner === owner);
-  const myTx = transactions.filter(t => activeProfile === 'casal' || t.owner === activeProfile);
+  const myTx = useMemo(
+    () => transactions.filter(t => activeProfile === 'casal' || t.owner === activeProfile),
+    [transactions, activeProfile],
+  );
 
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -35,6 +40,12 @@ function Transacoes() {
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
   const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>('none');
+
+  // Filtros
+  const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterType, setFilterType] = useState<'all' | 'receita' | 'despesa'>('all');
+  const [filterMonth, setFilterMonth] = useState<string>('all'); // 'all' | 'YYYY-MM'
 
   const valorNum = parseFloat(amount) || 0;
   const parcelasNum = isInstallment ? Math.max(2, Math.min(parseInt(installments) || 2, 60)) : 1;
@@ -62,32 +73,54 @@ function Transacoes() {
       : accounts.find(a => a.id === id)?.name || 'Conta';
 
     const count = addTransaction({
-      description,
-      amount: valorNum,
-      date,
-      category,
-      paymentMethod: method,
+      description, amount: valorNum, date, category, paymentMethod: method,
       cardId: kind === 'card' ? id : undefined,
       accountId: kind === 'account' ? id : undefined,
-      installments: parcelasNum,
-      type,
-      owner,
+      installments: parcelasNum, type, owner,
       recurrence: canRecur ? recurrence : 'none',
     });
-
-    if (count > 1) {
-      toast.success(`${count} parcelas lançadas no calendário!`);
-    } else {
-      toast.success('Transação salva!');
-    }
+    if (count > 1) toast.success(`${count} parcelas lançadas no calendário!`);
+    else toast.success('Transação salva!');
     reset();
   };
 
+  // Meses disponíveis para o filtro
+  const months = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of myTx) set.add(t.date.slice(0, 7));
+    return Array.from(set).sort().reverse();
+  }, [myTx]);
+
+  const filteredTx = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return myTx.filter(t => {
+      if (q && !t.description.toLowerCase().includes(q) && !t.category.toLowerCase().includes(q)) return false;
+      if (filterCategory !== 'all' && t.category !== filterCategory) return false;
+      if (filterType !== 'all' && t.type !== filterType) return false;
+      if (filterMonth !== 'all' && !t.date.startsWith(filterMonth)) return false;
+      return true;
+    });
+  }, [myTx, search, filterCategory, filterType, filterMonth]);
+
+  const handleExport = () => {
+    if (filteredTx.length === 0) { toast.error('Nada para exportar'); return; }
+    downloadCSV(`transacoes-${new Date().toISOString().slice(0, 10)}.csv`, transactionsToCSV(filteredTx));
+    toast.success(`${filteredTx.length} transações exportadas`);
+  };
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <header>
-        <h1 className="text-2xl font-bold">Transações</h1>
-        <p className="text-muted-foreground">Lance receitas e despesas — parcele em até 60x se for no cartão</p>
+    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Transações</h1>
+          <p className="text-muted-foreground">Lance receitas e despesas — parcele em até 60x se for no cartão</p>
+        </div>
+        <div className="flex gap-2">
+          <ImportButton owner={owner} />
+          <Button variant="outline" className="gap-2" onClick={handleExport}>
+            <Download className="h-4 w-4" /> Exportar CSV
+          </Button>
+        </div>
       </header>
 
       <div className="grid lg:grid-cols-5 gap-6">
@@ -156,12 +189,11 @@ function Transacoes() {
               </div>
 
               {isCardSelected && (
-                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3 animate-in slide-in-from-top-2">
+                <div className="p-4 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-lg space-y-3 animate-in slide-in-from-top-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">Compra parcelada?</Label>
                     <Switch checked={isInstallment} onCheckedChange={setIsInstallment} />
                   </div>
-
                   {isInstallment && (
                     <>
                       <div className="space-y-2">
@@ -176,7 +208,7 @@ function Transacoes() {
                         </Select>
                       </div>
                       {valorNum > 0 && (
-                        <div className="flex gap-2 items-start text-xs text-orange-800">
+                        <div className="flex gap-2 items-start text-xs text-orange-800 dark:text-orange-200">
                           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                           <div>
                             <p className="font-bold">{parcelasNum}x de {formatCurrency(valorParcela)}</p>
@@ -189,7 +221,7 @@ function Transacoes() {
                 </div>
               )}
               {canRecur && (
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg space-y-2">
                   <Label className="text-sm">Repete automaticamente?</Label>
                   <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -200,69 +232,329 @@ function Transacoes() {
                     </SelectContent>
                   </Select>
                   {recurrence !== 'none' && (
-                    <p className="text-xs text-emerald-700">
-                      ✓ Vai aparecer automaticamente {recurrence === 'weekly' ? 'toda semana' : 'todo mês'} na projeção e nos relatórios — sem precisar lançar de novo.
+                    <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                      ✓ Vai aparecer automaticamente {recurrence === 'weekly' ? 'toda semana' : 'todo mês'} na projeção e nos relatórios.
                     </p>
                   )}
                 </div>
               )}
 
               <Button type="submit" className="w-full">
-                {isInstallment && parcelasNum > 1
-                  ? `Lançar ${parcelasNum} parcelas`
-                  : 'Salvar transação'}
+                {isInstallment && parcelasNum > 1 ? `Lançar ${parcelasNum} parcelas` : 'Salvar transação'}
               </Button>
             </form>
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="space-y-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-4 w-4" /> Últimas transações ({myTx.length})
+              <Receipt className="h-4 w-4" /> Histórico ({filteredTx.length})
             </CardTitle>
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="h-3.5 w-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
+                <Input
+                  className="pl-8 h-8 text-sm"
+                  placeholder="Buscar descrição ou categoria"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="receita">Receitas</SelectItem>
+                    <SelectItem value="despesa">Despesas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Categorias</SelectItem>
+                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Mês</SelectItem>
+                    {months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(search || filterCategory !== 'all' || filterType !== 'all' || filterMonth !== 'all') && (
+                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => {
+                  setSearch(''); setFilterCategory('all'); setFilterType('all'); setFilterMonth('all');
+                }}>
+                  <X className="h-3 w-3" /> Limpar filtros
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
-            {myTx.length === 0 && (
+            {filteredTx.length === 0 && (
               <div className="text-center py-8 text-sm text-muted-foreground">
-                Nenhuma transação ainda.
+                {myTx.length === 0 ? 'Nenhuma transação ainda.' : 'Nada encontrado com esses filtros.'}
               </div>
             )}
-            {myTx.slice(0, 30).map(t => (
-              <div key={t.id} className="flex items-center justify-between py-2 px-2 rounded hover:bg-gray-50 group">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm truncate">{t.description}</p>
-                    {t.installmentInfo && (
-                      <Badge variant="outline" className="text-[9px] h-4 px-1">
-                        {t.installmentInfo.current}/{t.installmentInfo.total}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {formatDate(t.date)} · {t.category} · {t.paymentMethod}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className={`font-bold text-sm ${t.type === 'receita' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {t.type === 'receita' ? '+' : ''}{formatCurrency(t.amount)}
-                  </span>
-                  <Button
-                    size="icon" variant="ghost"
-                    className="opacity-0 group-hover:opacity-100 h-7 w-7"
-                    onClick={() => {
-                      removeTransaction(t.id, !!t.groupId);
-                      toast.success(t.groupId ? 'Parcelamento removido' : 'Transação removida');
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3 text-rose-500" />
-                  </Button>
-                </div>
-              </div>
+            {filteredTx.slice(0, 100).map(t => (
+              <TxRow key={t.id} tx={t} onUpdate={updateTransaction} onRemove={removeTransaction} />
             ))}
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+function TxRow({
+  tx, onUpdate, onRemove,
+}: {
+  tx: UserTransaction;
+  onUpdate: ReturnType<typeof useData>['updateTransaction'];
+  onRemove: ReturnType<typeof useData>['removeTransaction'];
+}) {
+  return (
+    <div className="flex items-center justify-between py-2 px-2 rounded hover:bg-muted/40 group">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-sm truncate">{tx.description}</p>
+          {tx.installmentInfo && (
+            <Badge variant="outline" className="text-[9px] h-4 px-1">
+              {tx.installmentInfo.current}/{tx.installmentInfo.total}
+            </Badge>
+          )}
+          {tx.recurrence && tx.recurrence !== 'none' && (
+            <Badge variant="outline" className="text-[9px] h-4 px-1">🔁</Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground truncate">
+          {formatDate(tx.date)} · {tx.category} · {tx.paymentMethod}
+        </p>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        <span className={`font-bold text-sm ${tx.type === 'receita' ? 'text-emerald-600' : 'text-rose-600'}`}>
+          {tx.type === 'receita' ? '+' : ''}{formatCurrency(tx.amount)}
+        </span>
+        <EditTxDialog tx={tx} onUpdate={onUpdate} />
+        <Button
+          size="icon" variant="ghost"
+          className="opacity-0 group-hover:opacity-100 h-7 w-7"
+          onClick={() => {
+            onRemove(tx.id, !!tx.groupId);
+            toast.success(tx.groupId ? 'Parcelamento removido' : 'Transação removida');
+          }}
+        >
+          <Trash2 className="h-3 w-3 text-rose-500" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function EditTxDialog({ tx, onUpdate }: { tx: UserTransaction; onUpdate: ReturnType<typeof useData>['updateTransaction'] }) {
+  const [open, setOpen] = useState(false);
+  const [description, setDescription] = useState(tx.description);
+  const [amount, setAmount] = useState(String(Math.abs(tx.amount)));
+  const [date, setDate] = useState(tx.date);
+  const [category, setCategory] = useState(tx.category);
+  const [type, setType] = useState<'receita' | 'despesa'>(tx.type);
+  const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>(tx.recurrence || 'none');
+
+  const reopen = (o: boolean) => {
+    setOpen(o);
+    if (o) {
+      setDescription(tx.description);
+      setAmount(String(Math.abs(tx.amount)));
+      setDate(tx.date);
+      setCategory(tx.category);
+      setType(tx.type);
+      setRecurrence(tx.recurrence || 'none');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={reopen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7">
+          <Pencil className="h-3 w-3" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar transação</DialogTitle>
+          {tx.groupId && (
+            <DialogDescription>
+              Esta é uma parcela ({tx.installmentInfo?.current}/{tx.installmentInfo?.total}). As alterações afetam apenas esta parcela.
+            </DialogDescription>
+          )}
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant={type === 'despesa' ? 'default' : 'outline'}
+              className={type === 'despesa' ? 'bg-rose-600 hover:bg-rose-700' : ''}
+              onClick={() => setType('despesa')}>Despesa</Button>
+            <Button type="button" variant={type === 'receita' ? 'default' : 'outline'}
+              className={type === 'receita' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+              onClick={() => setType('receita')}>Receita</Button>
+          </div>
+          <div className="space-y-2"><Label>Descrição</Label><Input value={description} onChange={e => setDescription(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>Valor</Label><Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Data</Label><Input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
+          </div>
+          <div className="space-y-2">
+            <Label>Categoria</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          {!tx.groupId && (
+            <div className="space-y-2">
+              <Label>Recorrência</Label>
+              <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Não repete</SelectItem>
+                  <SelectItem value="weekly">Toda semana</SelectItem>
+                  <SelectItem value="monthly">Todo mês</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => {
+            const v = parseFloat(amount);
+            if (!description || !v || v <= 0) { toast.error('Valor/descrição inválidos'); return; }
+            onUpdate(tx.id, {
+              description, amount: v, date, category, type,
+              recurrence: tx.groupId ? undefined : recurrence,
+            });
+            toast.success('Transação atualizada');
+            setOpen(false);
+          }}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
+  const { transactions, addTransaction, cards, accounts } = useData();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<ParsedRow[]>([]);
+  const [duplicates, setDuplicates] = useState<ParsedRow[]>([]);
+  const [defaultAccountId, setDefaultAccountId] = useState<string>('');
+  const [defaultCategory, setDefaultCategory] = useState<string>('Outros');
+
+  const myAccounts = accounts.filter(a => a.owner === owner);
+
+  const onFile = async (file: File) => {
+    const text = await file.text();
+    const { rows: parsed, errors } = parseCSV(text);
+    if (errors.length) { toast.error(errors[0]); return; }
+    if (parsed.length === 0) { toast.error('Nenhuma linha válida no arquivo'); return; }
+    const { toImport, duplicates: dups } = dedupeAgainstExisting(parsed, transactions, owner);
+    setRows(toImport);
+    setDuplicates(dups);
+    setDefaultAccountId(myAccounts[0]?.id || '');
+    setOpen(true);
+  };
+
+  const confirm = () => {
+    if (!defaultAccountId) { toast.error('Escolha uma conta'); return; }
+    const account = accounts.find(a => a.id === defaultAccountId)!;
+    let n = 0;
+    for (const r of rows) {
+      addTransaction({
+        description: r.description,
+        amount: r.amount,
+        date: r.date,
+        category: r.category || defaultCategory,
+        paymentMethod: account.name,
+        accountId: account.id,
+        type: r.type,
+        owner,
+      });
+      n++;
+    }
+    toast.success(`${n} transações importadas`);
+    setOpen(false);
+    setRows([]); setDuplicates([]);
+  };
+
+  return (
+    <>
+      <input
+        ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.currentTarget.value = ''; }}
+      />
+      <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
+        <Upload className="h-4 w-4" /> Importar CSV
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Confirmar importação</DialogTitle>
+            <DialogDescription>
+              {rows.length} novas transações detectadas
+              {duplicates.length > 0 && ` · ${duplicates.length} duplicatas ignoradas`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Conta de destino</Label>
+              <Select value={defaultAccountId} onValueChange={setDefaultAccountId}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {myAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria padrão</Label>
+              <Select value={defaultCategory} onValueChange={setDefaultCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="max-h-72 overflow-y-auto border border-border rounded text-xs">
+            <table className="w-full">
+              <thead className="bg-muted sticky top-0">
+                <tr><th className="text-left p-2">Data</th><th className="text-left p-2">Descrição</th><th className="text-left p-2">Cat.</th><th className="text-right p-2">Valor</th></tr>
+              </thead>
+              <tbody>
+                {rows.slice(0, 200).map((r, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="p-2">{r.date}</td>
+                    <td className="p-2 truncate max-w-[200px]">{r.description}</td>
+                    <td className="p-2 text-muted-foreground">{r.category || defaultCategory}</td>
+                    <td className={`p-2 text-right ${r.type === 'despesa' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {r.type === 'despesa' ? '-' : '+'}{formatCurrency(r.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {rows.length > 200 && (
+              <p className="p-2 text-center text-muted-foreground">…e mais {rows.length - 200}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={confirm} disabled={rows.length === 0}>Importar {rows.length}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
