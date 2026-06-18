@@ -3,6 +3,7 @@ import { AppProvider } from "@/lib/context";
 import { DataProvider } from "@/lib/store";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/components/ThemeProvider";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { Toaster } from "@/components/ui/sonner";
 import {
   Outlet,
@@ -135,6 +136,7 @@ function RootComponent() {
             <DataProvider>
               <Outlet />
               <Toaster position="top-right" />
+              <InstallPrompt />
             </DataProvider>
           </AppProvider>
         </AuthProvider>
