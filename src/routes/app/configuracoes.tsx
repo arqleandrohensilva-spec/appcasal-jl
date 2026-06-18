@@ -12,12 +12,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Settings, User, Users, Moon, Sun, Copy, Check, LogOut,
-  Download, AlertTriangle, Mail, Shield, Sparkles, RefreshCw, Save,
+  Download, AlertTriangle, Mail, Shield, Sparkles, RefreshCw, Save, Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/components/ThemeProvider';
 import { useData } from '@/lib/store';
 import { downloadCSV, transactionsToCSV } from '@/lib/csv';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/app/configuracoes')({
