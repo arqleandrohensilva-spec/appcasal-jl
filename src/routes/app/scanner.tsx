@@ -11,7 +11,9 @@ import { ScanLine, Upload, Loader2, Sparkles, CheckCircle2, Camera, X } from 'lu
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useData } from '@/lib/store';
-
+import { useServerFn } from '@tanstack/react-start';
+import { scanReceipt } from '@/lib/scanner.functions';
+import { accentFor } from '@/lib/accent';
 
 export const Route = createFileRoute('/app/scanner')({
   component: Scanner,
@@ -33,64 +35,58 @@ interface ExtractedReceipt {
   items: ExtractedItem[];
 }
 
-const MOCK_RECEIPTS: ExtractedReceipt[] = [
-  {
-    merchant: 'Supermercado Pão de Açúcar',
-    date: '2026-05-26',
-    total: 234.70,
-    items: [
-      { id: '1', description: 'Arroz Tio João 5kg', quantity: 1, unitPrice: 32.90, total: 32.90, category: 'Alimentação' },
-      { id: '2', description: 'Feijão Carioca 1kg', quantity: 2, unitPrice: 9.50, total: 19.00, category: 'Alimentação' },
-      { id: '3', description: 'Frango Sadia', quantity: 1, unitPrice: 28.40, total: 28.40, category: 'Alimentação' },
-      { id: '4', description: 'Detergente Ypê', quantity: 4, unitPrice: 3.20, total: 12.80, category: 'Casa' },
-      { id: '5', description: 'Coca-Cola 2L', quantity: 3, unitPrice: 9.80, total: 29.40, category: 'Alimentação' },
-      { id: '6', description: 'Queijo Mussarela 500g', quantity: 1, unitPrice: 34.90, total: 34.90, category: 'Alimentação' },
-      { id: '7', description: 'Pão de forma', quantity: 2, unitPrice: 8.90, total: 17.80, category: 'Alimentação' },
-      { id: '8', description: 'Outros', quantity: 1, unitPrice: 59.50, total: 59.50, category: 'Alimentação' },
-    ]
-  },
-  {
-    merchant: 'Drogaria São Paulo',
-    date: '2026-05-25',
-    total: 89.40,
-    items: [
-      { id: '1', description: 'Dipirona 500mg', quantity: 1, unitPrice: 12.90, total: 12.90, category: 'Saúde' },
-      { id: '2', description: 'Protetor solar FPS50', quantity: 1, unitPrice: 54.90, total: 54.90, category: 'Saúde' },
-      { id: '3', description: 'Pasta de dente', quantity: 2, unitPrice: 10.80, total: 21.60, category: 'Saúde' },
-    ]
-  }
-];
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 function Scanner() {
   const { activeProfile } = useAppContext();
   const navigate = useNavigate();
   const { addTransaction, accounts } = useData();
-  const accent = activeProfile === 'leandro' ? 'purple' : activeProfile === 'jonathan' ? 'emerald' : 'orange';
+  const a = accentFor(activeProfile);
   const fileRef = useRef<HTMLInputElement>(null);
+  const scan = useServerFn(scanReceipt);
 
-  const [scanning, setScanning] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<ExtractedReceipt | null>(null);
   const [step, setStep] = useState<'idle' | 'reading' | 'categorizing' | 'done'>('idle');
+  const scanning = step === 'reading' || step === 'categorizing';
 
-  const handleFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
-    runScan();
-  };
-
-  const runScan = () => {
-    setScanning(true);
-    setResult(null);
-    setStep('reading');
-    setTimeout(() => setStep('categorizing'), 1200);
-    setTimeout(() => {
-      const mock = MOCK_RECEIPTS[Math.floor(Math.random() * MOCK_RECEIPTS.length)];
-      setResult(mock);
+  const handleFile = async (file: File) => {
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setPreview(dataUrl);
+      setResult(null);
+      setStep('reading');
+      // visual feedback transition
+      setTimeout(() => setStep((s) => (s === 'reading' ? 'categorizing' : s)), 800);
+      const data = await scan({ data: { imageDataUrl: dataUrl } });
+      const items: ExtractedItem[] = (data.items ?? []).map((it, i) => ({
+        id: String(i + 1),
+        description: it.description,
+        quantity: it.quantity || 1,
+        unitPrice: it.unitPrice || (it.total / Math.max(1, it.quantity || 1)),
+        total: it.total,
+        category: CATEGORIES.includes(it.category) ? it.category : 'Outros',
+      }));
+      setResult({
+        merchant: data.merchant,
+        date: data.date,
+        total: data.total,
+        items,
+      });
       setStep('done');
-      setScanning(false);
-    }, 2400);
+    } catch (err) {
+      console.error(err);
+      toast.error('Não foi possível ler a nota. Tente outra foto.');
+      setStep('idle');
+      setPreview(null);
+    }
   };
 
   const reset = () => {
@@ -102,7 +98,7 @@ function Scanner() {
   const save = () => {
     if (!result) return;
     const ownerProfile = activeProfile === 'casal' ? 'leandro' : activeProfile;
-    const acc = accounts.find(a => a.owner === ownerProfile);
+    const acc = accounts.find((x) => x.owner === ownerProfile);
     for (const item of result.items) {
       addTransaction({
         description: `${result.merchant} · ${item.description}`,
@@ -123,19 +119,19 @@ function Scanner() {
     if (!result) return;
     setResult({
       ...result,
-      items: result.items.map(it => it.id === id ? { ...it, ...patch } : it)
+      items: result.items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
     });
   };
-
-
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
       <header>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ScanLine className={`h-6 w-6 text-${accent}-600`} /> Scanner de Nota Fiscal
+          <ScanLine className={cn('h-6 w-6', a.text)} /> Scanner de Nota Fiscal
         </h1>
-        <p className="text-muted-foreground">Tire uma foto da nota — a IA lê item por item e categoriza tudo automaticamente.</p>
+        <p className="text-muted-foreground">
+          Tire uma foto da nota — a IA lê item por item e categoriza tudo automaticamente.
+        </p>
       </header>
 
       {!result && !scanning && (
@@ -145,32 +141,29 @@ function Scanner() {
               onClick={() => fileRef.current?.click()}
               className={cn(
                 'border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-colors',
-                `border-${accent}-300 hover:border-${accent}-500 hover:bg-${accent}-50/30`
+                a.border,
+                a.borderHover,
+                a.bgSoftHover,
               )}
             >
-              <div className={`mx-auto w-16 h-16 rounded-2xl bg-${accent}-100 flex items-center justify-center mb-4`}>
-                <Camera className={`h-8 w-8 text-${accent}-600`} />
+              <div className={cn('mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4', a.bgSoft)}>
+                <Camera className={cn('h-8 w-8', a.text)} />
               </div>
               <h3 className="font-bold text-lg mb-2">Envie ou tire foto da nota</h3>
-              <p className="text-sm text-muted-foreground mb-4">PNG, JPG ou PDF — até 10MB</p>
-              <Button className={`bg-${accent}-600 hover:bg-${accent}-700 gap-2`}>
+              <p className="text-sm text-muted-foreground mb-4">PNG ou JPG — até 10MB</p>
+              <Button className={cn(a.bg, a.bgHover, 'gap-2')}>
                 <Upload className="h-4 w-4" /> Escolher arquivo
               </Button>
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/*,application/pdf"
+                accept="image/*"
                 className="hidden"
                 onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
               />
             </div>
             <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="h-3 w-3" /> A IA aprende suas preferências de categorização a cada nota lida.
-            </div>
-            <div className="mt-4 text-center">
-              <Button variant="ghost" size="sm" onClick={runScan} className="text-xs">
-                Demonstração com nota de exemplo →
-              </Button>
+              <Sparkles className="h-3 w-3" /> A IA extrai estabelecimento, data, itens e categorias.
             </div>
           </CardContent>
         </Card>
@@ -179,15 +172,12 @@ function Scanner() {
       {scanning && (
         <Card>
           <CardContent className="p-10 text-center space-y-6">
-            {preview && (
-              <img src={preview} alt="Nota" className="max-h-64 mx-auto rounded-xl shadow" />
-            )}
+            {preview && <img src={preview} alt="Nota" className="max-h-64 mx-auto rounded-xl shadow" />}
             <div className="space-y-3">
-              <Loader2 className={`h-10 w-10 mx-auto animate-spin text-${accent}-600`} />
+              <Loader2 className={cn('h-10 w-10 mx-auto animate-spin', a.text)} />
               <div className="space-y-2 max-w-sm mx-auto">
-                <StepRow label="Lendo texto da nota com OCR" active={step === 'reading'} done={step !== 'reading'} />
-                <StepRow label="Identificando itens e valores" active={step === 'categorizing'} done={step === 'done'} />
-                <StepRow label="Categorizando com base no seu histórico" active={step === 'categorizing'} done={step === 'done'} />
+                <StepRow label="Enviando imagem à IA" active={step === 'reading'} done={step !== 'reading'} />
+                <StepRow label="Extraindo itens e categorizando" active={step === 'categorizing'} done={false} />
               </div>
             </div>
           </CardContent>
@@ -204,10 +194,12 @@ function Scanner() {
                 </Badge>
                 <CardTitle>{result.merchant}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(result.date).toLocaleDateString('pt-BR')} · {result.items.length} itens · Total {formatCurrency(result.total)}
+                  {result.date ? new Date(result.date).toLocaleDateString('pt-BR') : '—'} · {result.items.length} itens · Total {formatCurrency(result.total)}
                 </p>
               </div>
-              <Button variant="ghost" size="icon" onClick={reset}><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={reset}>
+                <X className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent className="space-y-2">
               {result.items.map((item) => (
@@ -231,9 +223,15 @@ function Scanner() {
                     onChange={(e) => updateItem(item.id, { total: parseFloat(e.target.value) || 0 })}
                   />
                   <Select value={item.category} onValueChange={(v) => updateItem(item.id, { category: v })}>
-                    <SelectTrigger className="col-span-4 h-9 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="col-span-4 h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {CATEGORIES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -243,7 +241,7 @@ function Scanner() {
 
           <div className="flex gap-3 justify-end">
             <Button variant="outline" onClick={reset}>Cancelar</Button>
-            <Button className={`bg-${accent}-600 hover:bg-${accent}-700`} onClick={save}>
+            <Button className={cn(a.bg, a.bgHover)} onClick={save}>
               Lançar {result.items.length} transações
             </Button>
           </div>
@@ -256,9 +254,13 @@ function Scanner() {
 function StepRow({ label, active, done }: { label: string; active: boolean; done: boolean }) {
   return (
     <div className="flex items-center gap-2 text-sm">
-      {done ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-        : active ? <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-        : <div className="h-4 w-4 rounded-full border border-gray-300" />}
+      {done ? (
+        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+      ) : active ? (
+        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+      ) : (
+        <div className="h-4 w-4 rounded-full border border-gray-300" />
+      )}
       <span className={cn(done ? 'text-emerald-600' : active ? 'text-gray-900' : 'text-gray-400')}>{label}</span>
     </div>
   );
