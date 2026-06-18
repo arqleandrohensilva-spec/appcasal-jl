@@ -124,15 +124,31 @@ function SimuladorConsorcio() {
             step={5000}
             format={formatCurrency}
           />
-          <SliderField
-            label="Lance livre disponível"
-            value={lanceLivre}
-            onChange={setLanceLivre}
-            min={0}
-            max={60000}
-            step={500}
-            format={formatCurrency}
-          />
+          <div className="space-y-2">
+            <SliderField
+              label={lanceGoal ? `Lance livre — vinculado à meta "${lanceGoal.name}"` : 'Lance livre disponível'}
+              value={lanceLivre}
+              onChange={setLanceLivre}
+              min={0}
+              max={Math.max(60000, Math.round(lanceAcumulado * 1.5))}
+              step={500}
+              format={formatCurrency}
+            />
+            {lanceGoal && (
+              <p className="text-xs text-muted-foreground">
+                Acumulado na meta: <b>{formatCurrency(lanceAcumulado)}</b>
+                {lanceLivre !== lanceAcumulado && (
+                  <button
+                    type="button"
+                    onClick={() => setLanceLivre(lanceAcumulado)}
+                    className="ml-2 underline text-orange-600"
+                  >
+                    usar valor da meta
+                  </button>
+                )}
+              </p>
+            )}
+          </div>
           <SliderField
             label="Lance embutido"
             value={embutidoPct}
