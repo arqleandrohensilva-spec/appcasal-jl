@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppTransferenciaRouteImport } from './routes/app/transferencia'
 import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
 import { Route as AppScannerRouteImport } from './routes/app/scanner'
 import { Route as AppRetrospectivaRouteImport } from './routes/app/retrospectiva'
@@ -50,6 +51,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppTransferenciaRoute = AppTransferenciaRouteImport.update({
+  id: '/transferencia',
+  path: '/transferencia',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppTransacoesRoute = AppTransacoesRouteImport.update({
   id: '/transacoes',
@@ -192,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
+  '/app/transferencia': typeof AppTransferenciaRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
   '/app/assistente/': typeof AppAssistenteIndexRoute
 }
@@ -220,6 +227,7 @@ export interface FileRoutesByTo {
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
+  '/app/transferencia': typeof AppTransferenciaRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
   '/app/assistente': typeof AppAssistenteIndexRoute
 }
@@ -249,6 +257,7 @@ export interface FileRoutesById {
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
+  '/app/transferencia': typeof AppTransferenciaRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
   '/app/assistente/': typeof AppAssistenteIndexRoute
 }
@@ -279,6 +288,7 @@ export interface FileRouteTypes {
     | '/app/retrospectiva'
     | '/app/scanner'
     | '/app/transacoes'
+    | '/app/transferencia'
     | '/app/assistente/$threadId'
     | '/app/assistente/'
   fileRoutesByTo: FileRoutesByTo
@@ -307,6 +317,7 @@ export interface FileRouteTypes {
     | '/app/retrospectiva'
     | '/app/scanner'
     | '/app/transacoes'
+    | '/app/transferencia'
     | '/app/assistente/$threadId'
     | '/app/assistente'
   id:
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/app/retrospectiva'
     | '/app/scanner'
     | '/app/transacoes'
+    | '/app/transferencia'
     | '/app/assistente/$threadId'
     | '/app/assistente/'
   fileRoutesById: FileRoutesById
@@ -368,6 +380,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/app/transferencia': {
+      id: '/app/transferencia'
+      path: '/transferencia'
+      fullPath: '/app/transferencia'
+      preLoaderRoute: typeof AppTransferenciaRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/transacoes': {
       id: '/app/transacoes'
@@ -554,6 +573,7 @@ interface AppRouteChildren {
   AppRetrospectivaRoute: typeof AppRetrospectivaRoute
   AppScannerRoute: typeof AppScannerRoute
   AppTransacoesRoute: typeof AppTransacoesRoute
+  AppTransferenciaRoute: typeof AppTransferenciaRoute
   AppAssistenteThreadIdRoute: typeof AppAssistenteThreadIdRoute
   AppAssistenteIndexRoute: typeof AppAssistenteIndexRoute
 }
@@ -579,6 +599,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRetrospectivaRoute: AppRetrospectivaRoute,
   AppScannerRoute: AppScannerRoute,
   AppTransacoesRoute: AppTransacoesRoute,
+  AppTransferenciaRoute: AppTransferenciaRoute,
   AppAssistenteThreadIdRoute: AppAssistenteThreadIdRoute,
   AppAssistenteIndexRoute: AppAssistenteIndexRoute,
 }
