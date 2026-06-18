@@ -251,6 +251,7 @@ function Dashboard() {
 
 
         <div className="space-y-6">
+          <BudgetWidget />
           <Card>
             <CardHeader><CardTitle>Metas</CardTitle></CardHeader>
             <CardContent className="space-y-4">
