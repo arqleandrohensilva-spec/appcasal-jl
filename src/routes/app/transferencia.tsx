@@ -18,7 +18,7 @@ export const Route = createFileRoute('/app/transferencia')({
 
 function Transferencia() {
   const { activeProfile } = useAppContext();
-  const { accounts, addTransaction, updateAccount } = useData();
+  const { accounts, addTransaction } = useData();
   const navigate = useNavigate();
 
   const visibleAccounts = accounts.filter(a => activeProfile === 'casal' || a.owner === activeProfile);
