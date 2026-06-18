@@ -27,6 +27,8 @@ interface AuthCtx {
   refresh: () => Promise<void>;
   joinByCode: (code: string) => Promise<{ ok: boolean; error?: string }>;
   setProfilePessoa: (p: UserProfile) => Promise<void>;
+  updateDisplayName: (name: string) => Promise<{ ok: boolean; error?: string }>;
+  regenerateInviteCode: () => Promise<{ ok: boolean; code?: string; error?: string }>;
 }
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
