@@ -297,6 +297,44 @@ function Configuracoes() {
       <Card className="border-red-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base text-red-600">
+            <Trash2 className="h-4 w-4" /> Resetar dados
+          </CardTitle>
+          <CardDescription>
+            Apaga transações, metas, orçamentos, contas, cartões e histórico do assistente deste workspace. Seu perfil e o workspace continuam.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" disabled={resetting} className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
+                <Trash2 className="h-4 w-4" /> {resetting ? 'Apagando...' : 'Resetar dados do app'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-500" /> Apagar todos os dados?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação remove permanentemente transações, metas, contribuições, orçamentos, contas, cartões e histórico do assistente do workspace <strong>{workspace?.name}</strong>. Não dá para desfazer. Exporte um CSV antes se quiser guardar uma cópia.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetData} className="bg-red-600 hover:bg-red-700">
+                  Sim, apagar tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+
+
+
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base text-red-600">
             <Shield className="h-4 w-4" /> Sessão
           </CardTitle>
         </CardHeader>
