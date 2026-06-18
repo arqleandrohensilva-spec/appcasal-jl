@@ -20,17 +20,18 @@ async function buildFinancialContext(
   const threeMonthsAgo = new Date(now); threeMonthsAgo.setMonth(now.getMonth() - 3);
   const ymCurrent = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const [profilesRes, txRes, budgetsRes, goalsRes, accountsRes, cardsRes, myProfileRes] = await Promise.all([
+  const [profilesRes, txRes, budgetsRes, goalsRes, accountsRes, cardsRes, contribRes, myProfileRes] = await Promise.all([
     supabase.from("profiles").select("id, display_name, pessoa, email").eq("active_workspace_id", workspaceId),
     supabase.from("transactions")
-      .select("date, amount, type, category, description, pessoa, paid, installment_current, installment_total")
+      .select("date, amount, type, category, description, pessoa, installment_current, installment_total")
       .eq("workspace_id", workspaceId)
       .gte("date", threeMonthsAgo.toISOString().slice(0, 10))
       .order("date", { ascending: false }).limit(500),
-    supabase.from("budgets").select("category, amount, pessoa, month").eq("workspace_id", workspaceId).eq("month", ymCurrent),
-    supabase.from("goals").select("name, target_amount, current_amount, deadline, pessoa").eq("workspace_id", workspaceId),
-    supabase.from("accounts").select("name, type, balance, pessoa").eq("workspace_id", workspaceId),
-    supabase.from("cards").select("name, brand, limit_amount, current_bill, due_day, closing_day, pessoa").eq("workspace_id", workspaceId),
+    supabase.from("budgets").select("category, monthly_limit, owner").eq("workspace_id", workspaceId),
+    supabase.from("goals").select("id, name, target, deadline, owner").eq("workspace_id", workspaceId),
+    supabase.from("accounts").select("name, type, balance, owner").eq("workspace_id", workspaceId),
+    supabase.from("cards").select("name, card_limit, due_day, closing_day, owner").eq("workspace_id", workspaceId),
+    supabase.from("goal_contributions").select("goal_id, amount").eq("workspace_id", workspaceId),
     supabase.from("profiles").select("display_name, pessoa, email").eq("id", userId).single(),
   ]);
 
@@ -48,8 +49,14 @@ async function buildFinancialContext(
   });
   const topCategories = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 8);
 
-  const parcelas = tx.filter(t => t.installment_total && t.installment_total > 1 && !t.paid).slice(0, 20);
+  const parcelas = tx.filter(t => (t.installment_total ?? 0) > 1).slice(0, 20);
   const accountsBalance = (accountsRes.data ?? []).reduce((s, a) => s + Number(a.balance || 0), 0);
+
+  // soma contribuições por meta
+  const contribByGoal: Record<string, number> = {};
+  (contribRes.data ?? []).forEach(c => {
+    contribByGoal[c.goal_id] = (contribByGoal[c.goal_id] || 0) + Number(c.amount || 0);
+  });
 
   const lines: string[] = [];
   lines.push(`# Contexto Financeiro do Workspace`);
@@ -68,26 +75,27 @@ async function buildFinancialContext(
   lines.push("");
   lines.push(`## Contas`);
   (accountsRes.data ?? []).forEach(a =>
-    lines.push(`- ${a.name} (${a.type}, ${a.pessoa ?? "casal"}): ${fmtBRL(Number(a.balance))}`));
+    lines.push(`- ${a.name} (${a.type}, ${a.owner ?? "casal"}): ${fmtBRL(Number(a.balance))}`));
   lines.push("");
   lines.push(`## Cartões de crédito`);
   (cardsRes.data ?? []).forEach(c =>
-    lines.push(`- ${c.name} ${c.brand ?? ""} (${c.pessoa ?? "casal"}): fatura atual ${fmtBRL(Number(c.current_bill))} / limite ${fmtBRL(Number(c.limit_amount))} — vence dia ${c.due_day}, fecha dia ${c.closing_day}`));
+    lines.push(`- ${c.name} (${c.owner ?? "casal"}): limite ${fmtBRL(Number(c.card_limit))} — vence dia ${c.due_day}, fecha dia ${c.closing_day}`));
   lines.push("");
-  lines.push(`## Orçamentos do mês`);
+  lines.push(`## Orçamentos (limite mensal por categoria)`);
   (budgetsRes.data ?? []).forEach(b => {
     const spent = byCategory[b.category] || 0;
-    const pct = b.amount ? Math.round((spent / Number(b.amount)) * 100) : 0;
-    lines.push(`- ${b.category} (${b.pessoa ?? "casal"}): gasto ${fmtBRL(spent)} de ${fmtBRL(Number(b.amount))} (${pct}%)`);
+    const pct = b.monthly_limit ? Math.round((spent / Number(b.monthly_limit)) * 100) : 0;
+    lines.push(`- ${b.category} (${b.owner ?? "casal"}): gasto este mês ${fmtBRL(spent)} de ${fmtBRL(Number(b.monthly_limit))} (${pct}%)`);
   });
   lines.push("");
   lines.push(`## Metas`);
   (goalsRes.data ?? []).forEach(g => {
-    const pct = g.target_amount ? Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100) : 0;
-    lines.push(`- ${g.name} (${g.pessoa ?? "casal"}): ${fmtBRL(Number(g.current_amount))} / ${fmtBRL(Number(g.target_amount))} (${pct}%) — prazo ${g.deadline ?? "sem prazo"}`);
+    const current = contribByGoal[g.id] || 0;
+    const pct = g.target ? Math.round((current / Number(g.target)) * 100) : 0;
+    lines.push(`- ${g.name} (${g.owner ?? "casal"}): ${fmtBRL(current)} / ${fmtBRL(Number(g.target))} (${pct}%) — prazo ${g.deadline ?? "sem prazo"}`);
   });
   lines.push("");
-  lines.push(`## Parcelas/dívidas em aberto (próximas)`);
+  lines.push(`## Parcelas em aberto (próximas)`);
   parcelas.forEach(p =>
     lines.push(`- ${p.description} (${p.pessoa ?? "casal"}): ${fmtBRL(Number(p.amount))} — parcela ${p.installment_current}/${p.installment_total} — ${p.date}`));
 
@@ -155,7 +163,7 @@ ${financialContext}`;
             user_id: userId,
             role: "user",
             content: userText,
-            parts: userMsg.parts as unknown as object,
+            parts: userMsg.parts as unknown as never,
           });
           // Renomeia a thread com a primeira mensagem se ainda for "Nova conversa"
           if (thread.title === "Nova conversa") {
@@ -182,7 +190,7 @@ ${financialContext}`;
                 user_id: userId,
                 role: "assistant",
                 content: text,
-                parts: last.parts as unknown as object,
+                parts: last.parts as unknown as never,
               });
             }
           },
