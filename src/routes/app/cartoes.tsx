@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useAppContext } from '@/lib/context';
-import { useData } from '@/lib/store';
+import { useData, type UserCard } from '@/lib/store';
 import { formatCurrency } from '@/lib/mockData';
-import { CreditCard, Plus, Trash2 } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/app/cartoes')({
@@ -21,7 +21,7 @@ const COLORS = ['purple', 'emerald', 'blue', 'orange', 'rose', 'amber', 'cyan', 
 
 function Cartoes() {
   const { activeProfile } = useAppContext();
-  const { cards, transactions, addCard, removeCard } = useData();
+  const { cards, transactions, addCard, updateCard, removeCard } = useData();
   const [open, setOpen] = useState(false);
 
   const myCards = cards.filter(c => activeProfile === 'casal' || c.owner === activeProfile);
@@ -37,7 +37,7 @@ function Cartoes() {
           <DialogTrigger asChild>
             <Button className="gap-2"><Plus className="h-4 w-4" /> Novo cartão</Button>
           </DialogTrigger>
-          <NewCardDialog onSave={(c) => { addCard({ ...c, owner: activeProfile === 'casal' ? 'leandro' : activeProfile }); toast.success('Cartão cadastrado!'); setOpen(false); }} />
+          <CardDialog onSave={(c) => { addCard({ ...c, owner: activeProfile === 'casal' ? 'leandro' : activeProfile }); toast.success('Cartão cadastrado!'); setOpen(false); }} />
         </Dialog>
       </header>
 
@@ -72,9 +72,12 @@ function Cartoes() {
                       Fecha dia {card.closingDay} · Vence dia {card.dueDay}
                     </p>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => { removeCard(card.id); toast.success('Cartão removido'); }}>
-                    <Trash2 className="h-4 w-4 text-rose-500" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <EditCardButton card={card} onSave={(patch) => { updateCard(card.id, patch); toast.success('Cartão atualizado'); }} />
+                    <Button size="icon" variant="ghost" onClick={() => { removeCard(card.id); toast.success('Cartão removido'); }}>
+                      <Trash2 className="h-4 w-4 text-rose-500" />
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="space-y-1">
@@ -88,7 +91,7 @@ function Cartoes() {
                       <span>{formatCurrency(card.limit)}</span>
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground pt-2 border-t">
+                  <div className="text-xs text-muted-foreground pt-2 border-t border-border">
                     {monthBills.length} lançamento{monthBills.length !== 1 ? 's' : ''} este mês
                   </div>
                 </CardContent>
@@ -101,12 +104,32 @@ function Cartoes() {
   );
 }
 
-function NewCardDialog({ onSave }: { onSave: (c: { name: string; limit: number; closingDay: number; dueDay: number; color: string }) => void }) {
-  const [name, setName] = useState('');
-  const [limit, setLimit] = useState('5000');
-  const [closingDay, setClosingDay] = useState('3');
-  const [dueDay, setDueDay] = useState('10');
-  const [color, setColor] = useState('purple');
+function EditCardButton({ card, onSave }: { card: UserCard; onSave: (p: Partial<Omit<UserCard, 'id'>>) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost"><Pencil className="h-4 w-4" /></Button>
+      </DialogTrigger>
+      <CardDialog initial={card} onSave={(c) => { onSave(c); setOpen(false); }} editing />
+    </Dialog>
+  );
+}
+
+function CardDialog({
+  initial,
+  onSave,
+  editing,
+}: {
+  initial?: Partial<UserCard>;
+  onSave: (c: { name: string; limit: number; closingDay: number; dueDay: number; color: string }) => void;
+  editing?: boolean;
+}) {
+  const [name, setName] = useState(initial?.name || '');
+  const [limit, setLimit] = useState(initial ? String(initial.limit ?? '5000') : '5000');
+  const [closingDay, setClosingDay] = useState(initial ? String(initial.closingDay ?? '3') : '3');
+  const [dueDay, setDueDay] = useState(initial ? String(initial.dueDay ?? '10') : '10');
+  const [color, setColor] = useState(initial?.color || 'purple');
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +145,7 @@ function NewCardDialog({ onSave }: { onSave: (c: { name: string; limit: number; 
 
   return (
     <DialogContent>
-      <DialogHeader><DialogTitle>Novo cartão de crédito</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>{editing ? 'Editar cartão' : 'Novo cartão de crédito'}</DialogTitle></DialogHeader>
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-2">
           <Label>Nome do cartão</Label>
@@ -158,7 +181,7 @@ function NewCardDialog({ onSave }: { onSave: (c: { name: string; limit: number; 
           </Select>
         </div>
         <DialogFooter>
-          <Button type="submit">Salvar cartão</Button>
+          <Button type="submit">{editing ? 'Salvar alterações' : 'Salvar cartão'}</Button>
         </DialogFooter>
       </form>
     </DialogContent>
