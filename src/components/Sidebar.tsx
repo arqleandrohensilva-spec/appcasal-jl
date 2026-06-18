@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp,
@@ -74,7 +74,7 @@ const GROUPS: NavGroup[] = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: boolean; onCloseMobile?: () => void } = {}) {
   const { activeProfile, setActiveProfile } = useAppContext();
   const { theme, toggle: toggleTheme } = useTheme();
   const { workspace, profile, signOut, joinByCode } = useAuth();
@@ -94,11 +94,30 @@ export function Sidebar() {
   });
   const toggle = (id: string) => setOpenGroups(s => ({ ...s, [id]: !s[id] }));
 
+  // Close mobile sidebar on route change
+  useEffect(() => { onCloseMobile?.(); /* eslint-disable-next-line */ }, [location.pathname]);
+
   const month = new Date().getMonth();
   const showRetro = month >= 10 || month <= 1;
 
   return (
-    <div className="w-64 bg-card text-card-foreground border-r border-border h-screen flex flex-col fixed left-0 top-0">
+    <>
+      <div
+        onClick={onCloseMobile}
+        className={cn(
+          'fixed inset-0 z-30 bg-black/50 md:hidden transition-opacity',
+          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none',
+        )}
+        aria-hidden="true"
+      />
+      <div
+        className={cn(
+          'w-64 max-w-[85vw] bg-card text-card-foreground border-r border-border h-screen flex flex-col fixed left-0 top-0 z-40 transition-transform duration-200',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+          'md:translate-x-0',
+        )}
+      >
+
       <div className="p-6 pb-4 flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">FinançasDuo</h1>
