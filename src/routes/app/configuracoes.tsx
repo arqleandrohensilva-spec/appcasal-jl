@@ -25,13 +25,16 @@ export const Route = createFileRoute('/app/configuracoes')({
 });
 
 function Configuracoes() {
-  const { user, profile, workspace, signOut, joinByCode, setProfilePessoa } = useAuth();
+  const { user, profile, workspace, signOut, joinByCode, setProfilePessoa, updateDisplayName, regenerateInviteCode } = useAuth();
   const { theme, toggle } = useTheme();
   const { transactions } = useData();
 
   const [copied, setCopied] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joining, setJoining] = useState(false);
+  const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
+  const [savingName, setSavingName] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   const copyInvite = () => {
     if (!workspace?.invite_code) return;
