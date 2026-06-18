@@ -77,8 +77,8 @@ function Transferencia() {
       owner: toAccount.owner,
     });
 
-    updateAccount(fromAccount.id, { balance: projectedFromBalance });
-    updateAccount(toAccount.id, { balance: projectedToBalance });
+
+
 
     toast.success(`${formatCurrency(amountNum)} transferido com sucesso!`);
     setSubmitting(false);
