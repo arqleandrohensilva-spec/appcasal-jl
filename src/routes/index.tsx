@@ -86,13 +86,8 @@ function AuthPage() {
     if (error) toast.error(mapError(error.message));
     else toast.success('Enviamos um link de redefinição para seu e-mail.');
   };
-      if (jerr) toast.error('Conta criada, mas código de convite inválido.');
-      else toast.success('Conta criada e workspace conectado!');
-    } else {
-      toast.success('Conta criada!');
-    }
-    setBusy(false);
-  };
+
+
 
 
   if (loading) {
