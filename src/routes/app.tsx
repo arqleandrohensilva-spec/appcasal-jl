@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { Loader2, Menu } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
+import { ProfileBanner } from '@/components/ProfileBanner';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 
@@ -34,6 +35,7 @@ function AppLayout() {
           <h1 className="text-sm font-semibold">FinançasDuo</h1>
         </header>
         <div className="p-4 md:p-6 min-w-0">
+          <ProfileBanner />
           <Outlet />
         </div>
       </main>
