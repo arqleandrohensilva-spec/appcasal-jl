@@ -66,6 +66,27 @@ function Configuracoes() {
     toast.success('CSV exportado!');
   };
 
+  useEffect(() => {
+    setDisplayName(profile?.display_name ?? '');
+  }, [profile?.display_name]);
+
+  const handleSaveName = async () => {
+    if (displayName.trim() === (profile?.display_name ?? '').trim()) return;
+    setSavingName(true);
+    const r = await updateDisplayName(displayName);
+    setSavingName(false);
+    if (r.ok) toast.success('Nome atualizado!');
+    else toast.error(r.error || 'Erro ao atualizar nome');
+  };
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    const r = await regenerateInviteCode();
+    setRegenerating(false);
+    if (r.ok) toast.success('Novo código gerado! O antigo deixou de funcionar.');
+    else toast.error(r.error || 'Erro ao gerar novo código');
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500 pb-10">
       <header>
