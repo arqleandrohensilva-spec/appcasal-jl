@@ -75,6 +75,20 @@ function AuthPage() {
     setBusy(false);
   };
 
+  const handleForgot = async () => {
+    const target = (email || window.prompt('Informe seu e-mail para receber o link de redefinição:') || '').trim();
+    if (!target) return;
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(target, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (error) toast.error(mapError(error.message));
+    else toast.success('Enviamos um link de redefinição para seu e-mail.');
+  };
+
+
+
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-6 w-6" /></div>;
@@ -114,6 +128,9 @@ function AuthPage() {
                   <div><Label htmlFor="email">Email</Label><Input id="email" type="email" required value={email} onChange={e=>setEmail(e.target.value)} /></div>
                   <div><Label htmlFor="password">Senha</Label><Input id="password" type="password" required value={password} onChange={e=>setPassword(e.target.value)} /></div>
                   <Button type="submit" disabled={busy} className="w-full">{busy ? 'Entrando...' : 'Entrar'}</Button>
+                  <button type="button" onClick={handleForgot} disabled={busy} className="text-xs text-muted-foreground hover:text-foreground underline w-full text-center">
+                    Esqueceu a senha?
+                  </button>
                 </form>
               </TabsContent>
               <TabsContent value="signup" className="pt-3">
