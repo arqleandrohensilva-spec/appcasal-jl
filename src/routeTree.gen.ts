@@ -27,6 +27,7 @@ import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppContasRouteImport } from './routes/app/contas'
 import { Route as AppConsorcioRouteImport } from './routes/app/consorcio'
 import { Route as AppConquistasRouteImport } from './routes/app/conquistas'
+import { Route as AppConfiguracoesRouteImport } from './routes/app/configuracoes'
 import { Route as AppComportamentoRouteImport } from './routes/app/comportamento'
 import { Route as AppComparadorRouteImport } from './routes/app/comparador'
 import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
@@ -125,6 +126,11 @@ const AppConquistasRoute = AppConquistasRouteImport.update({
   path: '/conquistas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppComportamentoRoute = AppComportamentoRouteImport.update({
   id: '/comportamento',
   path: '/comportamento',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
+  '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/consorcio': typeof AppConsorcioRoute
   '/app/contas': typeof AppContasRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
+  '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/consorcio': typeof AppConsorcioRoute
   '/app/contas': typeof AppContasRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
+  '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/conquistas': typeof AppConquistasRoute
   '/app/consorcio': typeof AppConsorcioRoute
   '/app/contas': typeof AppContasRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/app/cartoes'
     | '/app/comparador'
     | '/app/comportamento'
+    | '/app/configuracoes'
     | '/app/conquistas'
     | '/app/consorcio'
     | '/app/contas'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/app/cartoes'
     | '/app/comparador'
     | '/app/comportamento'
+    | '/app/configuracoes'
     | '/app/conquistas'
     | '/app/consorcio'
     | '/app/contas'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/app/cartoes'
     | '/app/comparador'
     | '/app/comportamento'
+    | '/app/configuracoes'
     | '/app/conquistas'
     | '/app/consorcio'
     | '/app/contas'
@@ -462,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConquistasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes': {
+      id: '/app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/app/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/comportamento': {
       id: '/app/comportamento'
       path: '/comportamento'
@@ -519,6 +538,7 @@ interface AppRouteChildren {
   AppCartoesRoute: typeof AppCartoesRoute
   AppComparadorRoute: typeof AppComparadorRoute
   AppComportamentoRoute: typeof AppComportamentoRoute
+  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppConquistasRoute: typeof AppConquistasRoute
   AppConsorcioRoute: typeof AppConsorcioRoute
   AppContasRoute: typeof AppContasRoute
@@ -543,6 +563,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCartoesRoute: AppCartoesRoute,
   AppComparadorRoute: AppComparadorRoute,
   AppComportamentoRoute: AppComportamentoRoute,
+  AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppConquistasRoute: AppConquistasRoute,
   AppConsorcioRoute: AppConsorcioRoute,
   AppContasRoute: AppContasRoute,
