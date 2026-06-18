@@ -317,5 +317,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
         </button>
       </div>
     </div>
+    </>
   );
 }
+
