@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Settings, User, Users, Moon, Sun, Copy, Check, LogOut,
-  Download, AlertTriangle, Mail, Shield, Sparkles,
+  Download, AlertTriangle, Mail, Shield, Sparkles, RefreshCw, Save,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/components/ThemeProvider';
@@ -25,13 +25,16 @@ export const Route = createFileRoute('/app/configuracoes')({
 });
 
 function Configuracoes() {
-  const { user, profile, workspace, signOut, joinByCode, setProfilePessoa } = useAuth();
+  const { user, profile, workspace, signOut, joinByCode, setProfilePessoa, updateDisplayName, regenerateInviteCode } = useAuth();
   const { theme, toggle } = useTheme();
   const { transactions } = useData();
 
   const [copied, setCopied] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joining, setJoining] = useState(false);
+  const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
+  const [savingName, setSavingName] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   const copyInvite = () => {
     if (!workspace?.invite_code) return;
@@ -63,6 +66,27 @@ function Configuracoes() {
     toast.success('CSV exportado!');
   };
 
+  useEffect(() => {
+    setDisplayName(profile?.display_name ?? '');
+  }, [profile?.display_name]);
+
+  const handleSaveName = async () => {
+    if (displayName.trim() === (profile?.display_name ?? '').trim()) return;
+    setSavingName(true);
+    const r = await updateDisplayName(displayName);
+    setSavingName(false);
+    if (r.ok) toast.success('Nome atualizado!');
+    else toast.error(r.error || 'Erro ao atualizar nome');
+  };
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    const r = await regenerateInviteCode();
+    setRegenerating(false);
+    if (r.ok) toast.success('Novo código gerado! O antigo deixou de funcionar.');
+    else toast.error(r.error || 'Erro ao gerar novo código');
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500 pb-10">
       <header>
@@ -86,6 +110,27 @@ function Configuracoes() {
             <div>
               <p className="text-sm font-medium">{profile?.display_name || user?.email}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Label htmlFor="display-name" className="text-sm">Nome de exibição</Label>
+            <div className="flex gap-2">
+              <Input
+                id="display-name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Como você quer ser chamado"
+              />
+              <Button
+                onClick={handleSaveName}
+                disabled={savingName || !displayName.trim() || displayName.trim() === (profile?.display_name ?? '').trim()}
+                className="gap-2"
+              >
+                <Save className="h-4 w-4" /> {savingName ? 'Salvando...' : 'Salvar'}
+              </Button>
             </div>
           </div>
 
@@ -125,9 +170,30 @@ function Configuracoes() {
             <Label className="text-sm">Código de convite</Label>
             <div className="flex gap-2">
               <Input readOnly value={workspace?.invite_code ?? '...'} className="font-mono" />
-              <Button variant="outline" size="icon" onClick={copyInvite}>
+              <Button variant="outline" size="icon" onClick={copyInvite} title="Copiar código">
                 {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="icon" title="Gerar novo código" disabled={regenerating}>
+                    <RefreshCw className={`h-4 w-4 ${regenerating ? 'animate-spin' : ''}`} />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-500" /> Gerar novo código?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      O código atual deixará de funcionar imediatamente. Quem já está no workspace continua dentro — mas qualquer link ou código antigo compartilhado não servirá mais.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRegenerate}>Gerar novo</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
             <p className="text-xs text-muted-foreground">
               Compartilhe apenas com seu parceiro(a) — quem tiver esse código entra no mesmo espaço.

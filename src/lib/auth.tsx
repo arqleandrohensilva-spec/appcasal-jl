@@ -27,6 +27,8 @@ interface AuthCtx {
   refresh: () => Promise<void>;
   joinByCode: (code: string) => Promise<{ ok: boolean; error?: string }>;
   setProfilePessoa: (p: UserProfile) => Promise<void>;
+  updateDisplayName: (name: string) => Promise<{ ok: boolean; error?: string }>;
+  regenerateInviteCode: () => Promise<{ ok: boolean; code?: string; error?: string }>;
 }
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
@@ -114,8 +116,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(prev => prev ? { ...prev, pessoa: p } : prev);
   };
 
+  const updateDisplayName = async (name: string) => {
+    if (!user) return { ok: false, error: 'Não autenticado' };
+    const trimmed = name.trim();
+    if (!trimmed) return { ok: false, error: 'Nome não pode ser vazio' };
+    const { error } = await supabase.from('profiles').update({ display_name: trimmed }).eq('id', user.id);
+    if (error) return { ok: false, error: error.message };
+    setProfile(prev => prev ? { ...prev, display_name: trimmed } : prev);
+    return { ok: true };
+  };
+
+  const regenerateInviteCode = async () => {
+    if (!workspace) return { ok: false, error: 'Workspace não encontrado' };
+    const bytes = new Uint8Array(4);
+    crypto.getRandomValues(bytes);
+    const code = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    const { error } = await supabase.from('workspaces').update({ invite_code: code }).eq('id', workspace.id);
+    if (error) return { ok: false, error: error.message };
+    setWorkspace(prev => prev ? { ...prev, invite_code: code } : prev);
+    return { ok: true, code };
+  };
+
   return (
-    <Ctx.Provider value={{ loading, user, session, profile, workspace, signOut, refresh, joinByCode, setProfilePessoa }}>
+    <Ctx.Provider value={{ loading, user, session, profile, workspace, signOut, refresh, joinByCode, setProfilePessoa, updateDisplayName, regenerateInviteCode }}>
       {children}
     </Ctx.Provider>
   );
