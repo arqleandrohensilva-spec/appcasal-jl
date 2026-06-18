@@ -128,6 +128,9 @@ function AuthPage() {
                   <div><Label htmlFor="email">Email</Label><Input id="email" type="email" required value={email} onChange={e=>setEmail(e.target.value)} /></div>
                   <div><Label htmlFor="password">Senha</Label><Input id="password" type="password" required value={password} onChange={e=>setPassword(e.target.value)} /></div>
                   <Button type="submit" disabled={busy} className="w-full">{busy ? 'Entrando...' : 'Entrar'}</Button>
+                  <button type="button" onClick={handleForgot} disabled={busy} className="text-xs text-muted-foreground hover:text-foreground underline w-full text-center">
+                    Esqueceu a senha?
+                  </button>
                 </form>
               </TabsContent>
               <TabsContent value="signup" className="pt-3">
