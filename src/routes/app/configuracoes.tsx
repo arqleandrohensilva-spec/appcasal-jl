@@ -116,6 +116,25 @@ function Configuracoes() {
           <Separator />
 
           <div className="space-y-2">
+            <Label htmlFor="display-name" className="text-sm">Nome de exibição</Label>
+            <div className="flex gap-2">
+              <Input
+                id="display-name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Como você quer ser chamado"
+              />
+              <Button
+                onClick={handleSaveName}
+                disabled={savingName || !displayName.trim() || displayName.trim() === (profile?.display_name ?? '').trim()}
+                className="gap-2"
+              >
+                <Save className="h-4 w-4" /> {savingName ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <Label className="text-sm">Quem é você no workspace?</Label>
             <div className="flex gap-2">
               {(['leandro', 'jonathan'] as const).map((p) => (
