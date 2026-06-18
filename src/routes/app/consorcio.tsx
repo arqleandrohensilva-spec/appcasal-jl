@@ -3,9 +3,13 @@ import { createFileRoute } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Calculator, Home, TrendingUp, Wallet, Target, Sparkles } from 'lucide-react';
+import { Calculator, Home, TrendingUp, Wallet, Target, Sparkles, Save } from 'lucide-react';
 import { formatCurrency } from '@/lib/mockData';
+import { useData } from '@/lib/store';
+import { useAppContext } from '@/lib/context';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/app/consorcio')({
   component: SimuladorConsorcio,
@@ -21,11 +25,38 @@ function chanceContemplacao(pct: number) {
 function SimuladorConsorcio() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  const { goals, contributions, contributeGoal } = useData();
+  const { activeProfile } = useAppContext();
+
+  // Goal cujo nome contenha "lance" + "cons" (ex.: "Lance do consórcio")
+  const lanceGoal = useMemo(
+    () =>
+      goals.find(
+        (g) =>
+          /lance/i.test(g.name) &&
+          /cons/i.test(g.name) &&
+          (activeProfile === 'casal' || g.owner === activeProfile),
+      ),
+    [goals, activeProfile],
+  );
+
+  const lanceAcumulado = useMemo(() => {
+    if (!lanceGoal) return 0;
+    return contributions
+      .filter((c) => c.goalId === lanceGoal.id)
+      .reduce((s, c) => s + c.amount, 0);
+  }, [contributions, lanceGoal]);
+
   const [credito, setCredito] = useState(200000);
-  const [lanceLivre, setLanceLivre] = useState(33800);
+  const [lanceLivre, setLanceLivre] = useState(lanceAcumulado > 0 ? lanceAcumulado : 33800);
   const [embutidoPct, setEmbutidoPct] = useState(20);
   const [aluguel, setAluguel] = useState(1400);
   const [prazo, setPrazo] = useState(15);
+
+  // Sincroniza com o valor acumulado quando a meta carrega/muda
+  useEffect(() => {
+    if (lanceAcumulado > 0) setLanceLivre(lanceAcumulado);
+  }, [lanceAcumulado]);
 
 
 
@@ -93,15 +124,31 @@ function SimuladorConsorcio() {
             step={5000}
             format={formatCurrency}
           />
-          <SliderField
-            label="Lance livre disponível"
-            value={lanceLivre}
-            onChange={setLanceLivre}
-            min={0}
-            max={60000}
-            step={500}
-            format={formatCurrency}
-          />
+          <div className="space-y-2">
+            <SliderField
+              label={lanceGoal ? `Lance livre — vinculado à meta "${lanceGoal.name}"` : 'Lance livre disponível'}
+              value={lanceLivre}
+              onChange={setLanceLivre}
+              min={0}
+              max={Math.max(60000, Math.round(lanceAcumulado * 1.5))}
+              step={500}
+              format={formatCurrency}
+            />
+            {lanceGoal && (
+              <p className="text-xs text-muted-foreground">
+                Acumulado na meta: <b>{formatCurrency(lanceAcumulado)}</b>
+                {lanceLivre !== lanceAcumulado && (
+                  <button
+                    type="button"
+                    onClick={() => setLanceLivre(lanceAcumulado)}
+                    className="ml-2 underline text-orange-600"
+                  >
+                    usar valor da meta
+                  </button>
+                )}
+              </p>
+            )}
+          </div>
           <SliderField
             label="Lance embutido"
             value={embutidoPct}
@@ -129,6 +176,34 @@ function SimuladorConsorcio() {
             step={5}
             format={(v) => `${v} anos`}
           />
+
+          {lanceGoal && (
+            <div className="pt-4 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Salvar esta simulação como contribuição de <b>{formatCurrency(lanceLivre)}</b> na meta <b>{lanceGoal.name}</b>.
+              </p>
+              <Button
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  if (lanceLivre <= 0) {
+                    toast.error('Informe um valor de lance maior que zero');
+                    return;
+                  }
+                  contributeGoal({
+                    goalId: lanceGoal.id,
+                    amount: lanceLivre,
+                    date: new Date().toISOString().slice(0, 10),
+                    owner: lanceGoal.owner,
+                    note: `Simulação consórcio · crédito ${formatCurrency(credito)} · ${prazo} anos`,
+                  });
+                  toast.success('Simulação registrada como contribuição da meta');
+                }}
+              >
+                <Save className="h-4 w-4" /> Salvar simulação na meta
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

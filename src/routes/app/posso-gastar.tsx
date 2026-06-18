@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircleQuestion, Send, Sparkles, CheckCircle2, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { accentFor } from '@/lib/accent';
 import { useData } from '@/lib/store';
 import { monthlyStats } from '@/lib/finance';
 import { pendingThisMonth } from '@/lib/insights';
@@ -31,20 +32,24 @@ interface Ctx {
   reservaMinima: number;
 }
 
-function analyze(question: string, ctx: Ctx): Message {
-  const id = Math.random().toString(36).slice(2);
-  // Aceita formatos BR: "200", "200,00", "2.000,50", "2000.50"
+function parseValor(question: string): number {
+  // Aceita "200", "200,00", "2.000", "2.000,50", "2000.50"
   const match = question.match(/(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?|\d+(?:\.\d+)?)/);
-  let valor = 0;
-  if (match) {
-    const raw = match[1];
-    const hasComma = raw.includes(',');
-    // Se tem vírgula, pontos são separadores de milhar
-    const normalized = hasComma
+  if (!match) return 0;
+  const raw = match[1];
+  const hasComma = raw.includes(',');
+  // Padrão BR de milhar (ex.: 2.000 ou 2.000,50): pontos são separadores de milhar
+  const isThousands = /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(raw);
+  const normalized =
+    isThousands || hasComma
       ? raw.replace(/\./g, '').replace(',', '.')
       : raw;
-    valor = parseFloat(normalized) || 0;
-  }
+  return parseFloat(normalized) || 0;
+}
+
+function analyze(question: string, ctx: Ctx): Message {
+  const id = Math.random().toString(36).slice(2);
+  const valor = parseValor(question);
 
   if (valor === 0) {
     return { id, role: 'assistant', content: 'Diga um valor, por exemplo: "posso gastar R$ 300 hoje?"' };
@@ -87,7 +92,7 @@ const SUGGESTIONS = [
 function PossoGastar() {
   const { activeProfile } = useAppContext();
   const { transactions, accounts, cards } = useData();
-  const accent = activeProfile === 'leandro' ? 'purple' : activeProfile === 'jonathan' ? 'emerald' : 'orange';
+  const a = accentFor(activeProfile);
 
   const ctx: Ctx = useMemo(() => {
     const now = new Date();
@@ -130,7 +135,7 @@ function PossoGastar() {
     <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in duration-500 h-[calc(100vh-3rem)] flex flex-col">
       <header>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <MessageCircleQuestion className={`h-6 w-6 text-${accent}-600`} /> Posso Gastar?
+          <MessageCircleQuestion className={cn('h-6 w-6', a.text)} /> Posso Gastar?
         </h1>
         <p className="text-muted-foreground">Análise baseada no seu saldo real, compromissos do mês e sobra projetada.</p>
       </header>
@@ -141,7 +146,7 @@ function PossoGastar() {
             <div key={m.id} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
               <div className={cn(
                 'max-w-[85%] rounded-2xl px-4 py-3 text-sm space-y-3',
-                m.role === 'user' ? `bg-${accent}-600 text-white` : 'bg-gray-100 text-gray-900'
+                m.role === 'user' ? cn(a.bg, 'text-white') : 'bg-gray-100 text-gray-900'
               )}>
                 {m.verdict && (
                   <Badge className={cn(
@@ -193,7 +198,7 @@ function PossoGastar() {
           <form onSubmit={(e) => { e.preventDefault(); ask(input); }} className="flex gap-2">
             <Input value={input} onChange={(e) => setInput(e.target.value)}
               placeholder="Ex: posso gastar R$ 300 hoje?" className="flex-1" />
-            <Button type="submit" className={`bg-${accent}-600 hover:bg-${accent}-700 gap-2`}>
+            <Button type="submit" className={cn(a.bg, a.bgHover, 'gap-2')}>
               <Send className="h-4 w-4" /> Perguntar
             </Button>
           </form>
