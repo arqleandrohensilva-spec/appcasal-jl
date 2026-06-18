@@ -41,10 +41,10 @@ async function buildFinancialContext(
 
   const tx = txRes.data ?? [];
   const monthTx = tx.filter(t => t.date?.startsWith(ymCurrent));
-  const totalIn = monthTx.filter(t => t.type === "income").reduce((s, t) => s + Number(t.amount || 0), 0);
-  const totalOut = monthTx.filter(t => t.type === "expense").reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalIn = monthTx.filter(t => t.type === "receita").reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalOut = monthTx.filter(t => t.type === "despesa").reduce((s, t) => s + Number(t.amount || 0), 0);
   const byCategory: Record<string, number> = {};
-  monthTx.filter(t => t.type === "expense").forEach(t => {
+  monthTx.filter(t => t.type === "despesa").forEach(t => {
     byCategory[t.category || "Outros"] = (byCategory[t.category || "Outros"] || 0) + Number(t.amount || 0);
   });
   const topCategories = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 8);
