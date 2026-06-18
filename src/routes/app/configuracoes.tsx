@@ -89,6 +89,23 @@ function Configuracoes() {
     else toast.error(r.error || 'Erro ao gerar novo código');
   };
 
+  const handleResetData = async () => {
+    if (!workspace) return;
+    setResetting(true);
+    const wsId = workspace.id;
+    const tables = ['goal_contributions', 'transactions', 'goals', 'budgets', 'cards', 'accounts', 'chat_messages', 'chat_threads'] as const;
+    for (const t of tables) {
+      const { error } = await supabase.from(t).delete().eq('workspace_id', wsId);
+      if (error) {
+        setResetting(false);
+        toast.error(`Erro ao limpar ${t}: ${error.message}`);
+        return;
+      }
+    }
+    toast.success('Dados do workspace resetados!');
+    setTimeout(() => window.location.reload(), 600);
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500 pb-10">
       <header>
