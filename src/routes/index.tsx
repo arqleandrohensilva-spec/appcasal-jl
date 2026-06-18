@@ -29,15 +29,20 @@ function AuthPage() {
     if (!loading && user) navigate({ to: '/app/dashboard' });
   }, [loading, user, navigate]);
 
+  const mapError = (msg?: string) => {
+    if (!msg) return 'Erro inesperado';
+    if (/restrito|whitelist|not allowed|42501/i.test(msg)) return 'Este app é de acesso restrito.';
+    return msg;
+  };
+
   const handleGoogle = async () => {
     setBusy(true);
     try {
       const r = await lovable.auth.signInWithOAuth('google', { redirect_uri: window.location.origin });
-      if (r.error) { toast.error(r.error.message || 'Falha no login com Google'); setBusy(false); return; }
+      if (r.error) { toast.error(mapError(r.error.message)); setBusy(false); return; }
       if (r.redirected) return;
-      // Else: tokens set, will navigate on auth change
     } catch (e: any) {
-      toast.error(e?.message || 'Erro inesperado');
+      toast.error(mapError(e?.message));
       setBusy(false);
     }
   };
@@ -47,7 +52,7 @@ function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) toast.error(error.message);
+    if (error) toast.error(mapError(error.message));
     else toast.success('Bem-vindo!');
   };
 
@@ -58,9 +63,8 @@ function AuthPage() {
       email, password,
       options: { emailRedirectTo: window.location.origin },
     });
-    if (error) { toast.error(error.message); setBusy(false); return; }
+    if (error) { toast.error(mapError(error.message)); setBusy(false); return; }
     if (inviteCode.trim() && data.user) {
-      // Wait briefly for trigger, then join
       await new Promise(r => setTimeout(r, 800));
       const { error: jerr } = await supabase.rpc('join_workspace_by_code', { _code: inviteCode.trim() });
       if (jerr) toast.error('Conta criada, mas código de convite inválido.');
@@ -70,6 +74,7 @@ function AuthPage() {
     }
     setBusy(false);
   };
+
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-6 w-6" /></div>;
