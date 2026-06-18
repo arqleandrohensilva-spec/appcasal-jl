@@ -176,6 +176,34 @@ function SimuladorConsorcio() {
             step={5}
             format={(v) => `${v} anos`}
           />
+
+          {lanceGoal && (
+            <div className="pt-4 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Salvar esta simulação como contribuição de <b>{formatCurrency(lanceLivre)}</b> na meta <b>{lanceGoal.name}</b>.
+              </p>
+              <Button
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  if (lanceLivre <= 0) {
+                    toast.error('Informe um valor de lance maior que zero');
+                    return;
+                  }
+                  contributeGoal({
+                    goalId: lanceGoal.id,
+                    amount: lanceLivre,
+                    date: new Date().toISOString().slice(0, 10),
+                    owner: lanceGoal.owner,
+                    note: `Simulação consórcio · crédito ${formatCurrency(credito)} · ${prazo} anos`,
+                  });
+                  toast.success('Simulação registrada como contribuição da meta');
+                }}
+              >
+                <Save className="h-4 w-4" /> Salvar simulação na meta
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
