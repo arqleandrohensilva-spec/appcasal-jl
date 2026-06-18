@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Send, Plus, Trash2, Loader2, MessageSquare, User, Bot } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
+import { Sparkles, Send, Plus, Trash2, Loader2, MessageSquare, User, Bot, PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
