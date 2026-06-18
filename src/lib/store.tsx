@@ -35,15 +35,15 @@ export interface UserTransaction {
   type: 'receita' | 'despesa';
   owner: UserProfile;
   createdAt: string;
-  recurrence?: Recurrence; // se definido, a tx repete a partir da data
-  recurrenceEndDate?: string; // ISO; opcional
+  recurrence?: Recurrence;
+  recurrenceEndDate?: string;
 }
 
 export interface UserGoal {
   id: string;
   name: string;
   target: number;
-  deadline: string; // ISO
+  deadline: string;
   owner: UserProfile;
   createdAt: string;
 }
@@ -57,15 +57,25 @@ export interface GoalContribution {
   note?: string;
 }
 
+export interface Budget {
+  id: string;
+  category: string;
+  monthlyLimit: number;
+  owner: UserProfile;
+}
+
 interface DataContextType {
   cards: UserCard[];
   accounts: UserAccount[];
   transactions: UserTransaction[];
   goals: UserGoal[];
   contributions: GoalContribution[];
+  budgets: Budget[];
   addCard: (c: Omit<UserCard, 'id'>) => void;
+  updateCard: (id: string, patch: Partial<Omit<UserCard, 'id'>>) => void;
   removeCard: (id: string) => void;
   addAccount: (a: Omit<UserAccount, 'id'>) => void;
+  updateAccount: (id: string, patch: Partial<Omit<UserAccount, 'id'>>) => void;
   removeAccount: (id: string) => void;
   addTransaction: (input: {
     description: string;
@@ -81,17 +91,35 @@ interface DataContextType {
     recurrence?: Recurrence;
     recurrenceEndDate?: string;
   }) => number;
+  /** Edita uma única transação (não propaga para o grupo de parcelamento). */
+  updateTransaction: (id: string, patch: Partial<{
+    description: string;
+    amount: number; // valor absoluto; o sinal é derivado do type
+    date: string;
+    category: string;
+    paymentMethod: string;
+    cardId?: string;
+    accountId?: string;
+    type: 'receita' | 'despesa';
+    recurrence: Recurrence;
+    recurrenceEndDate?: string;
+  }>) => void;
   removeTransaction: (id: string, removeGroup?: boolean) => void;
   addGoal: (g: Omit<UserGoal, 'id' | 'createdAt'>) => void;
+  updateGoal: (id: string, patch: Partial<Omit<UserGoal, 'id' | 'createdAt'>>) => void;
   removeGoal: (id: string) => void;
   contributeGoal: (input: Omit<GoalContribution, 'id'>) => void;
   removeContribution: (id: string) => void;
+  addBudget: (b: Omit<Budget, 'id'>) => void;
+  updateBudget: (id: string, patch: Partial<Omit<Budget, 'id'>>) => void;
+  removeBudget: (id: string) => void;
   resetAll: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'financasduo:data:v2';
+const STORAGE_KEY = 'financasduo:data:v3';
+const LEGACY_KEY_V2 = 'financasduo:data:v2';
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
 function addMonths(iso: string, months: number) {
@@ -116,10 +144,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<UserTransaction[]>([]);
   const [goals, setGoals] = useState<UserGoal[]>([]);
   const [contributions, setContributions] = useState<GoalContribution[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      let raw = localStorage.getItem(STORAGE_KEY);
+      // migração automática do v2
+      if (!raw) {
+        const legacy = localStorage.getItem(LEGACY_KEY_V2);
+        if (legacy) raw = legacy;
+      }
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed.cards) setCards(parsed.cards);
@@ -127,6 +161,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (parsed.transactions) setTransactions(parsed.transactions);
         if (parsed.goals) setGoals(parsed.goals);
         if (parsed.contributions) setContributions(parsed.contributions);
+        if (parsed.budgets) setBudgets(parsed.budgets);
       }
     } catch {}
     setHydrated(true);
@@ -136,17 +171,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        cards, accounts, transactions, goals, contributions,
+        cards, accounts, transactions, goals, contributions, budgets,
       }));
     } catch {}
-  }, [cards, accounts, transactions, goals, contributions, hydrated]);
+  }, [cards, accounts, transactions, goals, contributions, budgets, hydrated]);
 
   const addCard: DataContextType['addCard'] = (c) =>
     setCards(prev => [...prev, { ...c, id: uid() }]);
+  const updateCard: DataContextType['updateCard'] = (id, patch) =>
+    setCards(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c));
   const removeCard: DataContextType['removeCard'] = (id) =>
     setCards(prev => prev.filter(c => c.id !== id));
+
   const addAccount: DataContextType['addAccount'] = (a) =>
     setAccounts(prev => [...prev, { ...a, id: uid() }]);
+  const updateAccount: DataContextType['updateAccount'] = (id, patch) =>
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
   const removeAccount: DataContextType['removeAccount'] = (id) =>
     setAccounts(prev => prev.filter(a => a.id !== id));
 
@@ -172,7 +212,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       type: input.type,
       owner: input.owner,
       createdAt: new Date().toISOString(),
-      // Recorrência só faz sentido para tx única (sem parcelamento)
       recurrence: n === 1 ? recurrence : undefined,
       recurrenceEndDate: n === 1 ? input.recurrenceEndDate : undefined,
     }));
@@ -191,6 +230,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     return n;
+  };
+
+  const updateTransaction: DataContextType['updateTransaction'] = (id, patch) => {
+    const todayISO = new Date().toISOString().slice(0, 10);
+    setTransactions(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      const nextType = patch.type ?? t.type;
+      const sign = nextType === 'receita' ? 1 : -1;
+      const nextAmountAbs = patch.amount !== undefined ? Math.abs(patch.amount) : Math.abs(t.amount);
+      const next: UserTransaction = {
+        ...t,
+        ...patch,
+        amount: sign * nextAmountAbs,
+        type: nextType,
+      };
+      // Ajusta saldo da conta vinculada se mudou valor/data/conta
+      const wasRealized = !t.cardId && t.accountId && t.date <= todayISO;
+      const willBeRealized = !next.cardId && next.accountId && next.date <= todayISO;
+      if (wasRealized || willBeRealized) {
+        setAccounts(accs => accs.map(a => {
+          let delta = 0;
+          if (wasRealized && a.id === t.accountId) delta -= t.amount;
+          if (willBeRealized && a.id === next.accountId) delta += next.amount;
+          return delta !== 0 ? { ...a, balance: a.balance + delta } : a;
+        }));
+      }
+      return next;
+    }));
   };
 
   const removeTransaction: DataContextType['removeTransaction'] = (id, removeGroup) => {
@@ -221,6 +288,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addGoal: DataContextType['addGoal'] = (g) =>
     setGoals(prev => [...prev, { ...g, id: uid(), createdAt: new Date().toISOString() }]);
+  const updateGoal: DataContextType['updateGoal'] = (id, patch) =>
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...patch } : g));
   const removeGoal: DataContextType['removeGoal'] = (id) => {
     setGoals(prev => prev.filter(g => g.id !== id));
     setContributions(prev => prev.filter(c => c.goalId !== id));
@@ -230,21 +299,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const removeContribution: DataContextType['removeContribution'] = (id) =>
     setContributions(prev => prev.filter(c => c.id !== id));
 
+  const addBudget: DataContextType['addBudget'] = (b) =>
+    setBudgets(prev => [...prev, { ...b, id: uid() }]);
+  const updateBudget: DataContextType['updateBudget'] = (id, patch) =>
+    setBudgets(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
+  const removeBudget: DataContextType['removeBudget'] = (id) =>
+    setBudgets(prev => prev.filter(b => b.id !== id));
+
   const resetAll = () => {
     setCards(SEED_CARDS);
     setAccounts(SEED_ACCOUNTS);
     setTransactions([]);
     setGoals([]);
     setContributions([]);
+    setBudgets([]);
   };
 
   return (
     <DataContext.Provider value={{
-      cards, accounts, transactions, goals, contributions,
-      addCard, removeCard,
-      addAccount, removeAccount,
-      addTransaction, removeTransaction,
-      addGoal, removeGoal, contributeGoal, removeContribution,
+      cards, accounts, transactions, goals, contributions, budgets,
+      addCard, updateCard, removeCard,
+      addAccount, updateAccount, removeAccount,
+      addTransaction, updateTransaction, removeTransaction,
+      addGoal, updateGoal, removeGoal, contributeGoal, removeContribution,
+      addBudget, updateBudget, removeBudget,
       resetAll,
     }}>
       {children}
