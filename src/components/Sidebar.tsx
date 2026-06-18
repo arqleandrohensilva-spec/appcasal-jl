@@ -1,17 +1,21 @@
-import { Link, useLocation } from '@tanstack/react-router';
+import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
   LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp,
   ShieldCheck, CreditCard, Trophy, Sparkles, Brain, Calculator,
   MessageCircleQuestion, ScanLine, Scale, ChevronDown, Wallet, Landmark,
-  PieChart, Bot, CalendarDays, Check, Users, Moon, Sun, PiggyBank,
+  PieChart, Bot, CalendarDays, Check, Users, Moon, Sun, PiggyBank, Copy, UserPlus,
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAppContext } from '@/lib/context';
+import { useAuth } from '@/lib/auth';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -72,7 +76,11 @@ const GROUPS: NavGroup[] = [
 export function Sidebar() {
   const { activeProfile, setActiveProfile } = useAppContext();
   const { theme, toggle: toggleTheme } = useTheme();
+  const { workspace, profile, signOut, joinByCode } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
 
   const currentData =
     activeProfile === 'leandro' ? LEANDRO_DATA :
@@ -236,14 +244,57 @@ export function Sidebar() {
         </div>
       </nav>
 
-      <div className="p-3 border-t">
-        <Link
-          to="/"
-          className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:text-red-600 transition-colors"
+      <div className="p-3 border-t space-y-2">
+        <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+          <DialogTrigger asChild>
+            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <UserPlus className="h-4 w-4" />
+              Convidar parceiro(a)
+            </button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Compartilhar workspace</DialogTitle>
+              <DialogDescription>
+                Envie este código para seu parceiro(a) usar ao criar a conta — ou cole um código aqui para entrar no workspace de outra pessoa.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Seu código</label>
+                <div className="flex gap-2 mt-1">
+                  <Input readOnly value={workspace?.invite_code ?? '...'} className="font-mono" />
+                  <Button variant="outline" size="icon" onClick={() => {
+                    if (workspace?.invite_code) {
+                      navigator.clipboard.writeText(workspace.invite_code);
+                      toast.success('Código copiado!');
+                    }
+                  }}><Copy className="h-4 w-4" /></Button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Entrar em outro workspace</label>
+                <div className="flex gap-2 mt-1">
+                  <Input value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} placeholder="Cole o código" className="font-mono" />
+                  <Button onClick={async () => {
+                    if (!joinCode.trim()) return;
+                    const r = await joinByCode(joinCode);
+                    if (r.ok) { toast.success('Conectado ao workspace!'); setInviteOpen(false); setJoinCode(''); }
+                    else toast.error(r.error || 'Código inválido');
+                  }}>Entrar</Button>
+                </div>
+              </div>
+              {profile?.email && <p className="text-xs text-muted-foreground pt-2 border-t">Logado como <strong>{profile.email}</strong></p>}
+            </div>
+          </DialogContent>
+        </Dialog>
+        <button
+          onClick={async () => { await signOut(); navigate({ to: '/' }); }}
+          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-red-600 transition-colors"
         >
           <LogOut className="h-4 w-4" />
-          Sair / Trocar Perfil
-        </Link>
+          Sair
+        </button>
       </div>
     </div>
   );
