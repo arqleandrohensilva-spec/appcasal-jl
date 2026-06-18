@@ -134,6 +134,8 @@ function Configuracoes() {
             </div>
           </div>
 
+          <Separator />
+
           <div className="space-y-2">
             <Label className="text-sm">Quem é você no workspace?</Label>
             <div className="flex gap-2">
