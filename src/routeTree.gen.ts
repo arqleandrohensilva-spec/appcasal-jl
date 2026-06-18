@@ -30,6 +30,7 @@ import { Route as AppComportamentoRouteImport } from './routes/app/comportamento
 import { Route as AppComparadorRouteImport } from './routes/app/comparador'
 import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
 import { Route as AppAgenteRouteImport } from './routes/app/agente'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -136,10 +137,16 @@ const AppAgenteRoute = AppAgenteRouteImport.update({
   path: '/agente',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comparador': typeof AppComparadorRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comparador': typeof AppComparadorRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comparador': typeof AppComparadorRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/api/chat'
     | '/app/agente'
     | '/app/cartoes'
     | '/app/comparador'
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/api/chat'
     | '/app/agente'
     | '/app/cartoes'
     | '/app/comparador'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/api/chat'
     | '/app/agente'
     | '/app/cartoes'
     | '/app/comparador'
@@ -282,6 +294,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  ApiChatRoute: typeof ApiChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -433,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAgenteRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -485,6 +505,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  ApiChatRoute: ApiChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
