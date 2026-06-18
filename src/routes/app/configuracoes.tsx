@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Settings, User, Users, Moon, Sun, Copy, Check, LogOut,
-  Download, AlertTriangle, Mail, Shield, Sparkles,
+  Download, AlertTriangle, Mail, Shield, Sparkles, RefreshCw, Save,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/components/ThemeProvider';
