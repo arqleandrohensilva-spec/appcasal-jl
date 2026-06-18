@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp,
   ShieldCheck, CreditCard, Trophy, Sparkles, Brain, Calculator,
   MessageCircleQuestion, ScanLine, Scale, ChevronDown, Wallet, Landmark,
-  PieChart, Bot, CalendarDays, Check, Users, Moon, Sun, PiggyBank, Copy, UserPlus,
+  PieChart, Bot, CalendarDays, Check, Users, Moon, Sun, PiggyBank, Copy, UserPlus, Settings,
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAppContext } from '@/lib/context';
@@ -72,6 +72,14 @@ const GROUPS: NavGroup[] = [
       { name: 'Dívidas', path: '/app/dividas', icon: ShieldCheck },
     ],
   },
+  {
+    id: 'conta',
+    label: 'Conta',
+    icon: Settings,
+    items: [
+      { name: 'Configurações', path: '/app/configuracoes', icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: boolean; onCloseMobile?: () => void } = {}) {
@@ -90,7 +98,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
   // Auto-open the group containing the active route
   const activeGroup = GROUPS.find(g => g.items.some(i => i.path === location.pathname))?.id;
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    overview: true, ia: true, 'dia-a-dia': true, planejamento: true,
+    overview: true, ia: true, 'dia-a-dia': true, planejamento: true, conta: true,
   });
   const toggle = (id: string) => setOpenGroups(s => ({ ...s, [id]: !s[id] }));
 
