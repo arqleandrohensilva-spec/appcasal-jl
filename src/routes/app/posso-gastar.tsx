@@ -33,8 +33,18 @@ interface Ctx {
 
 function analyze(question: string, ctx: Ctx): Message {
   const id = Math.random().toString(36).slice(2);
-  const match = question.match(/(\d+[\.,]?\d*)/);
-  const valor = match ? parseFloat(match[1].replace(',', '.')) : 0;
+  // Aceita formatos BR: "200", "200,00", "2.000,50", "2000.50"
+  const match = question.match(/(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?|\d+(?:\.\d+)?)/);
+  let valor = 0;
+  if (match) {
+    const raw = match[1];
+    const hasComma = raw.includes(',');
+    // Se tem vírgula, pontos são separadores de milhar
+    const normalized = hasComma
+      ? raw.replace(/\./g, '').replace(',', '.')
+      : raw;
+    valor = parseFloat(normalized) || 0;
+  }
 
   if (valor === 0) {
     return { id, role: 'assistant', content: 'Diga um valor, por exemplo: "posso gastar R$ 300 hoje?"' };
