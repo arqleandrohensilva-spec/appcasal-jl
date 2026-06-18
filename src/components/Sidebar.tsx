@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Receipt, Target, BarChart3, Heart, LogOut, TrendingUp,
   ShieldCheck, CreditCard, Trophy, Sparkles, Brain, Calculator,
   MessageCircleQuestion, ScanLine, Scale, ChevronDown, Wallet, Landmark,
-  PieChart, Bot, CalendarDays, Check, Users, Moon, Sun, PiggyBank, Copy, UserPlus,
+  PieChart, Bot, CalendarDays, Check, Users, Moon, Sun, PiggyBank, Copy, UserPlus, Settings,
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAppContext } from '@/lib/context';
