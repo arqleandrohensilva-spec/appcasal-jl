@@ -40,10 +40,11 @@ const GROUPS: NavGroup[] = [
     label: 'IA & Decisões',
     icon: Bot,
     items: [
+      { name: 'Assistente', path: '/app/assistente', icon: Sparkles, badge: 'IA' },
       { name: 'Posso Gastar?', path: '/app/posso-gastar', icon: MessageCircleQuestion, badge: 'IA' },
       { name: 'À vista ou Parcelado?', path: '/app/comparador', icon: Scale, badge: 'IA' },
       { name: 'Scanner de Nota', path: '/app/scanner', icon: ScanLine, badge: 'IA' },
-      { name: 'Agente Autônomo', path: '/app/agente', icon: Sparkles, badge: 'IA' },
+      { name: 'Agente Autônomo', path: '/app/agente', icon: Bot, badge: 'IA' },
       { name: 'Comportamento', path: '/app/comportamento', icon: Brain, badge: 'IA' },
     ],
   },

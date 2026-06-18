@@ -30,6 +30,9 @@ import { Route as AppComportamentoRouteImport } from './routes/app/comportamento
 import { Route as AppComparadorRouteImport } from './routes/app/comparador'
 import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
 import { Route as AppAgenteRouteImport } from './routes/app/agente'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AppAssistenteIndexRouteImport } from './routes/app/assistente.index'
+import { Route as AppAssistenteThreadIdRouteImport } from './routes/app/assistente.$threadId'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -136,10 +139,26 @@ const AppAgenteRoute = AppAgenteRouteImport.update({
   path: '/agente',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAssistenteIndexRoute = AppAssistenteIndexRouteImport.update({
+  id: '/assistente/',
+  path: '/assistente/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAssistenteThreadIdRoute = AppAssistenteThreadIdRouteImport.update({
+  id: '/assistente/$threadId',
+  path: '/assistente/$threadId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comparador': typeof AppComparadorRoute
@@ -159,10 +178,13 @@ export interface FileRoutesByFullPath {
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
+  '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
+  '/app/assistente/': typeof AppAssistenteIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comparador': typeof AppComparadorRoute
@@ -182,11 +204,14 @@ export interface FileRoutesByTo {
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
+  '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
+  '/app/assistente': typeof AppAssistenteIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
   '/app/cartoes': typeof AppCartoesRoute
   '/app/comparador': typeof AppComparadorRoute
@@ -206,12 +231,15 @@ export interface FileRoutesById {
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
+  '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
+  '/app/assistente/': typeof AppAssistenteIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/app'
+    | '/api/chat'
     | '/app/agente'
     | '/app/cartoes'
     | '/app/comparador'
@@ -231,10 +259,13 @@ export interface FileRouteTypes {
     | '/app/retrospectiva'
     | '/app/scanner'
     | '/app/transacoes'
+    | '/app/assistente/$threadId'
+    | '/app/assistente/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/app'
+    | '/api/chat'
     | '/app/agente'
     | '/app/cartoes'
     | '/app/comparador'
@@ -254,10 +285,13 @@ export interface FileRouteTypes {
     | '/app/retrospectiva'
     | '/app/scanner'
     | '/app/transacoes'
+    | '/app/assistente/$threadId'
+    | '/app/assistente'
   id:
     | '__root__'
     | '/'
     | '/app'
+    | '/api/chat'
     | '/app/agente'
     | '/app/cartoes'
     | '/app/comparador'
@@ -277,11 +311,14 @@ export interface FileRouteTypes {
     | '/app/retrospectiva'
     | '/app/scanner'
     | '/app/transacoes'
+    | '/app/assistente/$threadId'
+    | '/app/assistente/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  ApiChatRoute: typeof ApiChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -433,6 +470,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAgenteRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/assistente/': {
+      id: '/app/assistente/'
+      path: '/assistente'
+      fullPath: '/app/assistente/'
+      preLoaderRoute: typeof AppAssistenteIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/assistente/$threadId': {
+      id: '/app/assistente/$threadId'
+      path: '/assistente/$threadId'
+      fullPath: '/app/assistente/$threadId'
+      preLoaderRoute: typeof AppAssistenteThreadIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -456,6 +514,8 @@ interface AppRouteChildren {
   AppRetrospectivaRoute: typeof AppRetrospectivaRoute
   AppScannerRoute: typeof AppScannerRoute
   AppTransacoesRoute: typeof AppTransacoesRoute
+  AppAssistenteThreadIdRoute: typeof AppAssistenteThreadIdRoute
+  AppAssistenteIndexRoute: typeof AppAssistenteIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -478,6 +538,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppRetrospectivaRoute: AppRetrospectivaRoute,
   AppScannerRoute: AppScannerRoute,
   AppTransacoesRoute: AppTransacoesRoute,
+  AppAssistenteThreadIdRoute: AppAssistenteThreadIdRoute,
+  AppAssistenteIndexRoute: AppAssistenteIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -485,6 +547,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  ApiChatRoute: ApiChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
