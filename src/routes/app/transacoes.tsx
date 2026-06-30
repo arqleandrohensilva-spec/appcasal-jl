@@ -14,6 +14,7 @@ import { useAppContext } from '@/lib/context';
 import { toast } from 'sonner';
 import { AlertCircle, Trash2, Receipt, Pencil, Search, Download, Upload, X } from 'lucide-react';
 import { downloadCSV, transactionsToCSV, parseCSV, dedupeAgainstExisting, type ParsedRow } from '@/lib/csv';
+import { nextPayday, toISODate } from '@/lib/payday';
 
 export const Route = createFileRoute('/app/transacoes')({
   component: Transacoes,
@@ -93,11 +94,14 @@ function Transacoes() {
         toast.error('Informe os dois valores do salário.');
         return;
       }
-      const dia = Math.max(1, Math.min(parseInt(salaryFixedDay) || 1, 28));
-      const hoje = new Date();
-      const fixedDate = new Date(hoje.getFullYear(), hoje.getMonth(), dia);
-      if (fixedDate < hoje) fixedDate.setMonth(fixedDate.getMonth() + 1);
-      const fixedISO = fixedDate.toISOString().slice(0, 10);
+      const diaRaw = parseInt(salaryFixedDay) || 1;
+      if (diaRaw < 1 || diaRaw > 31) {
+        toast.error('Dia do mês deve estar entre 1 e 31.');
+        return;
+      }
+      const dia = Math.max(1, Math.min(diaRaw, 31));
+      const payDate = nextPayday(dia, new Date());
+      const fixedISO = toISODate(payDate);
 
       addTransaction({
         description: `${description} (dia ${dia})`,
@@ -258,14 +262,30 @@ function Transacoes() {
                     <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2">1) Pagamento fixo do mês</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-xs">Dia do mês</Label>
-                        <Input type="number" min={1} max={28} value={salaryFixedDay} onChange={e => setSalaryFixedDay(e.target.value)} />
+                        <Label className="text-xs">Dia do mês (1-31)</Label>
+                        <Input type="number" min={1} max={31} value={salaryFixedDay} onChange={e => setSalaryFixedDay(e.target.value)} />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Valor (R$)</Label>
                         <Input type="number" step="0.01" value={salaryFixedAmount} onChange={e => setSalaryFixedAmount(e.target.value)} />
                       </div>
                     </div>
+                    {(() => {
+                      const d = parseInt(salaryFixedDay) || 0;
+                      if (d < 1 || d > 31) return null;
+                      const ajustada = nextPayday(d, new Date());
+                      const original = new Date(ajustada.getFullYear(), ajustada.getMonth(), Math.min(d, new Date(ajustada.getFullYear(), ajustada.getMonth() + 1, 0).getDate()));
+                      const foiAntecipada = ajustada.getDate() !== original.getDate() || ajustada.getMonth() !== original.getMonth();
+                      const lastDay = new Date(ajustada.getFullYear(), ajustada.getMonth() + 1, 0).getDate();
+                      const clamped = d > lastDay;
+                      return (
+                        <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-1">
+                          Próximo pagamento: <strong>{ajustada.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}</strong>
+                          {clamped && ' (mês não tem dia ' + d + ' → usa o último)'}
+                          {!clamped && foiAntecipada && ' (antecipado: caía em fim de semana/feriado)'}
+                        </p>
+                      );
+                    })()}
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2">2) Toda quinta-feira</p>
