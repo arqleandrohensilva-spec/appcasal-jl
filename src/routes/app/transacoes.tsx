@@ -41,6 +41,18 @@ function Transacoes() {
   const [installments, setInstallments] = useState('2');
   const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>('none');
 
+  // Modo salário (2x no mês: dia fixo + toda quinta útil)
+  const [salaryMode, setSalaryMode] = useState(false);
+  const [salaryFixedDay, setSalaryFixedDay] = useState('5');
+  const [salaryFixedAmount, setSalaryFixedAmount] = useState('');
+  const [salaryThursdayDate, setSalaryThursdayDate] = useState(() => {
+    const d = new Date();
+    const diff = (4 - d.getDay() + 7) % 7 || 7;
+    d.setDate(d.getDate() + diff);
+    return d.toISOString().slice(0, 10);
+  });
+  const [salaryThursdayAmount, setSalaryThursdayAmount] = useState('');
+
   // Filtros
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -53,17 +65,19 @@ function Transacoes() {
 
   const isCardSelected = paymentId.startsWith('card:');
   const canRecur = !isInstallment;
+  const isSalary = type === 'receita' && salaryMode;
 
   const reset = () => {
     setDescription(''); setAmount(''); setCategory('');
     setPaymentId(''); setIsInstallment(false); setInstallments('2');
     setRecurrence('none');
     setDate(new Date().toISOString().slice(0, 10));
+    setSalaryMode(false); setSalaryFixedAmount(''); setSalaryThursdayAmount('');
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description || !amount || !category || !paymentId) {
+    if (!description || !category || !paymentId) {
       toast.error('Preencha todos os campos obrigatórios.');
       return;
     }
@@ -72,6 +86,44 @@ function Transacoes() {
       ? cards.find(c => c.id === id)?.name || 'Cartão'
       : accounts.find(a => a.id === id)?.name || 'Conta';
 
+    if (isSalary) {
+      const v1 = parseFloat(salaryFixedAmount) || 0;
+      const v2 = parseFloat(salaryThursdayAmount) || 0;
+      if (v1 <= 0 || v2 <= 0) {
+        toast.error('Informe os dois valores do salário.');
+        return;
+      }
+      const dia = Math.max(1, Math.min(parseInt(salaryFixedDay) || 1, 28));
+      const hoje = new Date();
+      const fixedDate = new Date(hoje.getFullYear(), hoje.getMonth(), dia);
+      if (fixedDate < hoje) fixedDate.setMonth(fixedDate.getMonth() + 1);
+      const fixedISO = fixedDate.toISOString().slice(0, 10);
+
+      addTransaction({
+        description: `${description} (dia ${dia})`,
+        amount: v1, date: fixedISO, category, paymentMethod: method,
+        cardId: kind === 'card' ? id : undefined,
+        accountId: kind === 'account' ? id : undefined,
+        installments: 1, type: 'receita', owner,
+        recurrence: 'monthly',
+      });
+      addTransaction({
+        description: `${description} (quinta)`,
+        amount: v2, date: salaryThursdayDate, category, paymentMethod: method,
+        cardId: kind === 'card' ? id : undefined,
+        accountId: kind === 'account' ? id : undefined,
+        installments: 1, type: 'receita', owner,
+        recurrence: 'weekly',
+      });
+      toast.success('Salário cadastrado: dia fixo + toda quinta-feira!');
+      reset();
+      return;
+    }
+
+    if (!amount) {
+      toast.error('Informe o valor.');
+      return;
+    }
     const count = addTransaction({
       description, amount: valorNum, date, category, paymentMethod: method,
       cardId: kind === 'card' ? id : undefined,
@@ -137,21 +189,33 @@ function Transacoes() {
                   onClick={() => setType('receita')}>Receita</Button>
               </div>
 
+              {type === 'receita' && (
+                <div className="flex items-center justify-between p-3 border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-lg">
+                  <div>
+                    <Label className="text-sm">É salário (2x no mês)</Label>
+                    <p className="text-[11px] text-muted-foreground">Dia fixo do mês + toda quinta-feira</p>
+                  </div>
+                  <Switch checked={salaryMode} onCheckedChange={setSalaryMode} />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Descrição *</Label>
-                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Supermercado, Salário" required />
+                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder={isSalary ? 'Ex: Salário Empresa X' : 'Ex: Supermercado, Salário'} required />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Valor total (R$) *</Label>
-                  <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+              {!isSalary && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Valor total (R$) *</Label>
+                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data *</Label>
+                    <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
-                </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -164,7 +228,7 @@ function Transacoes() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Pago com *</Label>
+                  <Label>{isSalary ? 'Conta de recebimento *' : 'Pago com *'}</Label>
                   <Select value={paymentId} onValueChange={setPaymentId}>
                     <SelectTrigger><SelectValue placeholder="Cartão ou conta" /></SelectTrigger>
                     <SelectContent>
@@ -188,7 +252,41 @@ function Transacoes() {
                 </div>
               </div>
 
-              {isCardSelected && (
+              {isSalary && (
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg space-y-4 animate-in slide-in-from-top-2">
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2">1) Pagamento fixo do mês</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Dia do mês</Label>
+                        <Input type="number" min={1} max={28} value={salaryFixedDay} onChange={e => setSalaryFixedDay(e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor (R$)</Label>
+                        <Input type="number" step="0.01" value={salaryFixedAmount} onChange={e => setSalaryFixedAmount(e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2">2) Toda quinta-feira</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Próxima quinta</Label>
+                        <Input type="date" value={salaryThursdayDate} onChange={e => setSalaryThursdayDate(e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor (R$)</Label>
+                        <Input type="number" step="0.01" value={salaryThursdayAmount} onChange={e => setSalaryThursdayAmount(e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                    ✓ Serão criadas 2 receitas recorrentes: uma mensal no dia escolhido e outra semanal toda quinta-feira.
+                  </p>
+                </div>
+              )}
+
+              {!isSalary && isCardSelected && (
                 <div className="p-4 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-lg space-y-3 animate-in slide-in-from-top-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">Compra parcelada?</Label>
@@ -220,7 +318,7 @@ function Transacoes() {
                   )}
                 </div>
               )}
-              {canRecur && (
+              {!isSalary && canRecur && (
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg space-y-2">
                   <Label className="text-sm">Repete automaticamente?</Label>
                   <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
@@ -240,7 +338,7 @@ function Transacoes() {
               )}
 
               <Button type="submit" className="w-full">
-                {isInstallment && parcelasNum > 1 ? `Lançar ${parcelasNum} parcelas` : 'Salvar transação'}
+                {isSalary ? 'Cadastrar salário (2 recorrências)' : (isInstallment && parcelasNum > 1 ? `Lançar ${parcelasNum} parcelas` : 'Salvar transação')}
               </Button>
             </form>
           </CardContent>
