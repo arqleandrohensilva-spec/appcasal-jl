@@ -189,21 +189,33 @@ function Transacoes() {
                   onClick={() => setType('receita')}>Receita</Button>
               </div>
 
+              {type === 'receita' && (
+                <div className="flex items-center justify-between p-3 border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-lg">
+                  <div>
+                    <Label className="text-sm">É salário (2x no mês)</Label>
+                    <p className="text-[11px] text-muted-foreground">Dia fixo do mês + toda quinta-feira</p>
+                  </div>
+                  <Switch checked={salaryMode} onCheckedChange={setSalaryMode} />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Descrição *</Label>
-                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Supermercado, Salário" required />
+                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder={isSalary ? 'Ex: Salário Empresa X' : 'Ex: Supermercado, Salário'} required />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Valor total (R$) *</Label>
-                  <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+              {!isSalary && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Valor total (R$) *</Label>
+                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data *</Label>
+                    <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
-                </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -216,7 +228,7 @@ function Transacoes() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Pago com *</Label>
+                  <Label>{isSalary ? 'Conta de recebimento *' : 'Pago com *'}</Label>
                   <Select value={paymentId} onValueChange={setPaymentId}>
                     <SelectTrigger><SelectValue placeholder="Cartão ou conta" /></SelectTrigger>
                     <SelectContent>
@@ -240,7 +252,41 @@ function Transacoes() {
                 </div>
               </div>
 
-              {isCardSelected && (
+              {isSalary && (
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg space-y-4 animate-in slide-in-from-top-2">
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2">1) Pagamento fixo do mês</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Dia do mês</Label>
+                        <Input type="number" min={1} max={28} value={salaryFixedDay} onChange={e => setSalaryFixedDay(e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor (R$)</Label>
+                        <Input type="number" step="0.01" value={salaryFixedAmount} onChange={e => setSalaryFixedAmount(e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2">2) Toda quinta-feira</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Próxima quinta</Label>
+                        <Input type="date" value={salaryThursdayDate} onChange={e => setSalaryThursdayDate(e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor (R$)</Label>
+                        <Input type="number" step="0.01" value={salaryThursdayAmount} onChange={e => setSalaryThursdayAmount(e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                    ✓ Serão criadas 2 receitas recorrentes: uma mensal no dia escolhido e outra semanal toda quinta-feira.
+                  </p>
+                </div>
+              )}
+
+              {!isSalary && isCardSelected && (
                 <div className="p-4 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-lg space-y-3 animate-in slide-in-from-top-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">Compra parcelada?</Label>
@@ -272,7 +318,7 @@ function Transacoes() {
                   )}
                 </div>
               )}
-              {canRecur && (
+              {!isSalary && canRecur && (
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg space-y-2">
                   <Label className="text-sm">Repete automaticamente?</Label>
                   <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
@@ -292,7 +338,7 @@ function Transacoes() {
               )}
 
               <Button type="submit" className="w-full">
-                {isInstallment && parcelasNum > 1 ? `Lançar ${parcelasNum} parcelas` : 'Salvar transação'}
+                {isSalary ? 'Cadastrar salário (2 recorrências)' : (isInstallment && parcelasNum > 1 ? `Lançar ${parcelasNum} parcelas` : 'Salvar transação')}
               </Button>
             </form>
           </CardContent>
