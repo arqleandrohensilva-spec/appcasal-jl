@@ -93,11 +93,14 @@ function Transacoes() {
         toast.error('Informe os dois valores do salário.');
         return;
       }
-      const dia = Math.max(1, Math.min(parseInt(salaryFixedDay) || 1, 28));
-      const hoje = new Date();
-      const fixedDate = new Date(hoje.getFullYear(), hoje.getMonth(), dia);
-      if (fixedDate < hoje) fixedDate.setMonth(fixedDate.getMonth() + 1);
-      const fixedISO = fixedDate.toISOString().slice(0, 10);
+      const diaRaw = parseInt(salaryFixedDay) || 1;
+      if (diaRaw < 1 || diaRaw > 31) {
+        toast.error('Dia do mês deve estar entre 1 e 31.');
+        return;
+      }
+      const dia = Math.max(1, Math.min(diaRaw, 31));
+      const payDate = nextPayday(dia, new Date());
+      const fixedISO = toISODate(payDate);
 
       addTransaction({
         description: `${description} (dia ${dia})`,
