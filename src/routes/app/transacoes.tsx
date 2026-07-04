@@ -679,3 +679,338 @@ function ImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     </>
   );
 }
+
+// ============ IMPORTAR PDF (extrato / fatura) ============
+interface PdfRow extends StatementEntry {
+  _id: string;
+  _import: boolean;
+  _duplicate: boolean;
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = () => rej(r.error);
+    r.readAsDataURL(file);
+  });
+}
+
+function addMonthsISO(iso: string, months: number) {
+  const d = new Date(iso);
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
+  const { cards, accounts, transactions, addTransaction } = useData();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const parseFn = useServerFn(parseBankStatement);
+
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [statement, setStatement] = useState<ParsedStatement | null>(null);
+  const [rows, setRows] = useState<PdfRow[]>([]);
+  const [destination, setDestination] = useState<string>('');
+
+  const myCards = cards.filter(c => c.owner === owner);
+  const myAccounts = accounts.filter(a => a.owner === owner);
+
+  const isCard = destination.startsWith('card:');
+  const isAccount = destination.startsWith('account:');
+
+  const onFile = async (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+      toast.error('Envie um PDF original do banco.');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('PDF acima de 15MB. Envie o extrato de um mês por vez.');
+      return;
+    }
+    setLoading(true);
+    setOpen(true);
+    setStatement(null);
+    setRows([]);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      const result = await parseFn({ data: { pdfDataUrl: dataUrl, filename: file.name } });
+      setStatement(result);
+
+      // Dedup contra existentes (mesmo owner)
+      const existingKeys = new Set(
+        transactions
+          .filter(t => t.owner === owner)
+          .map(t => `${t.date}::${Math.abs(t.amount).toFixed(2)}::${t.description.toLowerCase().slice(0, 20)}`),
+      );
+
+      const parsed: PdfRow[] = (result.entries ?? []).map((e, i) => {
+        const key = `${e.date}::${Math.abs(e.amount).toFixed(2)}::${e.description.toLowerCase().slice(0, 20)}`;
+        const dup = existingKeys.has(key);
+        return { ...e, _id: `${i}`, _import: !dup, _duplicate: dup };
+      });
+      setRows(parsed);
+
+      // Sugere destino automaticamente
+      if (result.statementType === 'card' && myCards.length > 0) {
+        setDestination(`card:${myCards[0].id}`);
+      } else if (result.statementType === 'account' && myAccounts.length > 0) {
+        setDestination(`account:${myAccounts[0].id}`);
+      } else if (myCards.length > 0) {
+        setDestination(`card:${myCards[0].id}`);
+      } else if (myAccounts.length > 0) {
+        setDestination(`account:${myAccounts[0].id}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Não foi possível ler o PDF. Envie o extrato original do banco.');
+      setOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateRow = (id: string, patch: Partial<PdfRow>) => {
+    setRows(prev => prev.map(r => r._id === id ? { ...r, ...patch } : r));
+  };
+
+  const toImport = rows.filter(r => r._import);
+  const totalImport = toImport.reduce((s, r) => s + (r.type === 'despesa' ? r.amount : 0), 0);
+
+  const confirm = () => {
+    if (!destination) { toast.error('Escolha um cartão ou conta de destino.'); return; }
+    const [kind, id] = destination.split(':');
+    const card = kind === 'card' ? cards.find(c => c.id === id) : undefined;
+    const account = kind === 'account' ? accounts.find(a => a.id === id) : undefined;
+    const method = card?.name || account?.name || '—';
+
+    let count = 0;
+    let groups = 0;
+
+    for (const r of toImport) {
+      const isParcelado = r.installmentTotal && r.installmentTotal > 1 && r.installmentCurrent && r.installmentCurrent >= 1;
+      if (isParcelado) {
+        const total = r.installmentTotal!;
+        const current = r.installmentCurrent!;
+        // reconstrói o parcelamento a partir da data desta parcela
+        const startDate = addMonthsISO(r.date, -(current - 1));
+        addTransaction({
+          description: r.description,
+          amount: r.amount * total,       // amount total; addTransaction divide por N
+          date: startDate,
+          category: r.category || 'Outros',
+          paymentMethod: method,
+          cardId: card?.id,
+          accountId: account?.id,
+          installments: total,
+          type: r.type,
+          owner,
+        });
+        count += total;
+        groups += 1;
+      } else {
+        addTransaction({
+          description: r.description,
+          amount: r.amount,
+          date: r.date,
+          category: r.category || 'Outros',
+          paymentMethod: method,
+          cardId: card?.id,
+          accountId: account?.id,
+          type: r.type,
+          owner,
+        });
+        count += 1;
+      }
+    }
+    toast.success(
+      `${toImport.length} lançamentos importados${groups > 0 ? ` (${groups} parcelamentos reconstruídos, ${count} parcelas no total)` : ''}.`,
+    );
+    setOpen(false);
+    setStatement(null);
+    setRows([]);
+  };
+
+  return (
+    <>
+      <input
+        ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.currentTarget.value = ''; }}
+      />
+      <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
+        <FileText className="h-4 w-4" /> Importar PDF
+      </Button>
+
+      <Dialog open={open} onOpenChange={(o) => { if (!loading) setOpen(o); }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Importar extrato / fatura em PDF
+            </DialogTitle>
+            <DialogDescription>
+              A IA lê o PDF, identifica cada lançamento, categoriza e detecta parcelamentos automaticamente. Revise antes de salvar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {loading && (
+            <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Lendo o PDF e extraindo transações…</p>
+              <p className="text-xs text-muted-foreground">Pode levar 20-40 segundos em faturas longas.</p>
+            </div>
+          )}
+
+          {!loading && statement && (
+            <>
+              <div className="grid md:grid-cols-3 gap-3">
+                <div className="p-3 rounded-lg border border-border bg-muted/30">
+                  <p className="text-[10px] uppercase text-muted-foreground">Tipo detectado</p>
+                  <p className="font-semibold text-sm flex items-center gap-1.5 mt-0.5">
+                    {statement.statementType === 'card' ? (
+                      <><CardIcon className="h-3.5 w-3.5" /> Fatura de cartão</>
+                    ) : statement.statementType === 'account' ? (
+                      <><Landmark className="h-3.5 w-3.5" /> Extrato de conta</>
+                    ) : (
+                      <>Desconhecido</>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{statement.bank}</p>
+                </div>
+                <div className="p-3 rounded-lg border border-border bg-muted/30">
+                  <p className="text-[10px] uppercase text-muted-foreground">Período</p>
+                  <p className="font-semibold text-sm mt-0.5">
+                    {statement.periodStart || '—'} → {statement.periodEnd || '—'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {rows.length} lançamentos · {rows.filter(r => r._duplicate).length} duplicatas
+                  </p>
+                </div>
+                <div className="md:col-span-1 space-y-1">
+                  <Label className="text-xs">Lançar em *</Label>
+                  <Select value={destination} onValueChange={setDestination}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Cartão ou conta" /></SelectTrigger>
+                    <SelectContent>
+                      {myCards.length > 0 && (
+                        <>
+                          <div className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">Cartões</div>
+                          {myCards.map(c => <SelectItem key={c.id} value={`card:${c.id}`}>💳 {c.name}</SelectItem>)}
+                        </>
+                      )}
+                      {myAccounts.length > 0 && (
+                        <>
+                          <div className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">Contas</div>
+                          {myAccounts.map(a => <SelectItem key={a.id} value={`account:${a.id}`}>🏦 {a.name}</SelectItem>)}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {statement.statementType === 'card' && !isCard && (
+                    <p className="text-[10px] text-orange-600">Detectamos fatura — o ideal é lançar em um cartão.</p>
+                  )}
+                  {statement.statementType === 'account' && !isAccount && (
+                    <p className="text-[10px] text-orange-600">Detectamos extrato de conta — o ideal é lançar em uma conta.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <Button size="sm" variant="outline" className="h-7"
+                  onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: !r._duplicate })))}>
+                  Selecionar não-duplicadas
+                </Button>
+                <Button size="sm" variant="outline" className="h-7"
+                  onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: true })))}>
+                  Selecionar todas
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7"
+                  onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: false })))}>
+                  Nenhuma
+                </Button>
+              </div>
+
+              <div className="flex-1 min-h-0 overflow-y-auto border border-border rounded-lg">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted sticky top-0 z-10">
+                    <tr>
+                      <th className="p-2 w-8"></th>
+                      <th className="p-2 text-left w-24">Data</th>
+                      <th className="p-2 text-left">Descrição</th>
+                      <th className="p-2 text-left w-36">Categoria</th>
+                      <th className="p-2 text-left w-20">Parcela</th>
+                      <th className="p-2 text-right w-24">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(r => (
+                      <tr key={r._id} className={cn(
+                        'border-t border-border',
+                        r._duplicate && 'bg-amber-50 dark:bg-amber-950/20',
+                        !r._import && 'opacity-40',
+                      )}>
+                        <td className="p-1.5 text-center">
+                          <input
+                            type="checkbox"
+                            checked={r._import}
+                            onChange={e => updateRow(r._id, { _import: e.target.checked })}
+                            className="h-3.5 w-3.5"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <Input type="date" className="h-7 text-xs px-1" value={r.date}
+                            onChange={e => updateRow(r._id, { date: e.target.value })} />
+                        </td>
+                        <td className="p-1.5">
+                          <Input className="h-7 text-xs px-1" value={r.description}
+                            onChange={e => updateRow(r._id, { description: e.target.value })} />
+                          {r._duplicate && (
+                            <span className="text-[9px] text-amber-700 dark:text-amber-400">⚠ já existe</span>
+                          )}
+                        </td>
+                        <td className="p-1.5">
+                          <Select value={r.category} onValueChange={v => updateRow(r._id, { category: v })}>
+                            <SelectTrigger className="h-7 text-xs px-1"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="p-1.5">
+                          {r.installmentTotal && r.installmentTotal > 1 ? (
+                            <Badge variant="outline" className="text-[9px] h-5 px-1.5">
+                              {r.installmentCurrent}/{r.installmentTotal}
+                            </Badge>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">à vista</span>
+                          )}
+                        </td>
+                        <td className={cn(
+                          'p-1.5 text-right font-semibold tabular-nums',
+                          r.type === 'despesa' ? 'text-rose-600' : 'text-emerald-600',
+                        )}>
+                          {r.type === 'despesa' ? '-' : '+'}{formatCurrency(r.amount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-2">
+                <span className="flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> {toImport.length} selecionados</span>
+                <span>Total despesas selecionadas: <strong className="text-rose-600">{formatCurrency(totalImport)}</strong></span>
+              </div>
+            </>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
+            <Button onClick={confirm} disabled={loading || !statement || toImport.length === 0 || !destination}>
+              Importar {toImport.length}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
