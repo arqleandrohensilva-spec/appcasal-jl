@@ -18,6 +18,8 @@ import { nextPayday, toISODate } from '@/lib/payday';
 import { useServerFn } from '@tanstack/react-start';
 import { parseBankStatement, type StatementEntry, type ParsedStatement } from '@/lib/pdf-import.functions';
 
+import { cn } from '@/lib/utils';
+
 export const Route = createFileRoute('/app/transacoes')({
   component: Transacoes,
 });
