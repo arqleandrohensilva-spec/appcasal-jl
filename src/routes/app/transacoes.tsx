@@ -12,9 +12,11 @@ import { CATEGORIES, formatCurrency, formatDate } from '@/lib/mockData';
 import { useData, type UserTransaction } from '@/lib/store';
 import { useAppContext } from '@/lib/context';
 import { toast } from 'sonner';
-import { AlertCircle, Trash2, Receipt, Pencil, Search, Download, Upload, X } from 'lucide-react';
+import { AlertCircle, Trash2, Receipt, Pencil, Search, Download, Upload, X, FileText, Loader2, Sparkles, CheckCircle2, CreditCard as CardIcon, Landmark } from 'lucide-react';
 import { downloadCSV, transactionsToCSV, parseCSV, dedupeAgainstExisting, type ParsedRow } from '@/lib/csv';
 import { nextPayday, toISODate } from '@/lib/payday';
+import { useServerFn } from '@tanstack/react-start';
+import { parseBankStatement, type StatementEntry, type ParsedStatement } from '@/lib/pdf-import.functions';
 
 export const Route = createFileRoute('/app/transacoes')({
   component: Transacoes,
@@ -171,7 +173,8 @@ function Transacoes() {
           <h1 className="text-2xl font-bold">Transações</h1>
           <p className="text-muted-foreground">Lance receitas e despesas — parcele em até 60x se for no cartão</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <PdfImportButton owner={owner} />
           <ImportButton owner={owner} />
           <Button variant="outline" className="gap-2" onClick={handleExport}>
             <Download className="h-4 w-4" /> Exportar CSV
