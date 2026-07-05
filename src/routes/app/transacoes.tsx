@@ -817,9 +817,9 @@ function MonthStrip({
                 type="button"
                 onClick={() => onChange(o)}
                 className={cn(
-                  'text-[11px] px-2 h-7 rounded-md font-medium whitespace-nowrap snap-center shrink-0 border',
+                  'relative text-[11px] px-2.5 h-8 rounded-md font-medium whitespace-nowrap snap-center shrink-0 border transition-all',
                   active
-                    ? 'bg-primary text-primary-foreground border-primary'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-md ring-2 ring-primary/40 ring-offset-1 ring-offset-background scale-105 font-semibold'
                     : isToday
                       ? 'border-primary/40 text-primary hover:bg-primary/5'
                       : 'text-muted-foreground border-transparent hover:bg-muted',
@@ -827,6 +827,9 @@ function MonthStrip({
                 aria-current={active ? 'true' : undefined}
               >
                 {labelMonthKey(k)}{isToday ? ' •' : ''}
+                {active && (
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" />
+                )}
               </button>
             );
           })}
