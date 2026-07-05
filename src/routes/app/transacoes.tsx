@@ -817,7 +817,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         if (!firstStatement) firstStatement = result;
         if (result.bank) banks.add(result.bank);
         if (result.statementType && result.statementType !== 'unknown') {
-          if (!statementTypeAcc || statementTypeAcc === 'unknown') statementTypeAcc = result.statementType;
+          if (!statementTypeAcc) statementTypeAcc = result.statementType;
         }
         if (result.periodStart && (!periodStart || result.periodStart < periodStart)) periodStart = result.periodStart;
         if (result.periodEnd && (!periodEnd || result.periodEnd > periodEnd)) periodEnd = result.periodEnd;
