@@ -845,6 +845,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
 
       // Dedup contra existentes + entre os próprios arquivos (mesmo owner)
       const ownerTx = transactions.filter(t => t.owner === owner);
+      // Também consideramos transações do outro cônjuge (fatura compartilhada / cartão do parceiro)
+      const otherTx = transactions.filter(t => t.owner !== owner);
       const seenIntra = new Set<string>();
 
       const parsed: PdfRow[] = allEntries.map((e, i) => {
@@ -860,10 +862,10 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           const startDate = addMonthsISO(e.date, -(current - 1));
           plan = Array.from({ length: total }, (_, k) => {
             const expected = addMonthsISO(startDate, k);
-            const found = ownerTx.find(t =>
+            const found = [...ownerTx, ...otherTx].find(t =>
               Math.abs(Math.abs(t.amount) - amt) < 0.01
-              && descOverlap(t.description, e.description) >= 0.4
-              && daysBetween(t.date, expected) <= 10,
+              && daysBetween(t.date, expected) <= 10
+              && (descOverlap(t.description, e.description) >= 0.4 || daysBetween(t.date, expected) <= 2),
             );
             return {
               index: k + 1,
@@ -877,23 +879,29 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         // --- Dedup para gastos à vista ---
         let match: PdfRow['_duplicateOf'] | undefined;
         if (!isParcelado) {
-          const sameAmount = ownerTx.filter(t => Math.abs(Math.abs(t.amount) - amt) < 0.01);
+          const pool = [...ownerTx, ...otherTx];
+          const sameAmount = pool.filter(t => Math.abs(Math.abs(t.amount) - amt) < 0.01);
           for (const t of sameAmount) {
             const overlap = descOverlap(t.description, e.description);
             const days = daysBetween(t.date, e.date);
-            if (t.date === e.date && overlap >= 0.8) {
+            // 1) Mesmo dia + mesmo valor => duplicata (mesmo sem sobreposição de nome).
+            //    É o caso típico de reimportar a mesma fatura.
+            if (days === 0) {
               match = { description: t.description, date: t.date, amount: t.amount, matchType: 'exata' };
               break;
             }
+            // 2) Nome + valor (até 40 dias)
             if (overlap >= 0.5 && days <= 40) {
               match = { description: t.description, date: t.date, amount: t.amount, matchType: 'nome+valor' };
               break;
             }
-            if (days <= 3 && !match) {
+            // 3) Mesmo valor e datas próximas (até 7 dias) — reimport com pequena diferença de dia
+            if (days <= 7 && !match) {
               match = { description: t.description, date: t.date, amount: t.amount, matchType: 'valor+data' };
             }
           }
         }
+
 
         // Dedup entre arquivos do mesmo lote (mesmo valor + descrição normalizada + data)
         const intraKey = `${e.date}::${amt.toFixed(2)}::${normDesc(e.description).slice(0, 24)}`;
