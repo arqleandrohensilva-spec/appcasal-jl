@@ -93,19 +93,26 @@ Regras:
             {
               type: 'text',
               text: isImage
-                ? 'Extraia todas as transações visíveis neste print em JSON estruturado.'
+                ? 'Este é um print/screenshot direto da tela do banco — é nítido e legível. Extraia TODAS as transações visíveis em JSON estruturado, mesmo que a imagem esteja em resolução de celular. Não recuse por qualidade: se conseguir ler qualquer texto, extraia o que dá para ler.'
                 : 'Extraia o extrato/fatura completo em JSON estruturado. Todas as transações.',
             },
-            {
-              type: 'file',
-              data: data.pdfDataUrl,
-              mediaType: detected,
-              filename,
-            } as never,
+            isImage
+              ? {
+                  type: 'image',
+                  image: data.pdfDataUrl,
+                  mediaType: detected,
+                }
+              : ({
+                  type: 'file',
+                  data: data.pdfDataUrl,
+                  mediaType: detected,
+                  filename,
+                } as never),
           ],
         },
       ],
     });
+
 
     return result.experimental_output as ParsedStatement;
   });
