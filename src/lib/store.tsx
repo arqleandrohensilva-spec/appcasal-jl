@@ -404,7 +404,80 @@ export function DataProvider({ children }: { children: ReactNode }) {
       type: next.type, owner: next.owner, pessoa: next.owner,
       recurrence: next.recurrence ?? null, recurrence_end_date: next.recurrenceEndDate ?? null,
     };
+    if (patch.tags !== undefined) dbPatch.tags = next.tags ?? [];
     supabase.from('transactions').update(dbPatch).eq('id', id).then(({ error }) => { if (error) refetchAll(wsId!); });
+  };
+
+  // ============ INVOICE PAYMENT ============
+  const markInvoicePaid: DataContextType['markInvoicePaid'] = (cardId, monthKey, accountId, amount, dateISO) => {
+    if (!guard()) return;
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+    const acc = accounts.find(a => a.id === accountId);
+    // Cria transação de pagamento de fatura na conta
+    const txId = uid();
+    const desc = `Pagamento fatura ${card.name} — ${monthKey}`;
+    const method = acc?.name || 'Conta';
+    const tx: UserTransaction = {
+      id: txId,
+      description: desc,
+      amount: -Math.abs(amount),
+      date: dateISO,
+      category: 'Pagamento de fatura',
+      paymentMethod: method,
+      accountId,
+      type: 'despesa',
+      owner: card.owner,
+      createdAt: new Date().toISOString(),
+      tags: ['fatura', card.name.toLowerCase()],
+    };
+    setTransactions(prev => [tx, ...prev]);
+    supabase.from('transactions').insert({
+      id: txId, workspace_id: wsId!, group_id: null,
+      description: tx.description, amount: tx.amount, date: tx.date,
+      category: tx.category, payment_method: tx.paymentMethod,
+      card_id: null, account_id: accountId,
+      installment_current: null, installment_total: null,
+      type: tx.type, owner: tx.owner, pessoa: tx.owner,
+      recurrence: null, recurrence_end_date: null,
+      tags: tx.tags ?? [],
+    }).then(({ error }) => { if (error) { toast.error('Erro ao registrar pagamento'); refetchAll(wsId!); } });
+
+    // Atualiza saldo da conta se data <= hoje
+    const todayISO = new Date().toISOString().slice(0, 10);
+    if (acc && dateISO <= todayISO) {
+      const newBal = acc.balance - Math.abs(amount);
+      setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, balance: newBal } : a));
+      supabase.from('accounts').update({ balance: newBal }).eq('id', accountId);
+    }
+
+    // Marca paid_invoices no cartão
+    const nextPaid: Record<string, PaidInvoiceInfo> = {
+      ...(card.paidInvoices || {}),
+      [monthKey]: { paidAt: dateISO, accountId, amount: Math.abs(amount), txId },
+    };
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, paidInvoices: nextPaid } : c));
+    supabase.from('cards').update({ paid_invoices: nextPaid }).eq('id', cardId)
+      .then(({ error }) => { if (error) refetchAll(wsId!); });
+    toast.success('Fatura marcada como paga!');
+  };
+
+  const unmarkInvoicePaid: DataContextType['unmarkInvoicePaid'] = (cardId, monthKey) => {
+    if (!guard()) return;
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+    const info = card.paidInvoices?.[monthKey];
+    if (!info) return;
+    // Remove transação vinculada, se houver
+    if (info.txId) {
+      removeTransaction(info.txId);
+    }
+    const nextPaid = { ...(card.paidInvoices || {}) };
+    delete nextPaid[monthKey];
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, paidInvoices: nextPaid } : c));
+    supabase.from('cards').update({ paid_invoices: nextPaid }).eq('id', cardId)
+      .then(({ error }) => { if (error) refetchAll(wsId!); });
+    toast.success('Pagamento estornado.');
   };
 
   const removeTransaction: DataContextType['removeTransaction'] = (id, removeGroup) => {
