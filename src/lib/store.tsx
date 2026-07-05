@@ -144,13 +144,14 @@ function addMonths(iso: string, months: number) {
 }
 
 // ============ Row mappers ============
-type DbCard = { id: string; name: string; card_limit: number | string; closing_day: number; due_day: number; color: string; owner: UserProfile };
+type DbCard = { id: string; name: string; card_limit: number | string; closing_day: number; due_day: number; color: string; owner: UserProfile; paid_invoices: Record<string, PaidInvoiceInfo> | null };
 type DbAccount = { id: string; name: string; type: UserAccount['type']; balance: number | string; owner: UserProfile };
 type DbTransaction = {
   id: string; group_id: string | null; description: string; amount: number | string; date: string;
   category: string; payment_method: string; card_id: string | null; account_id: string | null;
   installment_current: number | null; installment_total: number | null; type: 'receita' | 'despesa';
   owner: UserProfile; recurrence: Recurrence | null; recurrence_end_date: string | null; created_at: string;
+  tags: string[] | null;
 };
 type DbGoal = { id: string; name: string; target: number | string; deadline: string | null; owner: UserProfile; created_at: string };
 type DbContrib = { id: string; goal_id: string; amount: number | string; date: string; owner: UserProfile; note: string | null };
@@ -158,7 +159,7 @@ type DbBudget = { id: string; category: string; monthly_limit: number | string; 
 
 const num = (v: number | string) => typeof v === 'string' ? parseFloat(v) : v;
 
-const mapCard = (r: DbCard): UserCard => ({ id: r.id, name: r.name, limit: num(r.card_limit), closingDay: r.closing_day, dueDay: r.due_day, color: r.color, owner: r.owner });
+const mapCard = (r: DbCard): UserCard => ({ id: r.id, name: r.name, limit: num(r.card_limit), closingDay: r.closing_day, dueDay: r.due_day, color: r.color, owner: r.owner, paidInvoices: r.paid_invoices ?? undefined });
 const mapAccount = (r: DbAccount): UserAccount => ({ id: r.id, name: r.name, type: r.type, balance: num(r.balance), owner: r.owner });
 const mapTx = (r: DbTransaction): UserTransaction => ({
   id: r.id, groupId: r.group_id ?? undefined, description: r.description, amount: num(r.amount),
@@ -167,6 +168,7 @@ const mapTx = (r: DbTransaction): UserTransaction => ({
   installmentInfo: r.installment_current && r.installment_total ? { current: r.installment_current, total: r.installment_total } : undefined,
   type: r.type, owner: r.owner, createdAt: r.created_at,
   recurrence: r.recurrence ?? undefined, recurrenceEndDate: r.recurrence_end_date ?? undefined,
+  tags: r.tags ?? undefined,
 });
 const mapGoal = (r: DbGoal): UserGoal => ({ id: r.id, name: r.name, target: num(r.target), deadline: r.deadline ?? '', owner: r.owner, createdAt: r.created_at });
 const mapContrib = (r: DbContrib): GoalContribution => ({ id: r.id, goalId: r.goal_id, amount: num(r.amount), date: r.date, owner: r.owner, note: r.note ?? undefined });
