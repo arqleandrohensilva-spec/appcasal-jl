@@ -489,7 +489,7 @@ function Transacoes() {
 }
 
 // ============ VISTA POR CARTÃO (fatura mês a mês) ============
-function CardInvoiceView({
+export function CardInvoiceView({
   owner, onUpdate, onRemove,
 }: {
   owner: 'leandro' | 'jonathan';
@@ -666,7 +666,7 @@ function CardInvoiceView({
 }
 
 // ============ VISTA POR CONTA (extrato entradas x saídas) ============
-function AccountLedgerView({
+export function AccountLedgerView({
   owner, onUpdate, onRemove,
 }: {
   owner: 'leandro' | 'jonathan';
