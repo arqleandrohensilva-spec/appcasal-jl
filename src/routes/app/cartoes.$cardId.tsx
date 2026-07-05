@@ -18,8 +18,10 @@ function CardDetail() {
   const { cards, updateTransaction, removeTransaction } = useData();
 
   const card = cards.find(c => c.id === cardId);
-  const owner: 'leandro' | 'jonathan' = card?.owner
-    ?? (activeProfile === 'casal' ? 'leandro' : activeProfile);
+  const cardOwner = card?.owner === 'jonathan' ? 'jonathan' : card?.owner === 'leandro' ? 'leandro' : undefined;
+  const owner: 'leandro' | 'jonathan' = cardOwner
+    ?? (activeProfile === 'jonathan' ? 'jonathan' : 'leandro');
+
 
 
   return (
