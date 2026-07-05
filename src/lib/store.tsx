@@ -585,6 +585,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addCard, updateCard, removeCard,
       addAccount, updateAccount, removeAccount,
       addTransaction, updateTransaction, removeTransaction,
+      markInvoicePaid, unmarkInvoicePaid,
       addGoal, updateGoal, removeGoal, contributeGoal, removeContribution,
       addBudget, updateBudget, removeBudget,
       resetAll,
