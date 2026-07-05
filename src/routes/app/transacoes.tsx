@@ -880,9 +880,15 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           </DialogHeader>
 
           {loading && (
-            <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3">
+            <div className="flex-1 flex flex-col items-center justify-center py-16 gap-4 px-6">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Lendo o PDF e extraindo transações…</p>
+              <div className="w-full max-w-md space-y-2">
+                <Progress value={progress} className="h-2" />
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{status || 'Processando…'}</span>
+                  <span className="tabular-nums">{progress}%</span>
+                </div>
+              </div>
               <p className="text-xs text-muted-foreground">Pode levar 20-40 segundos em faturas longas.</p>
             </div>
           )}
