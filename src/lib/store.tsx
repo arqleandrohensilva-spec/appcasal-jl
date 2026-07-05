@@ -48,6 +48,7 @@ export interface UserTransaction {
   createdAt: string;
   recurrence?: Recurrence;
   recurrenceEndDate?: string;
+  tags?: string[];
 }
 
 export interface UserGoal {
