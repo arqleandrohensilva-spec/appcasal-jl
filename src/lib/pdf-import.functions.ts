@@ -1,7 +1,8 @@
 import { createServerFn } from '@tanstack/react-start';
-import { generateText, Output } from 'ai';
+import { generateText, NoObjectGeneratedError, Output } from 'ai';
 import { z } from 'zod';
 import { createLovableAiGatewayProvider } from './ai-gateway.server';
+
 
 const EntrySchema = z.object({
   date: z.string(),
