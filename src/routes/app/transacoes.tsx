@@ -689,6 +689,32 @@ interface PdfRow extends StatementEntry {
   _id: string;
   _import: boolean;
   _duplicate: boolean;
+  _duplicateOf?: { description: string; date: string; amount: number; matchType: 'exata' | 'nome+valor' | 'valor+data' };
+}
+
+// Normaliza texto para comparação
+function normDesc(s: string) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Sobreposição de palavras significativas (>=3 chars)
+function descOverlap(a: string, b: string): number {
+  const wa = new Set(normDesc(a).split(' ').filter(w => w.length >= 3));
+  const wb = new Set(normDesc(b).split(' ').filter(w => w.length >= 3));
+  if (wa.size === 0 || wb.size === 0) return 0;
+  let hits = 0;
+  wa.forEach(w => { if (wb.has(w)) hits++; });
+  return hits / Math.min(wa.size, wb.size);
+}
+
+function daysBetween(a: string, b: string) {
+  const da = new Date(a).getTime();
+  const db = new Date(b).getTime();
+  return Math.abs(Math.round((da - db) / 86400000));
 }
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -767,19 +793,32 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       setStatus('Organizando transações e detectando parcelamentos…');
       setProgress(95);
 
-      // Dedup contra existentes (mesmo owner)
-      const existingKeys = new Set(
-        transactions
-          .filter(t => t.owner === owner)
-          .map(t => `${t.date}::${Math.abs(t.amount).toFixed(2)}::${t.description.toLowerCase().slice(0, 20)}`),
-      );
+      // Dedup contra existentes (mesmo owner) — casa por nome parcial + valor
+      const ownerTx = transactions.filter(t => t.owner === owner);
 
       const parsed: PdfRow[] = (result.entries ?? []).map((e, i) => {
-        const key = `${e.date}::${Math.abs(e.amount).toFixed(2)}::${e.description.toLowerCase().slice(0, 20)}`;
-        const dup = existingKeys.has(key);
+        const amt = Math.abs(e.amount);
+        // Candidatos com o mesmo valor (tolerância de 1 centavo)
+        const sameAmount = ownerTx.filter(t => Math.abs(Math.abs(t.amount) - amt) < 0.01);
+        let match: PdfRow['_duplicateOf'] | undefined;
+        for (const t of sameAmount) {
+          const overlap = descOverlap(t.description, e.description);
+          const days = daysBetween(t.date, e.date);
+          if (t.date === e.date && overlap >= 0.8) {
+            match = { description: t.description, date: t.date, amount: t.amount, matchType: 'exata' };
+            break;
+          }
+          if (overlap >= 0.5 && days <= 40) {
+            match = { description: t.description, date: t.date, amount: t.amount, matchType: 'nome+valor' };
+            break;
+          }
+          if (days <= 3 && !match) {
+            match = { description: t.description, date: t.date, amount: t.amount, matchType: 'valor+data' };
+          }
+        }
+        const dup = !!match;
         const isTransfer = e.type === 'transferencia';
-        // Transferências e duplicatas ficam desmarcadas por padrão para não poluir os relatórios
-        return { ...e, _id: `${i}`, _import: !dup && !isTransfer, _duplicate: dup };
+        return { ...e, _id: `${i}`, _import: !dup && !isTransfer, _duplicate: dup, _duplicateOf: match };
       });
       setRows(parsed);
 
@@ -1032,8 +1071,13 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                                 ↔ transferência{r.transferReason ? ` — ${r.transferReason}` : ''}
                               </span>
                             )}
-                            {r._duplicate && (
-                              <span className="text-[9px] text-amber-700 dark:text-amber-400">⚠ já existe</span>
+                            {r._duplicate && r._duplicateOf && (
+                              <span
+                                className="text-[9px] px-1 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-medium"
+                                title={`Match ${r._duplicateOf.matchType}`}
+                              >
+                                ⚠ já existe: "{r._duplicateOf.description}" · {formatDate(r._duplicateOf.date)} · {formatCurrency(Math.abs(r._duplicateOf.amount))}
+                              </span>
                             )}
                           </div>
                         </td>
