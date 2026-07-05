@@ -967,10 +967,10 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-2 text-xs flex-wrap">
                 <Button size="sm" variant="outline" className="h-7"
-                  onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: !r._duplicate })))}>
-                  Selecionar não-duplicadas
+                  onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: !r._duplicate && r.type !== 'transferencia' })))}>
+                  Só receitas/despesas reais
                 </Button>
                 <Button size="sm" variant="outline" className="h-7"
                   onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: true })))}>
@@ -980,6 +980,11 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: false })))}>
                   Nenhuma
                 </Button>
+                {transferCount > 0 && (
+                  <span className="text-[10px] text-sky-700 dark:text-sky-400 ml-auto">
+                    ↔ {transferCount} transferência{transferCount > 1 ? 's' : ''} detectada{transferCount > 1 ? 's' : ''} e desmarcada{transferCount > 1 ? 's' : ''} — não entram em receitas/despesas
+                  </span>
+                )}
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto border border-border rounded-lg">
