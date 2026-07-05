@@ -523,10 +523,12 @@ function CardInvoiceView({
   onUpdate: ReturnType<typeof useData>['updateTransaction'];
   onRemove: ReturnType<typeof useData>['removeTransaction'];
 }) {
-  const { cards, transactions } = useData();
+  const { cards, transactions, accounts, markInvoicePaid, unmarkInvoicePaid } = useData();
   const myCards = cards.filter(c => c.owner === owner);
+  const myAccounts = accounts.filter(a => a.owner === owner);
   const [selectedCardId, setSelectedCardId] = useState<string>(myCards[0]?.id || '');
   const [offset, setOffset] = useState(0); // 0 = fatura atual, -1 = anterior, +1 = próxima…
+  const [payOpen, setPayOpen] = useState(false);
 
   const card = myCards.find(c => c.id === selectedCardId);
 
@@ -573,7 +575,10 @@ function CardInvoiceView({
   const closingISO = card ? invoiceClosingDateISO(invoiceKey, card.closingDay) : '';
   const dueISO = card ? invoiceDueDateISO(invoiceKey, card.dueDay) : '';
   const todayISO = new Date().toISOString().slice(0, 10);
-  const status = closingISO > todayISO ? 'aberta' : dueISO >= todayISO ? 'fechada' : 'vencida';
+  const paidInfo = card?.paidInvoices?.[invoiceKey];
+  const status = paidInfo ? 'paga' : closingISO > todayISO ? 'aberta' : dueISO >= todayISO ? 'fechada' : 'vencida';
+  const daysToDue = card ? Math.round((new Date(dueISO).getTime() - new Date(todayISO).getTime()) / 86400000) : 0;
+  const daysToClose = card ? Math.round((new Date(closingISO).getTime() - new Date(todayISO).getTime()) / 86400000) : 0;
 
   return (
     <Card>
