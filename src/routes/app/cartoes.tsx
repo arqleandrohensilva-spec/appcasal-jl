@@ -66,13 +66,21 @@ function Cartoes() {
               const pct = Math.min(100, (billTotal / card.limit) * 100);
 
               return (
-                <Card key={card.id} className="group hover:border-primary/50 hover:shadow-md transition-all">
+                <Card
+                  key={card.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate({ to: '/app/cartoes/$cardId', params: { cardId: card.id } })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate({ to: '/app/cartoes/$cardId', params: { cardId: card.id } });
+                    }
+                  }}
+                  className="group hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                >
                   <CardHeader className="flex flex-row items-start justify-between">
-                    <Link
-                      to="/app/cartoes/$cardId"
-                      params={{ cardId: card.id }}
-                      className="flex-1 space-y-1 cursor-pointer"
-                    >
+                    <div className="flex-1 space-y-1">
                       <CardTitle className="flex items-center gap-2 group-hover:text-primary transition-colors">
                         <span className={`w-3 h-3 rounded-full bg-${card.color}-500`} />
                         {card.name}
@@ -81,33 +89,31 @@ function Cartoes() {
                       <p className="text-xs text-muted-foreground">
                         Fecha dia {card.closingDay} · Vence dia {card.dueDay}
                       </p>
-                    </Link>
-                    <div className="flex gap-1">
+                    </div>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <EditCardButton card={card} onSave={(patch) => { updateCard(card.id, patch); toast.success('Cartão atualizado'); }} />
                       <Button size="icon" variant="ghost" onClick={() => { removeCard(card.id); toast.success('Cartão removido'); }}>
                         <Trash2 className="h-4 w-4 text-rose-500" />
                       </Button>
                     </div>
                   </CardHeader>
-                  <Link to="/app/cartoes/$cardId" params={{ cardId: card.id }} className="block">
-                    <CardContent className="space-y-3">
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>Fatura atual</span>
-                          <span className="font-bold">{formatCurrency(billTotal)}</span>
-                        </div>
-                        <Progress value={pct} />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Limite</span>
-                          <span>{formatCurrency(card.limit)}</span>
-                        </div>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Fatura atual</span>
+                        <span className="font-bold">{formatCurrency(billTotal)}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground pt-2 border-t border-border flex items-center justify-between">
-                        <span>{monthBills.length} lançamento{monthBills.length !== 1 ? 's' : ''} na fatura</span>
-                        <span className="text-primary font-medium">Ver detalhes →</span>
+                      <Progress value={pct} />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Limite</span>
+                        <span>{formatCurrency(card.limit)}</span>
                       </div>
-                    </CardContent>
-                  </Link>
+                    </div>
+                    <div className="text-xs text-muted-foreground pt-2 border-t border-border flex items-center justify-between">
+                      <span>{monthBills.length} lançamento{monthBills.length !== 1 ? 's' : ''} na fatura</span>
+                      <span className="text-primary font-medium">Ver detalhes →</span>
+                    </div>
+                  </CardContent>
                 </Card>
               );
             })}
