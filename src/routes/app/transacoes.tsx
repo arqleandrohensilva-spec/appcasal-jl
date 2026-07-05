@@ -1071,8 +1071,13 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                                 ↔ transferência{r.transferReason ? ` — ${r.transferReason}` : ''}
                               </span>
                             )}
-                            {r._duplicate && (
-                              <span className="text-[9px] text-amber-700 dark:text-amber-400">⚠ já existe</span>
+                            {r._duplicate && r._duplicateOf && (
+                              <span
+                                className="text-[9px] px-1 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-medium"
+                                title={`Match ${r._duplicateOf.matchType}`}
+                              >
+                                ⚠ já existe: "{r._duplicateOf.description}" · {formatDate(r._duplicateOf.date)} · {formatCurrency(Math.abs(r._duplicateOf.amount))}
+                              </span>
                             )}
                           </div>
                         </td>
