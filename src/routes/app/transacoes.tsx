@@ -155,6 +155,7 @@ function Transacoes() {
       accountId: kind === 'account' ? id : undefined,
       installments: parcelasNum, type, owner,
       recurrence: canRecur ? recurrence : 'none',
+      tags: tags.length ? tags : undefined,
     });
     if (count > 1) toast.success(`${count} parcelas lançadas no calendário!`);
     else toast.success('Transação salva!');
