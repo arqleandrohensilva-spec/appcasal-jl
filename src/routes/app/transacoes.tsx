@@ -776,7 +776,9 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       const parsed: PdfRow[] = (result.entries ?? []).map((e, i) => {
         const key = `${e.date}::${Math.abs(e.amount).toFixed(2)}::${e.description.toLowerCase().slice(0, 20)}`;
         const dup = existingKeys.has(key);
-        return { ...e, _id: `${i}`, _import: !dup, _duplicate: dup };
+        const isTransfer = e.type === 'transferencia';
+        // Transferências e duplicatas ficam desmarcadas por padrão para não poluir os relatórios
+        return { ...e, _id: `${i}`, _import: !dup && !isTransfer, _duplicate: dup };
       });
       setRows(parsed);
 
