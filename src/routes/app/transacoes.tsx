@@ -48,6 +48,7 @@ function Transacoes() {
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
   const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>('none');
+  const [tags, setTags] = useState<string[]>([]);
 
   // Modo salário (2x no mês: dia fixo + toda quinta útil)
   const [salaryMode, setSalaryMode] = useState(false);
