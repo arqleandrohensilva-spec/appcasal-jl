@@ -199,14 +199,16 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
           return (
             <div key={group.id} className="pb-1">
               <button
+                type="button"
                 onClick={() => toggle(group.id)}
-                className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 hover:text-gray-600"
+                aria-expanded={open}
+                className="w-full flex items-center justify-between px-2 py-3 md:py-1.5 text-[11px] md:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground active:bg-muted rounded-md touch-manipulation select-none min-h-[44px] md:min-h-0"
               >
                 <span className="flex items-center gap-2">
-                  <group.icon className="h-3 w-3" />
+                  <group.icon className="h-4 w-4 md:h-3 md:w-3" />
                   {group.label}
                 </span>
-                <ChevronDown className={cn('h-3 w-3 transition-transform', open ? '' : '-rotate-90')} />
+                <ChevronDown className={cn('h-5 w-5 md:h-3 md:w-3 transition-transform shrink-0', open ? '' : '-rotate-90')} />
               </button>
               {open && (
                 <div className="space-y-0.5 mt-1">
