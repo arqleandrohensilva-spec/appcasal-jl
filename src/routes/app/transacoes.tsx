@@ -725,14 +725,19 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   const isAccount = destination.startsWith('account:');
 
   const onFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-      toast.error('Envie um PDF original do banco.');
+    const name = file.name.toLowerCase();
+    const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
+    const isImage = file.type.startsWith('image/')
+      || /\.(png|jpe?g|webp|heic|heif)$/i.test(name);
+    if (!isPdf && !isImage) {
+      toast.error('Envie um PDF do banco ou um print (PNG/JPG) da fatura.');
       return;
     }
     if (file.size > 15 * 1024 * 1024) {
-      toast.error('PDF acima de 15MB. Envie o extrato de um mês por vez.');
+      toast.error('Arquivo acima de 15MB. Envie o extrato de um mês por vez ou um print menor.');
       return;
     }
+    const kindLabel = isImage ? 'print' : 'PDF';
     setLoading(true);
     setOpen(true);
     setStatement(null);
@@ -750,12 +755,13 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     try {
       const dataUrl = await fileToDataUrl(file);
       setProgress(p => Math.max(p, 20));
-      setStatus('Enviando PDF para a IA…');
+      setStatus(`Enviando ${kindLabel} para a IA…`);
 
-      // A partir daqui a IA está lendo o PDF
-      setTimeout(() => setStatus('IA lendo o extrato e identificando lançamentos…'), 600);
+      // A partir daqui a IA está lendo o arquivo
+      setTimeout(() => setStatus(`IA lendo o ${kindLabel} e identificando lançamentos…`), 600);
 
-      const result = await parseFn({ data: { pdfDataUrl: dataUrl, filename: file.name } });
+      const mediaType = file.type || (isImage ? 'image/png' : 'application/pdf');
+      const result = await parseFn({ data: { pdfDataUrl: dataUrl, filename: file.name, mediaType } });
       setStatement(result);
       setStatus('Organizando transações e detectando parcelamentos…');
       setProgress(95);
@@ -789,7 +795,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       setStatus(`Pronto! ${parsed.length} lançamentos encontrados.`);
     } catch (err) {
       console.error(err);
-      toast.error('Não foi possível ler o PDF. Envie o extrato original do banco.');
+      toast.error('Não foi possível ler o arquivo. Envie o PDF original do banco ou um print nítido da fatura.');
       setOpen(false);
     } finally {
       clearInterval(tick);
@@ -861,21 +867,23 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   return (
     <>
       <input
-        ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden"
+        ref={fileRef} type="file"
+        accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+        className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.currentTarget.value = ''; }}
       />
       <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
-        <FileText className="h-4 w-4" /> Importar PDF
+        <FileText className="h-4 w-4" /> Importar PDF ou print
       </Button>
 
       <Dialog open={open} onOpenChange={(o) => { if (!loading) setOpen(o); }}>
         <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" /> Importar extrato / fatura em PDF
+              <Sparkles className="h-4 w-4 text-primary" /> Importar extrato / fatura
             </DialogTitle>
             <DialogDescription>
-              A IA lê o PDF, identifica cada lançamento, categoriza e detecta parcelamentos automaticamente. Revise antes de salvar.
+              Envie o PDF do banco ou um print da fatura. A IA identifica cada lançamento, categoriza e detecta parcelamentos. Revise antes de salvar.
             </DialogDescription>
           </DialogHeader>
 
