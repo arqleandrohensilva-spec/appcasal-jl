@@ -87,7 +87,15 @@ function Transacoes() {
     setRecurrence('none');
     setDate(new Date().toISOString().slice(0, 10));
     setSalaryMode(false); setSalaryFixedAmount(''); setSalaryThursdayAmount('');
+    setTags([]);
   };
+
+  // Todas as tags já existentes (para autocomplete e filtro)
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of myTx) for (const g of (t.tags || [])) s.add(g);
+    return Array.from(s).sort();
+  }, [myTx]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
