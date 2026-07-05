@@ -259,8 +259,9 @@ function ProjecaoPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="max-h-[500px] overflow-y-auto">
-            <table className="w-full text-sm">
+          <div className="max-h-[500px] overflow-y-auto overflow-x-auto">
+            <table className="w-full min-w-[520px] text-sm">
+
               <thead className="sticky top-0 bg-white border-b">
                 <tr className="text-left text-xs text-muted-foreground uppercase">
                   <th className="p-3 font-semibold w-8"></th>
