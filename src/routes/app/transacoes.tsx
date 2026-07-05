@@ -62,8 +62,8 @@ function Transacoes() {
   });
   const [salaryThursdayAmount, setSalaryThursdayAmount] = useState('');
 
-  // Modo de visualização do painel direito: Cartões (fatura) / Contas (extrato) / Tudo (histórico)
-  const [viewMode, setViewMode] = useState<'cards' | 'accounts' | 'all'>('cards');
+  // Painel direito agora mostra apenas o histórico "Tudo".
+  // As visões por cartão e por conta foram movidas para /app/cartoes e /app/contas.
 
   // Filtros (usados na aba "Tudo")
   const [search, setSearch] = useState('');
