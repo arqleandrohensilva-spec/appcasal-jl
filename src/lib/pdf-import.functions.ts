@@ -7,10 +7,11 @@ const EntrySchema = z.object({
   date: z.string(),
   description: z.string(),
   amount: z.number(),
-  type: z.enum(['despesa', 'receita']),
+  type: z.enum(['despesa', 'receita', 'transferencia']),
   category: z.string(),
   installmentCurrent: z.number().nullable(),
   installmentTotal: z.number().nullable(),
+  transferReason: z.string().nullable(), // por que foi marcado como transferência (ex: "PIX entre contas próprias", "Pagamento de fatura")
 });
 
 const StatementSchema = z.object({
