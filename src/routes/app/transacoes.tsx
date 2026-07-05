@@ -793,19 +793,32 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       setStatus('Organizando transações e detectando parcelamentos…');
       setProgress(95);
 
-      // Dedup contra existentes (mesmo owner)
-      const existingKeys = new Set(
-        transactions
-          .filter(t => t.owner === owner)
-          .map(t => `${t.date}::${Math.abs(t.amount).toFixed(2)}::${t.description.toLowerCase().slice(0, 20)}`),
-      );
+      // Dedup contra existentes (mesmo owner) — casa por nome parcial + valor
+      const ownerTx = transactions.filter(t => t.owner === owner);
 
       const parsed: PdfRow[] = (result.entries ?? []).map((e, i) => {
-        const key = `${e.date}::${Math.abs(e.amount).toFixed(2)}::${e.description.toLowerCase().slice(0, 20)}`;
-        const dup = existingKeys.has(key);
+        const amt = Math.abs(e.amount);
+        // Candidatos com o mesmo valor (tolerância de 1 centavo)
+        const sameAmount = ownerTx.filter(t => Math.abs(Math.abs(t.amount) - amt) < 0.01);
+        let match: PdfRow['_duplicateOf'] | undefined;
+        for (const t of sameAmount) {
+          const overlap = descOverlap(t.description, e.description);
+          const days = daysBetween(t.date, e.date);
+          if (t.date === e.date && overlap >= 0.8) {
+            match = { description: t.description, date: t.date, amount: t.amount, matchType: 'exata' };
+            break;
+          }
+          if (overlap >= 0.5 && days <= 40) {
+            match = { description: t.description, date: t.date, amount: t.amount, matchType: 'nome+valor' };
+            break;
+          }
+          if (days <= 3 && !match) {
+            match = { description: t.description, date: t.date, amount: t.amount, matchType: 'valor+data' };
+          }
+        }
+        const dup = !!match;
         const isTransfer = e.type === 'transferencia';
-        // Transferências e duplicatas ficam desmarcadas por padrão para não poluir os relatórios
-        return { ...e, _id: `${i}`, _import: !dup && !isTransfer, _duplicate: dup };
+        return { ...e, _id: `${i}`, _import: !dup && !isTransfer, _duplicate: dup, _duplicateOf: match };
       });
       setRows(parsed);
 
