@@ -55,6 +55,7 @@ export const parseBankStatement = createServerFn({ method: 'POST' })
     // Para prints/imagens o Pro faz OCR muito melhor (lê valor, parcela e
     // descrição em screenshots de celular). PDFs usam Flash (mais barato/rápido).
     const model = gateway(isImage ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash');
+    const currentYear = new Date().getFullYear();
 
     const system = `Você é especialista em extratos bancários e faturas de cartão brasileiros.
 Analise o ${isImage ? 'PRINT DE TELA (imagem, geralmente screenshot de app de celular)' : 'PDF'} e extraia TODAS as transações reais visíveis.
@@ -89,9 +90,10 @@ Regras:
 - transferReason: quando type="transferencia", explique em 3-6 palavras (ex: "PIX entre contas próprias", "Pagamento fatura cartão", "Aplicação CDB"). Nos outros tipos, use null.
 - Parcelamento: se a linha indicar parcela (ex: "PARC 03/10", "3/10", "10X", "PARCELA 3 DE 10"), preencha installmentCurrent (3) e installmentTotal (10). Caso à vista, use null nos dois campos. Nunca marque transferência como parcelada.
 - category (escolha UMA): Alimentação, Moradia, Saúde, Transporte, Lazer, Vestuário, Educação, Assinaturas, Investimentos, Outros. Se type="transferencia", use "Transferência".
-- date no formato YYYY-MM-DD. Se aparecer só dia/mês, use o ano do período do extrato (ou o ano atual se não aparecer).
+- date no formato YYYY-MM-DD. Se aparecer só dia/mês, use o ano do período do extrato; se o ano não aparecer no print, use ${currentYear}.
 - periodStart / periodEnd em YYYY-MM-DD. Se for print e não der pra determinar, use a primeira e última data visíveis.
-- Retorne TODAS as transações visíveis, sem resumir.`;
+- Retorne TODAS as transações visíveis, sem resumir.
+- O JSON final deve ser UM OBJETO com a chave "entries". Não use array na raiz e não use a chave "transactions".`;
 
     const filename = data.filename ?? (isImage ? 'print.png' : 'extrato.pdf');
 
@@ -115,6 +117,20 @@ Regras:
 
     // Normaliza o payload que veio do modelo para o formato esperado.
     const normalize = (raw: unknown): ParsedStatement => {
+      const container = Array.isArray(raw) ? raw[0] : raw;
+      const anyRaw = container as { entries?: unknown[]; transactions?: unknown[]; [k: string]: unknown };
+      const rawEntries = Array.isArray(anyRaw?.entries)
+        ? anyRaw.entries
+        : Array.isArray(anyRaw?.transactions)
+          ? anyRaw.transactions
+          : [];
+
+      if (rawEntries.length > 0 && !Array.isArray(anyRaw.entries)) {
+        raw = { ...anyRaw, entries: rawEntries };
+      } else {
+        raw = container;
+      }
+
       const parsed = StatementSchema.safeParse(raw);
       if (parsed.success) {
         return {
@@ -128,9 +144,7 @@ Regras:
         };
       }
       // Fallback: tenta manter só as entries que casam.
-      const anyRaw = raw as { entries?: unknown[]; [k: string]: unknown };
-      const entries = Array.isArray(anyRaw?.entries)
-        ? anyRaw.entries.flatMap(e => {
+      const entries = rawEntries.flatMap(e => {
             const p = EntrySchema.safeParse(e);
             if (!p.success) return [];
             return [{
@@ -139,8 +153,7 @@ Regras:
               installmentTotal: p.data.installmentTotal ?? null,
               transferReason: p.data.transferReason ?? null,
             }];
-          })
-        : [];
+          });
       return {
         statementType: (anyRaw?.statementType as ParsedStatement['statementType']) ?? 'unknown',
         bank: (anyRaw?.bank as string) ?? '',
