@@ -376,65 +376,98 @@ function Transacoes() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader className="space-y-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-4 w-4" /> Histórico ({filteredTx.length})
-            </CardTitle>
-            <div className="space-y-2">
-              <div className="relative">
-                <Search className="h-3.5 w-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
-                <Input
-                  className="pl-8 h-8 text-sm"
-                  placeholder="Buscar descrição ou categoria"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="receita">Receitas</SelectItem>
-                    <SelectItem value="despesa">Despesas</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Categorias</SelectItem>
-                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={filterMonth} onValueChange={setFilterMonth}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Mês</SelectItem>
-                    {months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              {(search || filterCategory !== 'all' || filterType !== 'all' || filterMonth !== 'all') && (
-                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => {
-                  setSearch(''); setFilterCategory('all'); setFilterType('all'); setFilterMonth('all');
-                }}>
-                  <X className="h-3 w-3" /> Limpar filtros
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
-            {filteredTx.length === 0 && (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                {myTx.length === 0 ? 'Nenhuma transação ainda.' : 'Nada encontrado com esses filtros.'}
-              </div>
-            )}
-            {filteredTx.slice(0, 100).map(t => (
-              <TxRow key={t.id} tx={t} onUpdate={updateTransaction} onRemove={removeTransaction} />
+        <div className="lg:col-span-2 space-y-3">
+          {/* Abas de visualização */}
+          <div className="flex gap-1 p-1 bg-muted rounded-lg">
+            {([
+              { id: 'cards', label: 'Cartões', icon: CardIcon },
+              { id: 'accounts', label: 'Contas', icon: Landmark },
+              { id: 'all', label: 'Tudo', icon: Receipt },
+            ] as const).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setViewMode(id)}
+                className={cn(
+                  'flex-1 h-9 text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5',
+                  viewMode === id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+
+          {viewMode === 'cards' && (
+            <CardInvoiceView owner={owner} onUpdate={updateTransaction} onRemove={removeTransaction} />
+          )}
+          {viewMode === 'accounts' && (
+            <AccountLedgerView owner={owner} onUpdate={updateTransaction} onRemove={removeTransaction} />
+          )}
+          {viewMode === 'all' && (
+            <Card>
+              <CardHeader className="space-y-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Receipt className="h-4 w-4" /> Histórico ({filteredTx.length})
+                </CardTitle>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="h-3.5 w-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
+                    <Input
+                      className="pl-8 h-8 text-sm"
+                      placeholder="Buscar descrição ou categoria"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="receita">Receitas</SelectItem>
+                        <SelectItem value="despesa">Despesas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterCategory} onValueChange={setFilterCategory}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Categorias</SelectItem>
+                        {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterMonth} onValueChange={setFilterMonth}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Mês</SelectItem>
+                        {months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {(search || filterCategory !== 'all' || filterType !== 'all' || filterMonth !== 'all') && (
+                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => {
+                      setSearch(''); setFilterCategory('all'); setFilterType('all'); setFilterMonth('all');
+                    }}>
+                      <X className="h-3 w-3" /> Limpar filtros
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
+                {filteredTx.length === 0 && (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    {myTx.length === 0 ? 'Nenhuma transação ainda.' : 'Nada encontrado com esses filtros.'}
+                  </div>
+                )}
+                {filteredTx.slice(0, 100).map(t => (
+                  <TxRow key={t.id} tx={t} onUpdate={updateTransaction} onRemove={removeTransaction} />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
       </div>
     </div>
   );
