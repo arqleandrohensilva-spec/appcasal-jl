@@ -562,24 +562,27 @@ export function CardInvoiceView({
     <Card>
       <CardHeader className="space-y-3">
         {/* Chips de cartões */}
-        <div className="flex flex-wrap gap-1.5">
-          {myCards.map(c => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => { setSelectedCardId(c.id); setOffset(0); }}
-              className={cn(
-                'flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-medium border transition',
-                selectedCardId === c.id
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background text-foreground border-border hover:bg-muted',
-              )}
-            >
-              <span className={cn('h-2 w-2 rounded-full', `bg-${c.color}-500`)} style={{ backgroundColor: cssColor(c.color) }} />
-              {c.name}
-            </button>
-          ))}
-        </div>
+        {!hideCardChips && (
+          <div className="flex flex-wrap gap-1.5">
+            {myCards.map(c => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => { setSelectedCardId(c.id); setOffset(0); }}
+                className={cn(
+                  'flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-medium border transition',
+                  selectedCardId === c.id
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background text-foreground border-border hover:bg-muted',
+                )}
+              >
+                <span className={cn('h-2 w-2 rounded-full', `bg-${c.color}-500`)} style={{ backgroundColor: cssColor(c.color) }} />
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+
 
         {card && (
           <>
