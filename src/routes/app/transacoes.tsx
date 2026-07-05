@@ -823,7 +823,16 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     let groups = 0;
 
     for (const r of toImport) {
-      const isParcelado = r.installmentTotal && r.installmentTotal > 1 && r.installmentCurrent && r.installmentCurrent >= 1;
+      // Se o usuário optou por importar mesmo uma transferência, tratamos como
+      // despesa/receita segundo o sinal do valor mas mantemos categoria "Transferência"
+      // para não contaminar os relatórios de gastos reais.
+      const isTransfer = r.type === 'transferencia';
+      const effectiveType: 'despesa' | 'receita' = isTransfer
+        ? 'despesa' // maioria dos casos (pagto fatura, aplicação, PIX saída) — fácil de ajustar depois
+        : r.type;
+      const effectiveCategory = isTransfer ? 'Transferência' : (r.category || 'Outros');
+
+      const isParcelado = !isTransfer && r.installmentTotal && r.installmentTotal > 1 && r.installmentCurrent && r.installmentCurrent >= 1;
       if (isParcelado) {
         const total = r.installmentTotal!;
         const current = r.installmentCurrent!;
@@ -833,12 +842,12 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           description: r.description,
           amount: r.amount * total,       // amount total; addTransaction divide por N
           date: startDate,
-          category: r.category || 'Outros',
+          category: effectiveCategory,
           paymentMethod: method,
           cardId: card?.id,
           accountId: account?.id,
           installments: total,
-          type: r.type,
+          type: effectiveType,
           owner,
         });
         count += total;
@@ -848,11 +857,11 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           description: r.description,
           amount: r.amount,
           date: r.date,
-          category: r.category || 'Outros',
+          category: effectiveCategory,
           paymentMethod: method,
           cardId: card?.id,
           accountId: account?.id,
-          type: r.type,
+          type: effectiveType,
           owner,
         });
         count += 1;
