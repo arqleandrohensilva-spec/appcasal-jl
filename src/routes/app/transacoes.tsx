@@ -793,7 +793,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     }, 400);
 
     // Acumuladores entre arquivos
-    const allEntries: StatementEntry[] = [];
+    const allEntries: Array<StatementEntry & { _sourceFile: string }> = [];
     let firstStatement: ParsedStatement | null = null;
     const banks = new Set<string>();
     let statementTypeAcc: ParsedStatement['statementType'] | null = null;
