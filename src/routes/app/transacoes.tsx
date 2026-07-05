@@ -651,8 +651,9 @@ function ImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
               </Select>
             </div>
           </div>
-          <div className="max-h-72 overflow-y-auto border border-border rounded text-xs">
-            <table className="w-full">
+          <div className="max-h-72 overflow-auto border border-border rounded text-xs">
+            <table className="w-full min-w-[480px]">
+
               <thead className="bg-muted sticky top-0">
                 <tr><th className="text-left p-2">Data</th><th className="text-left p-2">Descrição</th><th className="text-left p-2">Cat.</th><th className="text-right p-2">Valor</th></tr>
               </thead>
