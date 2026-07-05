@@ -995,10 +995,13 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map(r => (
+                    {rows.map(r => {
+                      const isTransfer = r.type === 'transferencia';
+                      return (
                       <tr key={r._id} className={cn(
                         'border-t border-border',
                         r._duplicate && 'bg-amber-50 dark:bg-amber-950/20',
+                        isTransfer && !r._duplicate && 'bg-sky-50/60 dark:bg-sky-950/20',
                         !r._import && 'opacity-40',
                       )}>
                         <td className="p-1.5 text-center">
@@ -1016,9 +1019,16 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                         <td className="p-1.5">
                           <Input className="h-7 text-xs px-1" value={r.description}
                             onChange={e => updateRow(r._id, { description: e.target.value })} />
-                          {r._duplicate && (
-                            <span className="text-[9px] text-amber-700 dark:text-amber-400">⚠ já existe</span>
-                          )}
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {isTransfer && (
+                              <span className="text-[9px] px-1 rounded bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 font-medium">
+                                ↔ transferência{r.transferReason ? ` — ${r.transferReason}` : ''}
+                              </span>
+                            )}
+                            {r._duplicate && (
+                              <span className="text-[9px] text-amber-700 dark:text-amber-400">⚠ já existe</span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-1.5">
                           <Select value={r.category} onValueChange={v => updateRow(r._id, { category: v })}>
@@ -1029,7 +1039,9 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                           </Select>
                         </td>
                         <td className="p-1.5">
-                          {r.installmentTotal && r.installmentTotal > 1 ? (
+                          {isTransfer ? (
+                            <span className="text-[10px] text-sky-600 dark:text-sky-400">—</span>
+                          ) : r.installmentTotal && r.installmentTotal > 1 ? (
                             <Badge variant="outline" className="text-[9px] h-5 px-1.5">
                               {r.installmentCurrent}/{r.installmentTotal}
                             </Badge>
@@ -1039,12 +1051,14 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                         </td>
                         <td className={cn(
                           'p-1.5 text-right font-semibold tabular-nums',
-                          r.type === 'despesa' ? 'text-rose-600' : 'text-emerald-600',
+                          isTransfer ? 'text-sky-600 dark:text-sky-400'
+                            : r.type === 'despesa' ? 'text-rose-600' : 'text-emerald-600',
                         )}>
-                          {r.type === 'despesa' ? '-' : '+'}{formatCurrency(r.amount)}
+                          {isTransfer ? '↔ ' : r.type === 'despesa' ? '-' : '+'}{formatCurrency(r.amount)}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
