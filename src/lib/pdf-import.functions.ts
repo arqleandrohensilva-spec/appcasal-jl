@@ -45,7 +45,6 @@ export const parseBankStatement = createServerFn({ method: 'POST' })
     if (!key) throw new Error('Missing LOVABLE_API_KEY');
 
     const gateway = createLovableAiGatewayProvider(key);
-    const model = gateway('google/gemini-2.5-flash');
 
     // Detecta mediaType a partir do data URL se não veio explícito
     const detected = data.mediaType
@@ -53,9 +52,20 @@ export const parseBankStatement = createServerFn({ method: 'POST' })
       || 'application/pdf';
     const isImage = detected.startsWith('image/');
 
+    // Para prints/imagens o Pro faz OCR muito melhor (lê valor, parcela e
+    // descrição em screenshots de celular). PDFs usam Flash (mais barato/rápido).
+    const model = gateway(isImage ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash');
+
     const system = `Você é especialista em extratos bancários e faturas de cartão brasileiros.
-Analise o ${isImage ? 'PRINT DE TELA (imagem)' : 'PDF'} e extraia TODAS as transações reais visíveis.
-${isImage ? 'Como é um print, pode ser apenas parte da fatura/extrato — extraia só o que estiver visível, sem inventar linhas cortadas.' : ''}
+Analise o ${isImage ? 'PRINT DE TELA (imagem, geralmente screenshot de app de celular)' : 'PDF'} e extraia TODAS as transações reais visíveis.
+${isImage ? `IMPORTANTE (prints de app de banco/cartão):
+- Cada transação normalmente ocupa UMA LINHA/CARTÃO com: nome do estabelecimento, data, e valor à direita (ex: "R$ 45,90" ou "-R$ 45,90").
+- A informação de parcela geralmente aparece LOGO ABAIXO ou AO LADO do nome, em cinza/fonte menor: "Parcela 3/10", "3 de 10", "3/10", "3ª de 10x", "10x de R$ 45,90".
+- Se o valor mostrado for da PARCELA (ex: "R$ 45,90" com "3/10"), esse é o amount da linha — NÃO multiplique pelo total.
+- LEIA COM ATENÇÃO valores pequenos, cinza e sobrepostos — o print é nítido.
+- Extraia SEMPRE description + amount + date + installment quando visíveis, mesmo que a lista esteja recortada.` : ''}
+
+Regras:` }
 
 Regras:
 - statementType: "card" se for fatura de cartão de crédito, "account" se for extrato de conta corrente/poupança, "unknown" só se realmente não der pra saber.
