@@ -100,6 +100,7 @@ export type Database = {
           id: string
           name: string
           owner: Database["public"]["Enums"]["pessoa"]
+          paid_invoices: Json
           updated_at: string
           workspace_id: string
         }
@@ -112,6 +113,7 @@ export type Database = {
           id?: string
           name: string
           owner: Database["public"]["Enums"]["pessoa"]
+          paid_invoices?: Json
           updated_at?: string
           workspace_id: string
         }
@@ -124,6 +126,7 @@ export type Database = {
           id?: string
           name?: string
           owner?: Database["public"]["Enums"]["pessoa"]
+          paid_invoices?: Json
           updated_at?: string
           workspace_id?: string
         }
@@ -362,6 +365,7 @@ export type Database = {
           pessoa: Database["public"]["Enums"]["pessoa"]
           recurrence: Database["public"]["Enums"]["recurrence"] | null
           recurrence_end_date: string | null
+          tags: string[]
           type: Database["public"]["Enums"]["tx_type"]
           workspace_id: string
         }
@@ -382,6 +386,7 @@ export type Database = {
           pessoa: Database["public"]["Enums"]["pessoa"]
           recurrence?: Database["public"]["Enums"]["recurrence"] | null
           recurrence_end_date?: string | null
+          tags?: string[]
           type: Database["public"]["Enums"]["tx_type"]
           workspace_id: string
         }
@@ -402,6 +407,7 @@ export type Database = {
           pessoa?: Database["public"]["Enums"]["pessoa"]
           recurrence?: Database["public"]["Enums"]["recurrence"] | null
           recurrence_end_date?: string | null
+          tags?: string[]
           type?: Database["public"]["Enums"]["tx_type"]
           workspace_id?: string
         }

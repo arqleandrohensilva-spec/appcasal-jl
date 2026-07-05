@@ -48,6 +48,7 @@ function Transacoes() {
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
   const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>('none');
+  const [tags, setTags] = useState<string[]>([]);
 
   // Modo salário (2x no mês: dia fixo + toda quinta útil)
   const [salaryMode, setSalaryMode] = useState(false);
@@ -69,6 +70,7 @@ function Transacoes() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterType, setFilterType] = useState<'all' | 'receita' | 'despesa'>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all'); // 'all' | 'YYYY-MM'
+  const [filterTag, setFilterTag] = useState<string>('all');
 
 
   const valorNum = parseFloat(amount) || 0;
@@ -85,7 +87,15 @@ function Transacoes() {
     setRecurrence('none');
     setDate(new Date().toISOString().slice(0, 10));
     setSalaryMode(false); setSalaryFixedAmount(''); setSalaryThursdayAmount('');
+    setTags([]);
   };
+
+  // Todas as tags já existentes (para autocomplete e filtro)
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of myTx) for (const g of (t.tags || [])) s.add(g);
+    return Array.from(s).sort();
+  }, [myTx]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,6 +155,7 @@ function Transacoes() {
       accountId: kind === 'account' ? id : undefined,
       installments: parcelasNum, type, owner,
       recurrence: canRecur ? recurrence : 'none',
+      tags: tags.length ? tags : undefined,
     });
     if (count > 1) toast.success(`${count} parcelas lançadas no calendário!`);
     else toast.success('Transação salva!');
@@ -161,13 +172,14 @@ function Transacoes() {
   const filteredTx = useMemo(() => {
     const q = search.trim().toLowerCase();
     return myTx.filter(t => {
-      if (q && !t.description.toLowerCase().includes(q) && !t.category.toLowerCase().includes(q)) return false;
+      if (q && !t.description.toLowerCase().includes(q) && !t.category.toLowerCase().includes(q) && !(t.tags || []).some(tg => tg.toLowerCase().includes(q))) return false;
       if (filterCategory !== 'all' && t.category !== filterCategory) return false;
       if (filterType !== 'all' && t.type !== filterType) return false;
       if (filterMonth !== 'all' && !t.date.startsWith(filterMonth)) return false;
+      if (filterTag !== 'all' && !(t.tags || []).includes(filterTag)) return false;
       return true;
     });
-  }, [myTx, search, filterCategory, filterType, filterMonth]);
+  }, [myTx, search, filterCategory, filterType, filterMonth, filterTag]);
 
   const handleExport = () => {
     if (filteredTx.length === 0) { toast.error('Nada para exportar'); return; }
@@ -369,6 +381,13 @@ function Transacoes() {
                 </div>
               )}
 
+              {!isSalary && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Tags (opcional)</Label>
+                  <TagsInput value={tags} onChange={setTags} suggestions={allTags} />
+                </div>
+              )}
+
               <Button type="submit" className="w-full">
                 {isSalary ? 'Cadastrar salário (2 recorrências)' : (isInstallment && parcelasNum > 1 ? `Lançar ${parcelasNum} parcelas` : 'Salvar transação')}
               </Button>
@@ -445,9 +464,32 @@ function Transacoes() {
                       </SelectContent>
                     </Select>
                   </div>
-                  {(search || filterCategory !== 'all' || filterType !== 'all' || filterMonth !== 'all') && (
+                  {allTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setFilterTag('all')}
+                        className={cn(
+                          'h-6 px-2 rounded-full text-[10px] font-medium border transition',
+                          filterTag === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted',
+                        )}
+                      >Todas tags</button>
+                      {allTags.map(tg => (
+                        <button
+                          key={tg}
+                          type="button"
+                          onClick={() => setFilterTag(tg)}
+                          className={cn(
+                            'h-6 px-2 rounded-full text-[10px] font-medium border transition',
+                            filterTag === tg ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted',
+                          )}
+                        >#{tg}</button>
+                      ))}
+                    </div>
+                  )}
+                  {(search || filterCategory !== 'all' || filterType !== 'all' || filterMonth !== 'all' || filterTag !== 'all') && (
                     <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => {
-                      setSearch(''); setFilterCategory('all'); setFilterType('all'); setFilterMonth('all');
+                      setSearch(''); setFilterCategory('all'); setFilterType('all'); setFilterMonth('all'); setFilterTag('all');
                     }}>
                       <X className="h-3 w-3" /> Limpar filtros
                     </Button>
@@ -481,10 +523,12 @@ function CardInvoiceView({
   onUpdate: ReturnType<typeof useData>['updateTransaction'];
   onRemove: ReturnType<typeof useData>['removeTransaction'];
 }) {
-  const { cards, transactions } = useData();
+  const { cards, transactions, accounts, markInvoicePaid, unmarkInvoicePaid } = useData();
   const myCards = cards.filter(c => c.owner === owner);
+  const myAccounts = accounts.filter(a => a.owner === owner);
   const [selectedCardId, setSelectedCardId] = useState<string>(myCards[0]?.id || '');
   const [offset, setOffset] = useState(0); // 0 = fatura atual, -1 = anterior, +1 = próxima…
+  const [payOpen, setPayOpen] = useState(false);
 
   const card = myCards.find(c => c.id === selectedCardId);
 
@@ -531,7 +575,10 @@ function CardInvoiceView({
   const closingISO = card ? invoiceClosingDateISO(invoiceKey, card.closingDay) : '';
   const dueISO = card ? invoiceDueDateISO(invoiceKey, card.dueDay) : '';
   const todayISO = new Date().toISOString().slice(0, 10);
-  const status = closingISO > todayISO ? 'aberta' : dueISO >= todayISO ? 'fechada' : 'vencida';
+  const paidInfo = card?.paidInvoices?.[invoiceKey];
+  const status = paidInfo ? 'paga' : closingISO > todayISO ? 'aberta' : dueISO >= todayISO ? 'fechada' : 'vencida';
+  const daysToDue = card ? Math.round((new Date(dueISO).getTime() - new Date(todayISO).getTime()) / 86400000) : 0;
+  const daysToClose = card ? Math.round((new Date(closingISO).getTime() - new Date(todayISO).getTime()) / 86400000) : 0;
 
   return (
     <Card>
@@ -563,7 +610,7 @@ function CardInvoiceView({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fatura de {labelMonthKey(invoiceKey)}</p>
-                  <p className="text-2xl font-bold tabular-nums">{formatCurrency(Math.max(0, total))}</p>
+                  <p className={cn('text-2xl font-bold tabular-nums', paidInfo && 'line-through text-muted-foreground')}>{formatCurrency(Math.max(0, total))}</p>
                 </div>
                 <Badge
                   variant="outline"
@@ -572,9 +619,10 @@ function CardInvoiceView({
                     status === 'aberta' && 'border-emerald-500 text-emerald-700 dark:text-emerald-400',
                     status === 'fechada' && 'border-amber-500 text-amber-700 dark:text-amber-400',
                     status === 'vencida' && 'border-rose-500 text-rose-700 dark:text-rose-400',
+                    status === 'paga' && 'border-emerald-600 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
                   )}
                 >
-                  {status}
+                  {status === 'paga' ? '✓ paga' : status}
                 </Badge>
               </div>
               <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
@@ -583,11 +631,50 @@ function CardInvoiceView({
                 <span>Limite <strong className="text-foreground">{formatCurrency(card.limit)}</strong></span>
                 {futureParcelas > 0 && <span>· {futureParcelas} parcela{futureParcelas > 1 ? 's' : ''} futura{futureParcelas > 1 ? 's' : ''}</span>}
               </div>
+              {!paidInfo && status !== 'paga' && offset === 0 && (
+                <div className="text-[11px] rounded-md bg-muted/50 border border-border/60 px-2 py-1 flex items-center gap-1">
+                  {daysToClose > 0 && daysToClose <= 7 && <span>⏰ Fecha em <strong>{daysToClose}d</strong></span>}
+                  {daysToClose <= 0 && daysToDue > 0 && daysToDue <= 10 && <span>💰 Vence em <strong>{daysToDue}d</strong></span>}
+                  {daysToDue < 0 && <span className="text-rose-600 font-semibold">⚠ Fatura vencida há {Math.abs(daysToDue)}d</span>}
+                </div>
+              )}
+              {paidInfo && (
+                <div className="text-[11px] rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 px-2 py-1 text-emerald-800 dark:text-emerald-300">
+                  Paga em {formatDate(paidInfo.paidAt)} · {formatCurrency(paidInfo.amount)} · {accounts.find(a => a.id === paidInfo.accountId)?.name || 'conta'}
+                </div>
+              )}
+              {total > 0 && (
+                <div className="flex gap-2 pt-1">
+                  {!paidInfo ? (
+                    <Button size="sm" className="h-7 text-xs gap-1 flex-1" onClick={() => setPayOpen(true)}>
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Marcar fatura como paga
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 flex-1" onClick={() => unmarkInvoicePaid(card.id, invoiceKey)}>
+                      Estornar pagamento
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Navegador de mês (-12 a +12) */}
             <MonthStrip baseKey={currentInvoiceKey} offset={offset} onChange={setOffset} range={12} />
 
+            {card && (
+              <PayInvoiceDialog
+                open={payOpen}
+                onOpenChange={setPayOpen}
+                cardName={card.name}
+                monthKey={invoiceKey}
+                total={Math.max(0, total)}
+                accounts={myAccounts}
+                onConfirm={(accId, amt, dt) => {
+                  markInvoicePaid(card.id, invoiceKey, accId, amt, dt);
+                  setPayOpen(false);
+                }}
+              />
+            )}
           </>
         )}
       </CardHeader>
@@ -909,6 +996,13 @@ function TxRow({
         <p className="text-xs text-muted-foreground truncate">
           {formatDate(tx.date)} · {tx.category} · {tx.paymentMethod}
         </p>
+        {tx.tags && tx.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {tx.tags.map(tg => (
+              <span key={tg} className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">#{tg}</span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-1 shrink-0">
         <span className={`font-bold text-sm ${tx.type === 'receita' ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -1808,3 +1902,153 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   );
 }
 
+
+// ============ TagsInput: chips com autocomplete ============
+function TagsInput({
+  value, onChange, suggestions,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+  suggestions: string[];
+}) {
+  const [text, setText] = useState('');
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-').slice(0, 24);
+
+  const commit = (raw: string) => {
+    const t = norm(raw);
+    if (!t) return;
+    if (value.includes(t)) { setText(''); return; }
+    onChange([...value, t]);
+    setText('');
+  };
+
+  const remove = (tg: string) => onChange(value.filter(v => v !== tg));
+
+  const hints = suggestions
+    .filter(s => !value.includes(s) && (text ? s.includes(norm(text)) : true))
+    .slice(0, 6);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-1 min-h-[24px]">
+        {value.map(tg => (
+          <span key={tg} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">
+            #{tg}
+            <button type="button" onClick={() => remove(tg)} className="hover:text-rose-500">
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <Input
+        value={text}
+        onChange={e => setText(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); commit(text); }
+          else if (e.key === 'Backspace' && !text && value.length) { remove(value[value.length - 1]); }
+        }}
+        onBlur={() => text && commit(text)}
+        placeholder="Ex.: viagem, reforma, presente (Enter para adicionar)"
+        className="h-8 text-xs"
+      />
+      {hints.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {hints.map(h => (
+            <button
+              key={h}
+              type="button"
+              onClick={() => commit(h)}
+              className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted hover:bg-muted-foreground/10 text-muted-foreground"
+            >
+              +#{h}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============ PayInvoiceDialog: modal de pagamento da fatura ============
+function PayInvoiceDialog({
+  open, onOpenChange, cardName, monthKey, total, accounts, onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  cardName: string;
+  monthKey: string;
+  total: number;
+  accounts: { id: string; name: string; balance: number }[];
+  onConfirm: (accountId: string, amount: number, dateISO: string) => void;
+}) {
+  const [accountId, setAccountId] = useState<string>(accounts[0]?.id || '');
+  const [amount, setAmount] = useState<string>(String(total.toFixed(2)));
+  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+
+  useEffect(() => {
+    if (open) {
+      setAmount(String(total.toFixed(2)));
+      setDate(new Date().toISOString().slice(0, 10));
+      if (!accountId && accounts[0]) setAccountId(accounts[0].id);
+    }
+  }, [open, total, accounts, accountId]);
+
+  const acc = accounts.find(a => a.id === accountId);
+  const amountNum = parseFloat(amount) || 0;
+  const insufficient = acc && amountNum > acc.balance;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Pagar fatura
+          </DialogTitle>
+          <DialogDescription>
+            {cardName} — {labelMonthKey(monthKey)}. Vamos criar uma saída na conta escolhida.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Conta de origem</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger><SelectValue placeholder="Escolha uma conta" /></SelectTrigger>
+              <SelectContent>
+                {accounts.map(a => (
+                  <SelectItem key={a.id} value={a.id}>
+                    🏦 {a.name} · saldo {formatCurrency(a.balance)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Valor pago</Label>
+              <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Data</Label>
+              <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+            </div>
+          </div>
+          {insufficient && (
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-start gap-1">
+              <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+              Saldo da conta pode ficar negativo após o pagamento.
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            disabled={!accountId || amountNum <= 0}
+            onClick={() => onConfirm(accountId, amountNum, date)}
+          >
+            Confirmar pagamento
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

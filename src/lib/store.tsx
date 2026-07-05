@@ -4,6 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './auth';
 import type { UserProfile } from './context';
 
+export interface PaidInvoiceInfo {
+  paidAt: string;
+  accountId: string;
+  amount: number;
+  txId?: string;
+}
+
 export interface UserCard {
   id: string;
   name: string;
@@ -12,6 +19,7 @@ export interface UserCard {
   dueDay: number;
   color: string;
   owner: UserProfile;
+  paidInvoices?: Record<string, PaidInvoiceInfo>;
 }
 
 export interface UserAccount {
@@ -40,6 +48,7 @@ export interface UserTransaction {
   createdAt: string;
   recurrence?: Recurrence;
   recurrenceEndDate?: string;
+  tags?: string[];
 }
 
 export interface UserGoal {
@@ -94,6 +103,7 @@ interface DataContextType {
     owner: UserProfile;
     recurrence?: Recurrence;
     recurrenceEndDate?: string;
+    tags?: string[];
   }) => number;
   updateTransaction: (id: string, patch: Partial<{
     description: string;
@@ -106,7 +116,10 @@ interface DataContextType {
     type: 'receita' | 'despesa';
     recurrence: Recurrence;
     recurrenceEndDate?: string;
+    tags: string[];
   }>) => void;
+  markInvoicePaid: (cardId: string, monthKey: string, accountId: string, amount: number, dateISO: string) => void;
+  unmarkInvoicePaid: (cardId: string, monthKey: string) => void;
   removeTransaction: (id: string, removeGroup?: boolean) => void;
   addGoal: (g: Omit<UserGoal, 'id' | 'createdAt'>) => void;
   updateGoal: (id: string, patch: Partial<Omit<UserGoal, 'id' | 'createdAt'>>) => void;
@@ -131,13 +144,14 @@ function addMonths(iso: string, months: number) {
 }
 
 // ============ Row mappers ============
-type DbCard = { id: string; name: string; card_limit: number | string; closing_day: number; due_day: number; color: string; owner: UserProfile };
+type DbCard = { id: string; name: string; card_limit: number | string; closing_day: number; due_day: number; color: string; owner: UserProfile; paid_invoices: Record<string, PaidInvoiceInfo> | null };
 type DbAccount = { id: string; name: string; type: UserAccount['type']; balance: number | string; owner: UserProfile };
 type DbTransaction = {
   id: string; group_id: string | null; description: string; amount: number | string; date: string;
   category: string; payment_method: string; card_id: string | null; account_id: string | null;
   installment_current: number | null; installment_total: number | null; type: 'receita' | 'despesa';
   owner: UserProfile; recurrence: Recurrence | null; recurrence_end_date: string | null; created_at: string;
+  tags: string[] | null;
 };
 type DbGoal = { id: string; name: string; target: number | string; deadline: string | null; owner: UserProfile; created_at: string };
 type DbContrib = { id: string; goal_id: string; amount: number | string; date: string; owner: UserProfile; note: string | null };
@@ -145,7 +159,7 @@ type DbBudget = { id: string; category: string; monthly_limit: number | string; 
 
 const num = (v: number | string) => typeof v === 'string' ? parseFloat(v) : v;
 
-const mapCard = (r: DbCard): UserCard => ({ id: r.id, name: r.name, limit: num(r.card_limit), closingDay: r.closing_day, dueDay: r.due_day, color: r.color, owner: r.owner });
+const mapCard = (r: DbCard): UserCard => ({ id: r.id, name: r.name, limit: num(r.card_limit), closingDay: r.closing_day, dueDay: r.due_day, color: r.color, owner: r.owner, paidInvoices: r.paid_invoices ?? undefined });
 const mapAccount = (r: DbAccount): UserAccount => ({ id: r.id, name: r.name, type: r.type, balance: num(r.balance), owner: r.owner });
 const mapTx = (r: DbTransaction): UserTransaction => ({
   id: r.id, groupId: r.group_id ?? undefined, description: r.description, amount: num(r.amount),
@@ -154,6 +168,7 @@ const mapTx = (r: DbTransaction): UserTransaction => ({
   installmentInfo: r.installment_current && r.installment_total ? { current: r.installment_current, total: r.installment_total } : undefined,
   type: r.type, owner: r.owner, createdAt: r.created_at,
   recurrence: r.recurrence ?? undefined, recurrenceEndDate: r.recurrence_end_date ?? undefined,
+  tags: r.tags ?? undefined,
 });
 const mapGoal = (r: DbGoal): UserGoal => ({ id: r.id, name: r.name, target: num(r.target), deadline: r.deadline ?? '', owner: r.owner, createdAt: r.created_at });
 const mapContrib = (r: DbContrib): GoalContribution => ({ id: r.id, goalId: r.goal_id, amount: num(r.amount), date: r.date, owner: r.owner, note: r.note ?? undefined });
@@ -320,6 +335,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt,
       recurrence: n === 1 ? recurrence : undefined,
       recurrenceEndDate: n === 1 ? input.recurrenceEndDate : undefined,
+      tags: input.tags && input.tags.length ? input.tags : undefined,
     }));
 
     setTransactions(prev => [...created, ...prev]);
@@ -334,6 +350,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       type: t.type, owner: t.owner, pessoa: t.owner,
       recurrence: t.recurrence ?? null,
       recurrence_end_date: t.recurrenceEndDate ?? null,
+      tags: t.tags ?? [],
     }));
     supabase.from('transactions').insert(rows).then(({ error }) => {
       if (error) { toast.error('Erro ao salvar transação'); refetchAll(wsId!); }
@@ -387,7 +404,80 @@ export function DataProvider({ children }: { children: ReactNode }) {
       type: next.type, owner: next.owner, pessoa: next.owner,
       recurrence: next.recurrence ?? null, recurrence_end_date: next.recurrenceEndDate ?? null,
     };
+    if (patch.tags !== undefined) dbPatch.tags = next.tags ?? [];
     supabase.from('transactions').update(dbPatch).eq('id', id).then(({ error }) => { if (error) refetchAll(wsId!); });
+  };
+
+  // ============ INVOICE PAYMENT ============
+  const markInvoicePaid: DataContextType['markInvoicePaid'] = (cardId, monthKey, accountId, amount, dateISO) => {
+    if (!guard()) return;
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+    const acc = accounts.find(a => a.id === accountId);
+    // Cria transação de pagamento de fatura na conta
+    const txId = uid();
+    const desc = `Pagamento fatura ${card.name} — ${monthKey}`;
+    const method = acc?.name || 'Conta';
+    const tx: UserTransaction = {
+      id: txId,
+      description: desc,
+      amount: -Math.abs(amount),
+      date: dateISO,
+      category: 'Pagamento de fatura',
+      paymentMethod: method,
+      accountId,
+      type: 'despesa',
+      owner: card.owner,
+      createdAt: new Date().toISOString(),
+      tags: ['fatura', card.name.toLowerCase()],
+    };
+    setTransactions(prev => [tx, ...prev]);
+    supabase.from('transactions').insert({
+      id: txId, workspace_id: wsId!, group_id: null,
+      description: tx.description, amount: tx.amount, date: tx.date,
+      category: tx.category, payment_method: tx.paymentMethod,
+      card_id: null, account_id: accountId,
+      installment_current: null, installment_total: null,
+      type: tx.type, owner: tx.owner, pessoa: tx.owner,
+      recurrence: null, recurrence_end_date: null,
+      tags: tx.tags ?? [],
+    }).then(({ error }) => { if (error) { toast.error('Erro ao registrar pagamento'); refetchAll(wsId!); } });
+
+    // Atualiza saldo da conta se data <= hoje
+    const todayISO = new Date().toISOString().slice(0, 10);
+    if (acc && dateISO <= todayISO) {
+      const newBal = acc.balance - Math.abs(amount);
+      setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, balance: newBal } : a));
+      supabase.from('accounts').update({ balance: newBal }).eq('id', accountId);
+    }
+
+    // Marca paid_invoices no cartão
+    const nextPaid: Record<string, PaidInvoiceInfo> = {
+      ...(card.paidInvoices || {}),
+      [monthKey]: { paidAt: dateISO, accountId, amount: Math.abs(amount), txId },
+    };
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, paidInvoices: nextPaid } : c));
+    supabase.from('cards').update({ paid_invoices: nextPaid } as any).eq('id', cardId)
+      .then(({ error }) => { if (error) refetchAll(wsId!); });
+    toast.success('Fatura marcada como paga!');
+  };
+
+  const unmarkInvoicePaid: DataContextType['unmarkInvoicePaid'] = (cardId, monthKey) => {
+    if (!guard()) return;
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+    const info = card.paidInvoices?.[monthKey];
+    if (!info) return;
+    // Remove transação vinculada, se houver
+    if (info.txId) {
+      removeTransaction(info.txId);
+    }
+    const nextPaid = { ...(card.paidInvoices || {}) };
+    delete nextPaid[monthKey];
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, paidInvoices: nextPaid } : c));
+    supabase.from('cards').update({ paid_invoices: nextPaid } as any).eq('id', cardId)
+      .then(({ error }) => { if (error) refetchAll(wsId!); });
+    toast.success('Pagamento estornado.');
   };
 
   const removeTransaction: DataContextType['removeTransaction'] = (id, removeGroup) => {
@@ -495,6 +585,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addCard, updateCard, removeCard,
       addAccount, updateAccount, removeAccount,
       addTransaction, updateTransaction, removeTransaction,
+      markInvoicePaid, unmarkInvoicePaid,
       addGoal, updateGoal, removeGoal, contributeGoal, removeContribution,
       addBudget, updateBudget, removeBudget,
       resetAll,
