@@ -18,9 +18,9 @@ function CardDetail() {
   const { cards, updateTransaction, removeTransaction } = useData();
 
   const card = cards.find(c => c.id === cardId);
-  const owner: 'leandro' | 'jonathan' = activeProfile === 'casal'
-    ? (card?.owner ?? 'leandro')
-    : activeProfile;
+  const owner: 'leandro' | 'jonathan' = card?.owner
+    ?? (activeProfile === 'casal' ? 'leandro' : activeProfile);
+
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
