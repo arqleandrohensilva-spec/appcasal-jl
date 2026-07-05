@@ -13,13 +13,15 @@ import { CATEGORIES, formatCurrency, formatDate } from '@/lib/mockData';
 import { useData, type UserTransaction } from '@/lib/store';
 import { useAppContext } from '@/lib/context';
 import { toast } from 'sonner';
-import { AlertCircle, Trash2, Receipt, Pencil, Search, Download, Upload, X, FileText, Loader2, Sparkles, CheckCircle2, CreditCard as CardIcon, Landmark } from 'lucide-react';
+import { AlertCircle, Trash2, Receipt, Pencil, Search, Download, Upload, X, FileText, Loader2, Sparkles, CheckCircle2, CreditCard as CardIcon, Landmark, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { downloadCSV, transactionsToCSV, parseCSV, dedupeAgainstExisting, type ParsedRow } from '@/lib/csv';
 import { nextPayday, toISODate } from '@/lib/payday';
 import { useServerFn } from '@tanstack/react-start';
 import { parseBankStatement, type StatementEntry, type ParsedStatement } from '@/lib/pdf-import.functions';
+import { invoiceMonthOf, addMonthsToKey, labelMonthKey, invoiceDueDateISO, invoiceClosingDateISO } from '@/lib/finance';
 
 import { cn } from '@/lib/utils';
+
 
 export const Route = createFileRoute('/app/transacoes')({
   component: Transacoes,
