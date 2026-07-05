@@ -63,11 +63,10 @@ ${isImage ? `IMPORTANTE (prints de app de banco/cartão):
 - A informação de parcela geralmente aparece LOGO ABAIXO ou AO LADO do nome, em cinza/fonte menor: "Parcela 3/10", "3 de 10", "3/10", "3ª de 10x", "10x de R$ 45,90".
 - Se o valor mostrado for da PARCELA (ex: "R$ 45,90" com "3/10"), esse é o amount da linha — NÃO multiplique pelo total.
 - LEIA COM ATENÇÃO valores pequenos, cinza e sobrepostos — o print é nítido.
-- Extraia SEMPRE description + amount + date + installment quando visíveis, mesmo que a lista esteja recortada.` : ''}
-
-Regras:` }
-
+- Extraia SEMPRE description + amount + date + installment quando visíveis, mesmo que a lista esteja recortada.
+` : ''}
 Regras:
+
 - statementType: "card" se for fatura de cartão de crédito, "account" se for extrato de conta corrente/poupança, "unknown" só se realmente não der pra saber.
 - IGNORE linhas de: saldo anterior, saldo do dia, total da fatura, pagamento de fatura anterior, subtotal, resumo por categoria, IOF acumulado informativo, juros já cobrados na linha do produto, encargos rotativos que aparecem duplicados no resumo. Se dúvida, prefira INCLUIR.
 - description: nome LIMPO e legível do estabelecimento. Remova prefixos de adquirentes (PAG*, MP *, PP*, IFD*), códigos internos, sufixos de cidade/UF ("SAO PAULO BR"). Exemplos:
