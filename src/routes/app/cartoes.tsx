@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,9 @@ import { useAppContext } from '@/lib/context';
 import { useData, type UserCard } from '@/lib/store';
 import { formatCurrency } from '@/lib/mockData';
 import { invoiceMonthOf } from '@/lib/finance';
-import { CardInvoiceView } from '@/routes/app/transacoes';
-import { CreditCard, Plus, Trash2, Pencil } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Pencil, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+
 
 export const Route = createFileRoute('/app/cartoes')({
   component: Cartoes,
