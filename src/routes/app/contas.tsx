@@ -12,6 +12,7 @@ import { useData, type UserAccount } from '@/lib/store';
 import { formatCurrency, formatDate } from '@/lib/mockData';
 import { Plus, Trash2, Wallet, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { AccountLedgerView } from '@/routes/app/transacoes';
 
 export const Route = createFileRoute('/app/contas')({
   component: Contas,
