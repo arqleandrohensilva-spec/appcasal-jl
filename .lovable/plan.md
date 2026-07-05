@@ -1,66 +1,59 @@
-# Plano de Melhorias
 
-Vou executar em 3 ondas. As ondas 1 e 2 são frontend puro (localStorage) e entregam ganho imediato. A onda 3 é a migração para Lovable Cloud, que toca tudo — por isso fica separada e te peço confirmação antes.
+# Reorganizar Transações por cartão / conta
 
-## Onda 1 — Polimento + edição + exportação (entrego de uma vez)
+Hoje a tela mistura todos os cartões e contas numa única lista. A ideia é deixar parecido com o app do banco: escolher **um cartão** e ver a **fatura do mês** (aberta, próximas e fechadas), ou escolher uma **conta** e ver **entradas x saídas** do mês.
 
-**Correções**
-- Corrigir warning de hydration no `Slider` do Comparador e Consórcio (já existe `mounted` em alguns, padronizar com um wrapper `<ClientOnly>`).
+## Nova estrutura da tela
 
-**UX / Tema**
-- Adicionar toggle Dark/Light na sidebar, persistido em localStorage, com transição suave. Usa tokens já existentes em `src/styles.css`.
-- Briefing diário mais inteligente: substituir o texto fixo por mensagens dinâmicas baseadas em `pendingThisMonth`, `categoryAnomalies`, `openCardBills` e saldo projetado (ex.: "Fatura do Nubank fecha em 2 dias — R$ 1.240", "Alimentação 62% acima da média de 3 meses", "Sobra estimada do mês: R$ 1.890").
+```text
+┌──────────────────────────────────────────────┐
+│  [ Cartões ]  [ Contas ]  [ Tudo ]           │  ← abas
+├──────────────────────────────────────────────┤
+│  ● Nubank    ● Itaú    ● C6    ● Inter       │  ← chips (só na aba Cartões)
+├──────────────────────────────────────────────┤
+│  Fatura de Novembro/26   R$ 1.842,10         │
+│  Fecha 03/11 · Vence 10/11 · aberta          │
+│  ‹ Out  •  Nov (atual)  •  Dez  •  Jan ›     │  ← navegação de mês
+├──────────────────────────────────────────────┤
+│  Lançamentos da fatura                       │
+│  03/11  Uber              R$   28,90         │
+│  05/11  Mercado Extra     R$  312,45         │
+│  ...                                          │
+│  Parcelas futuras já lançadas: 4             │
+└──────────────────────────────────────────────┘
+```
 
-**Edição/exclusão facilitadas**
-- Diálogo de edição para Transação, Meta, Cartão e Conta (hoje só dá pra criar e excluir).
-- Adicionar `updateTransaction`, `updateGoal`, `updateCard`, `updateAccount` no `store.tsx`.
-- Filtros e busca na página de Transações (por descrição, categoria, mês, tipo).
+Para **Contas** (débito / Pix / dinheiro):
 
-**Exportar / importar**
-- Botão "Exportar CSV" em Transações (gera arquivo direto no navegador, sem servidor).
-- Botão "Importar extrato" com upload CSV. Suporta:
-  - Formato Nubank (Data, Valor, Identificador, Descrição)
-  - Formato genérico (Data, Descrição, Valor, Categoria opcional)
-  - Tela de mapeamento de colunas + preview antes de confirmar
-  - Detecção de duplicatas por (data + valor + descrição)
+```text
+Conta Corrente Itaú — Novembro/26
+Entradas  R$  9.700,00   Saídas  R$ 4.210,00   Saldo do mês  +R$ 5.490,00
+[ Entradas ]  [ Saídas ]  [ Todas ]
+```
 
-## Onda 2 — Orçamento mensal por categoria
+## O que muda
 
-- Nova entidade `Budget { id, category, monthlyLimit, owner }` no store.
-- Nova página `/app/orcamento`:
-  - Lista de categorias com gasto do mês vs limite (barra de progresso colorida).
-  - Cadastrar/editar limite por categoria e por perfil.
-  - Alerta visual quando passa de 80% (amarelo) e 100% (vermelho).
-- Card "Orçamento" no Dashboard mostrando as 3 categorias mais próximas do limite.
-- Alerta no Briefing Diário quando alguma categoria estourar.
-- Item de menu novo na sidebar.
+1. **Abas no topo**: `Cartões` · `Contas` · `Tudo` (o modo atual).
+2. **Seletor de cartão/conta** em chips coloridos logo abaixo das abas.
+3. **Navegador de mês** (‹ anterior · atual · próximos ›) baseado no `closingDay` / `dueDay` do cartão.
+   - Uma compra entra na fatura cujo fechamento é ≥ a data da compra.
+   - Parcelas futuras já aparecem nas faturas correspondentes.
+4. **Cabeçalho da fatura** com: mês, total, data de fechamento, data de vencimento, status (aberta / fechada / paga).
+5. **Resumo Entradas x Saídas** em contas (e também em "Tudo") com totais e saldo do período.
+6. **Lista** só das transações do cartão/conta e mês selecionados, ordenadas por data.
+7. **Formulário de novo lançamento** e **importar PDF** continuam iguais (recolhidos em accordion no topo, como já são).
+8. **Filtros antigos** (busca, categoria, tipo, mês) ficam ativos dentro da aba `Tudo`.
 
-## Onda 3 — Lovable Cloud (só depois da sua confirmação)
+## Detalhes técnicos
 
-Esta onda é uma migração grande: todos os dados saem do localStorage e vão para o banco. Requer:
+- Novo helper `invoiceMonthOf(date, closingDay)` em `src/lib/finance.ts` → devolve o `YYYY-MM` da fatura de uma transação de cartão.
+- Novo componente `CardInvoiceView` e `AccountLedgerView` dentro de `src/routes/app/transacoes.tsx` (mantém tudo numa rota só, sem novos arquivos de rota).
+- Estado local: `viewMode: 'cards' | 'accounts' | 'all'`, `selectedCardId`, `selectedAccountId`, `invoiceOffset` (0 = mês atual, +1 = próximo, -1 = anterior).
+- Reaproveita `transactions`, `cards`, `accounts` do `useData()`. Sem migração de banco.
+- A lista da aba "Tudo" e o dedup do import de PDF continuam exatamente como estão.
 
-- Ativar Lovable Cloud (cria backend automático).
-- Login com Email/Senha + Google (sem precisar de conta externa).
-- Tabelas: `profiles`, `accounts`, `cards`, `transactions`, `goals`, `goal_contributions`, `budgets` + RLS por usuário (e regra especial para o perfil "casal" — provavelmente via campo `couple_id` ligando 2 contas).
-- Migrar `src/lib/store.tsx` de localStorage para queries no Supabase (server functions onde fizer sentido).
-- Tela de login + rota `_authenticated` protegendo `/app/*`.
-- Botão "Importar do dispositivo atual" no primeiro login pra trazer os dados do localStorage pra Cloud, sem perder histórico.
+## Fora do escopo
 
-**Por que separar:** essa onda mexe em praticamente todos os arquivos de página e introduz auth. Se algo der errado, é melhor isolar do polimento. Também preciso fazer perguntas suas antes (ex.: como você quer modelar o "casal" — duas contas separadas que compartilham dados, ou uma conta única com 2 perfis dentro?).
-
-## Ordem de execução
-
-1. Confirmar este plano.
-2. Executar Onda 1 inteira em uma sequência de edits.
-3. Executar Onda 2.
-4. Te chamar pra alinhar as perguntas da Onda 3 (modelo do "casal", login Google ou só email, etc.) antes de migrar.
-
-## Detalhes técnicos relevantes
-
-- Toggle de tema: classe `dark` no `<html>`, hook `useTheme` + `localStorage('theme')`, evita FOUC com script inline no `__root.tsx`.
-- CSV export: gerado no client via `Blob` + `URL.createObjectURL` — zero dependência nova.
-- CSV import: parsing manual (regex CSV simples) ou `papaparse` (~45kb). Vou usar `papaparse` pra lidar com vírgulas dentro de aspas.
-- Edição de transação: se a tx faz parte de grupo (parcelamento) ou tem recorrência, o diálogo pergunta "editar só esta" ou "editar todas".
-- Budget: cálculo do consumido reusa `monthlyStats().porCategoria` que já existe em `src/lib/finance.ts`.
-
-Posso começar pela Onda 1?
+- Marcar fatura como paga / gerar transação de pagamento (posso fazer num passo seguinte).
+- Mudar o formulário de novo lançamento.
+- Mudar a importação de PDF.
