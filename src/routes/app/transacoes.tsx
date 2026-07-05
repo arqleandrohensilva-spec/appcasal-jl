@@ -725,14 +725,19 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   const isAccount = destination.startsWith('account:');
 
   const onFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-      toast.error('Envie um PDF original do banco.');
+    const name = file.name.toLowerCase();
+    const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
+    const isImage = file.type.startsWith('image/')
+      || /\.(png|jpe?g|webp|heic|heif)$/i.test(name);
+    if (!isPdf && !isImage) {
+      toast.error('Envie um PDF do banco ou um print (PNG/JPG) da fatura.');
       return;
     }
     if (file.size > 15 * 1024 * 1024) {
-      toast.error('PDF acima de 15MB. Envie o extrato de um mês por vez.');
+      toast.error('Arquivo acima de 15MB. Envie o extrato de um mês por vez ou um print menor.');
       return;
     }
+    const kindLabel = isImage ? 'print' : 'PDF';
     setLoading(true);
     setOpen(true);
     setStatement(null);
@@ -750,12 +755,13 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     try {
       const dataUrl = await fileToDataUrl(file);
       setProgress(p => Math.max(p, 20));
-      setStatus('Enviando PDF para a IA…');
+      setStatus(`Enviando ${kindLabel} para a IA…`);
 
-      // A partir daqui a IA está lendo o PDF
-      setTimeout(() => setStatus('IA lendo o extrato e identificando lançamentos…'), 600);
+      // A partir daqui a IA está lendo o arquivo
+      setTimeout(() => setStatus(`IA lendo o ${kindLabel} e identificando lançamentos…`), 600);
 
-      const result = await parseFn({ data: { pdfDataUrl: dataUrl, filename: file.name } });
+      const mediaType = file.type || (isImage ? 'image/png' : 'application/pdf');
+      const result = await parseFn({ data: { pdfDataUrl: dataUrl, filename: file.name, mediaType } });
       setStatement(result);
       setStatus('Organizando transações e detectando parcelamentos…');
       setProgress(95);
