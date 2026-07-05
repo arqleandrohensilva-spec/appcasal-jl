@@ -27,7 +27,8 @@ const TYPES: { value: 'corrente' | 'poupanca' | 'dinheiro' | 'investimento'; lab
 
 function Contas() {
   const { activeProfile } = useAppContext();
-  const { accounts, addAccount, updateAccount, removeAccount, transactions } = useData();
+  const { accounts, addAccount, updateAccount, removeAccount, transactions, updateTransaction, removeTransaction } = useData();
+  const owner: 'leandro' | 'jonathan' = activeProfile === 'casal' ? 'leandro' : activeProfile;
   const [open, setOpen] = useState(false);
 
   const myAccounts = accounts.filter(a => activeProfile === 'casal' || a.owner === activeProfile);
