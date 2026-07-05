@@ -685,11 +685,18 @@ function ImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
 }
 
 // ============ IMPORTAR PDF (extrato / fatura) ============
+interface InstallmentSlot {
+  index: number;           // 1..total
+  date: string;            // ISO YYYY-MM-DD
+  exists: boolean;
+  existing?: { description: string; date: string; amount: number };
+}
 interface PdfRow extends StatementEntry {
   _id: string;
   _import: boolean;
   _duplicate: boolean;
   _duplicateOf?: { description: string; date: string; amount: number; matchType: 'exata' | 'nome+valor' | 'valor+data' };
+  _installmentPlan?: InstallmentSlot[]; // preenchido quando é parcelado
 }
 
 // Normaliza texto para comparação
