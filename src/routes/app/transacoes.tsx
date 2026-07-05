@@ -712,6 +712,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState<string>('');
   const [statement, setStatement] = useState<ParsedStatement | null>(null);
   const [rows, setRows] = useState<PdfRow[]>([]);
   const [destination, setDestination] = useState<string>('');
