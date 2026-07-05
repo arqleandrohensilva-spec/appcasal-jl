@@ -144,6 +144,14 @@
     overflow-x: hidden;
     max-width: 100vw;
   }
+
+  /* Permite que filhos de grid/flex encolham dentro do container em telas
+     pequenas, evitando que texto longo (ex.: SelectTrigger, botões) empurre
+     o card para fora da viewport no celular. */
+  main .grid > *,
+  main [class*="grid-cols"] > * {
+    min-width: 0;
+  }
 }
 
 /* Sonner: contain toast width so it never ultrapassa a linha do cabeçalho no mobile */
@@ -157,4 +165,5 @@
   word-break: break-word;
   overflow-wrap: anywhere;
 }
+
 
