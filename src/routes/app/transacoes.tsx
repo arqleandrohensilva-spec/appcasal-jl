@@ -697,6 +697,8 @@ interface PdfRow extends StatementEntry {
   _duplicate: boolean;
   _duplicateOf?: { description: string; date: string; amount: number; matchType: 'exata' | 'nome+valor' | 'valor+data' };
   _installmentPlan?: InstallmentSlot[]; // preenchido quando é parcelado
+  _conflictGroup?: string;               // id do grupo de conflito entre leituras
+  _sourceFile?: string;                  // arquivo de origem (útil quando importou vários)
 }
 
 // Normaliza texto para comparação
