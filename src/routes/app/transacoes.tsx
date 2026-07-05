@@ -905,38 +905,39 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     const account = kind === 'account' ? accounts.find(a => a.id === id) : undefined;
     const method = card?.name || account?.name || '—';
 
-    let count = 0;
-    let groups = 0;
+    let count = 0;         // parcelas/lançamentos realmente criados
+    let skipped = 0;       // parcelas puladas por já existirem
+    let groups = 0;        // parcelamentos importados (com pelo menos 1 parcela nova)
 
     for (const r of toImport) {
-      // Se o usuário optou por importar mesmo uma transferência, tratamos como
-      // despesa/receita segundo o sinal do valor mas mantemos categoria "Transferência"
-      // para não contaminar os relatórios de gastos reais.
       const isTransfer = r.type === 'transferencia';
       const effectiveType: 'despesa' | 'receita' = isTransfer
         ? 'despesa'
         : (r.type as 'despesa' | 'receita');
       const effectiveCategory = isTransfer ? 'Transferência' : (r.category || 'Outros');
 
-      const isParcelado = !isTransfer && r.installmentTotal && r.installmentTotal > 1 && r.installmentCurrent && r.installmentCurrent >= 1;
+      const isParcelado = !isTransfer && r.installmentTotal && r.installmentTotal > 1 && r._installmentPlan && r._installmentPlan.length > 0;
       if (isParcelado) {
         const total = r.installmentTotal!;
-        const current = r.installmentCurrent!;
-        // reconstrói o parcelamento a partir da data desta parcela
-        const startDate = addMonthsISO(r.date, -(current - 1));
-        addTransaction({
-          description: r.description,
-          amount: r.amount * total,       // amount total; addTransaction divide por N
-          date: startDate,
-          category: effectiveCategory,
-          paymentMethod: method,
-          cardId: card?.id,
-          accountId: account?.id,
-          installments: total,
-          type: effectiveType,
-          owner,
-        });
-        count += total;
+        const plan = r._installmentPlan!;
+        const missing = plan.filter(s => !s.exists);
+        skipped += plan.length - missing.length;
+        if (missing.length === 0) continue;
+        // Cria cada parcela faltante individualmente (installments:1) para não recriar as que já existem.
+        for (const slot of missing) {
+          addTransaction({
+            description: `${r.description} (${slot.index}/${total})`,
+            amount: r.amount, // valor por parcela
+            date: slot.date,
+            category: effectiveCategory,
+            paymentMethod: method,
+            cardId: card?.id,
+            accountId: account?.id,
+            type: effectiveType,
+            owner,
+          });
+          count += 1;
+        }
         groups += 1;
       } else {
         addTransaction({
@@ -953,9 +954,10 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         count += 1;
       }
     }
-    toast.success(
-      `${toImport.length} lançamentos importados${groups > 0 ? ` (${groups} parcelamentos reconstruídos, ${count} parcelas no total)` : ''}.`,
-    );
+    const parts = [`${count} lançamento${count === 1 ? '' : 's'} importado${count === 1 ? '' : 's'}`];
+    if (groups > 0) parts.push(`${groups} parcelamento${groups === 1 ? '' : 's'}`);
+    if (skipped > 0) parts.push(`${skipped} parcela${skipped === 1 ? '' : 's'} já existia${skipped === 1 ? '' : 'm'} e foi${skipped === 1 ? '' : 'ram'} pulada${skipped === 1 ? '' : 's'}`);
+    toast.success(parts.join(' · '));
     setOpen(false);
     setStatement(null);
     setRows([]);
