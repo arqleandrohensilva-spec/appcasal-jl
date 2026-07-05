@@ -86,37 +86,81 @@ Regras:
 
     const filename = data.filename ?? (isImage ? 'print.png' : 'extrato.pdf');
 
-    const result = await generateText({
-      model,
-      experimental_output: Output.object({ schema: StatementSchema }),
-      messages: [
-        { role: 'system', content: system },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: isImage
-                ? 'Este é um print/screenshot direto da tela do banco — é nítido e legível. Extraia TODAS as transações visíveis em JSON estruturado, mesmo que a imagem esteja em resolução de celular. Não recuse por qualidade: se conseguir ler qualquer texto, extraia o que dá para ler.'
-                : 'Extraia o extrato/fatura completo em JSON estruturado. Todas as transações.',
-            },
-            isImage
-              ? {
-                  type: 'image',
-                  image: data.pdfDataUrl,
-                  mediaType: detected,
-                }
-              : ({
-                  type: 'file',
-                  data: data.pdfDataUrl,
-                  mediaType: detected,
-                  filename,
-                } as never),
-          ],
-        },
-      ],
-    });
+    const messages = [
+      { role: 'system' as const, content: system },
+      {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'text' as const,
+            text: isImage
+              ? 'Este é um print/screenshot direto da tela do banco — é nítido e legível. Extraia TODAS as transações visíveis em JSON estruturado, mesmo que a imagem esteja em resolução de celular. Não recuse por qualidade: se conseguir ler qualquer texto, extraia o que dá para ler.'
+              : 'Extraia o extrato/fatura completo em JSON estruturado. Todas as transações.',
+          },
+          isImage
+            ? { type: 'image' as const, image: data.pdfDataUrl, mediaType: detected }
+            : ({ type: 'file', data: data.pdfDataUrl, mediaType: detected, filename } as never),
+        ],
+      },
+    ];
 
+    // Normaliza o payload que veio do modelo para o formato esperado.
+    const normalize = (raw: unknown): ParsedStatement => {
+      const parsed = StatementSchema.safeParse(raw);
+      if (parsed.success) {
+        return {
+          ...parsed.data,
+          entries: parsed.data.entries.map(e => ({
+            ...e,
+            installmentCurrent: e.installmentCurrent ?? null,
+            installmentTotal: e.installmentTotal ?? null,
+            transferReason: e.transferReason ?? null,
+          })),
+        };
+      }
+      // Fallback: tenta manter só as entries que casam.
+      const anyRaw = raw as { entries?: unknown[]; [k: string]: unknown };
+      const entries = Array.isArray(anyRaw?.entries)
+        ? anyRaw.entries.flatMap(e => {
+            const p = EntrySchema.safeParse(e);
+            if (!p.success) return [];
+            return [{
+              ...p.data,
+              installmentCurrent: p.data.installmentCurrent ?? null,
+              installmentTotal: p.data.installmentTotal ?? null,
+              transferReason: p.data.transferReason ?? null,
+            }];
+          })
+        : [];
+      return {
+        statementType: (anyRaw?.statementType as ParsedStatement['statementType']) ?? 'unknown',
+        bank: (anyRaw?.bank as string) ?? '',
+        periodStart: (anyRaw?.periodStart as string) ?? '',
+        periodEnd: (anyRaw?.periodEnd as string) ?? '',
+        entries,
+      };
+    };
 
-    return result.experimental_output as ParsedStatement;
+    try {
+      const result = await generateText({
+        model,
+        experimental_output: Output.object({ schema: StatementSchema }),
+        messages,
+      });
+      return normalize(result.experimental_output);
+    } catch (err) {
+      // Se a validação do schema falhou mas o modelo devolveu texto/JSON,
+      // tenta recuperar o JSON bruto antes de propagar o erro.
+      if (NoObjectGeneratedError.isInstance(err) && err.text) {
+        try {
+          const cleaned = err.text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+          const raw = JSON.parse(cleaned);
+          return normalize(raw);
+        } catch {
+          // cai para o throw abaixo
+        }
+      }
+      throw err;
+    }
   });
+
