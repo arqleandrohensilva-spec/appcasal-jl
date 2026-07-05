@@ -910,8 +910,38 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           _duplicate: dup,
           _duplicateOf: match ?? (intraDup ? { description: e.description, date: e.date, amount: e.amount, matchType: 'exata' as const } : undefined),
           _installmentPlan: plan,
+          _sourceFile: e._sourceFile,
         };
       });
+
+      // --- Conflitos fuzzy entre leituras (mesmo gasto extraído com pequenas divergências) ---
+      // Agrupa linhas que provavelmente representam o mesmo lançamento mas divergem em
+      // nome/valor/data (ex.: R$45,90 vs R$45,89, "UBER *TRIP" vs "Uber Trip"). Ignora
+      // linhas já marcadas como duplicata do app (essas já têm tratamento próprio).
+      const candidates = parsed.filter(r => !r._duplicate && r.type !== 'transferencia');
+      for (let a = 0; a < candidates.length; a++) {
+        const ra = candidates[a];
+        if (ra._conflictGroup) continue;
+        for (let b = a + 1; b < candidates.length; b++) {
+          const rb = candidates[b];
+          if (rb._conflictGroup) continue;
+          if (ra._sourceFile && rb._sourceFile && ra._sourceFile === rb._sourceFile) continue; // só entre arquivos diferentes
+          const amtA = Math.abs(ra.amount), amtB = Math.abs(rb.amount);
+          const amtDiff = Math.abs(amtA - amtB);
+          const amtPct = amtDiff / Math.max(amtA, amtB, 0.01);
+          const overlap = descOverlap(ra.description, rb.description);
+          const days = daysBetween(ra.date, rb.date);
+          // Match "fuzzy": valor até 5% ou R$1 de diferença, sobreposição de nome ≥40%, mesmo mês
+          const looksLikeSame = (amtDiff <= 1 || amtPct <= 0.05) && overlap >= 0.4 && days <= 5;
+          if (looksLikeSame && !(amtDiff < 0.01 && overlap >= 0.9 && days === 0)) {
+            const gid = ra._conflictGroup ?? `cf-${a}`;
+            ra._conflictGroup = gid;
+            rb._conflictGroup = gid;
+            // Deixa apenas o primeiro marcado para importar; o outro fica pulado até o usuário escolher
+            rb._import = false;
+          }
+        }
+      }
       setRows(parsed);
 
       // Sugere destino
