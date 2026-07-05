@@ -7,10 +7,11 @@ const EntrySchema = z.object({
   date: z.string(),
   description: z.string(),
   amount: z.number(),
-  type: z.enum(['despesa', 'receita']),
+  type: z.enum(['despesa', 'receita', 'transferencia']),
   category: z.string(),
   installmentCurrent: z.number().nullable(),
   installmentTotal: z.number().nullable(),
+  transferReason: z.string().nullable(), // por que foi marcado como transferência (ex: "PIX entre contas próprias", "Pagamento de fatura")
 });
 
 const StatementSchema = z.object({
@@ -61,9 +62,20 @@ Regras:
    "AMAZON.COM.BR SAO PAULO" -> "Amazon"
    "SUPERMERCADO XYZ LTDA" -> "Supermercado XYZ"
 - amount: SEMPRE positivo (número, em reais). Nunca use string.
-- type: "despesa" para gasto/débito/compra; "receita" para entrada/crédito/estorno/salário/pix recebido.
-- Parcelamento: se a linha indicar parcela (ex: "PARC 03/10", "3/10", "10X", "PARCELA 3 DE 10"), preencha installmentCurrent (3) e installmentTotal (10). Caso à vista, use null nos dois campos.
-- category (escolha UMA): Alimentação, Moradia, Saúde, Transporte, Lazer, Vestuário, Educação, Assinaturas, Investimentos, Outros.
+- type:
+   * "despesa" para gasto/débito/compra real com terceiros.
+   * "receita" para entrada/crédito de terceiros (salário, PIX recebido de outra pessoa, estorno).
+   * "transferencia" (IMPORTANTE, para não poluir os relatórios) — use quando a linha NÃO for gasto nem receita de verdade, e sim movimentação interna. Sinais típicos:
+     - "Transferência entre contas próprias", "TRANSF ENTRE CONTAS", "TED MESMA TITULARIDADE", "DOC MESMA TITULARIDADE".
+     - PIX enviado/recebido em que remetente e destinatário são a MESMA pessoa (mesmo nome do titular do extrato, mesmo CPF).
+     - "Aplicação automática", "Resgate automático", "Investimento CDB/Tesouro", "Poupança - depósito/saque", "RDB", "Aplicação em fundo".
+     - "Pagamento de fatura cartão", "PAGTO CARTÃO", "DEBITO AUTOMATICO FATURA CARTAO" (é quitação de fatura, não gasto novo).
+     - "Saque em caixa/ATM" (dinheiro só mudou de lugar).
+     - "Estorno de transferência", "Devolução PIX" quando cancela uma transferência anterior.
+   Em caso de dúvida entre despesa/receita e transferência, escolha "transferencia" só se houver sinal claro; senão mantenha despesa/receita.
+- transferReason: quando type="transferencia", explique em 3-6 palavras (ex: "PIX entre contas próprias", "Pagamento fatura cartão", "Aplicação CDB"). Nos outros tipos, use null.
+- Parcelamento: se a linha indicar parcela (ex: "PARC 03/10", "3/10", "10X", "PARCELA 3 DE 10"), preencha installmentCurrent (3) e installmentTotal (10). Caso à vista, use null nos dois campos. Nunca marque transferência como parcelada.
+- category (escolha UMA): Alimentação, Moradia, Saúde, Transporte, Lazer, Vestuário, Educação, Assinaturas, Investimentos, Outros. Se type="transferencia", use "Transferência".
 - date no formato YYYY-MM-DD. Se aparecer só dia/mês, use o ano do período do extrato (ou o ano atual se não aparecer).
 - periodStart / periodEnd em YYYY-MM-DD. Se for print e não der pra determinar, use a primeira e última data visíveis.
 - Retorne TODAS as transações visíveis, sem resumir.`;

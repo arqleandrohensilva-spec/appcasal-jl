@@ -776,7 +776,9 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       const parsed: PdfRow[] = (result.entries ?? []).map((e, i) => {
         const key = `${e.date}::${Math.abs(e.amount).toFixed(2)}::${e.description.toLowerCase().slice(0, 20)}`;
         const dup = existingKeys.has(key);
-        return { ...e, _id: `${i}`, _import: !dup, _duplicate: dup };
+        const isTransfer = e.type === 'transferencia';
+        // Transferências e duplicatas ficam desmarcadas por padrão para não poluir os relatórios
+        return { ...e, _id: `${i}`, _import: !dup && !isTransfer, _duplicate: dup };
       });
       setRows(parsed);
 
@@ -809,6 +811,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
 
   const toImport = rows.filter(r => r._import);
   const totalImport = toImport.reduce((s, r) => s + (r.type === 'despesa' ? r.amount : 0), 0);
+  const transferCount = rows.filter(r => r.type === 'transferencia').length;
 
   const confirm = () => {
     if (!destination) { toast.error('Escolha um cartão ou conta de destino.'); return; }
@@ -821,7 +824,16 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     let groups = 0;
 
     for (const r of toImport) {
-      const isParcelado = r.installmentTotal && r.installmentTotal > 1 && r.installmentCurrent && r.installmentCurrent >= 1;
+      // Se o usuário optou por importar mesmo uma transferência, tratamos como
+      // despesa/receita segundo o sinal do valor mas mantemos categoria "Transferência"
+      // para não contaminar os relatórios de gastos reais.
+      const isTransfer = r.type === 'transferencia';
+      const effectiveType: 'despesa' | 'receita' = isTransfer
+        ? 'despesa'
+        : (r.type as 'despesa' | 'receita');
+      const effectiveCategory = isTransfer ? 'Transferência' : (r.category || 'Outros');
+
+      const isParcelado = !isTransfer && r.installmentTotal && r.installmentTotal > 1 && r.installmentCurrent && r.installmentCurrent >= 1;
       if (isParcelado) {
         const total = r.installmentTotal!;
         const current = r.installmentCurrent!;
@@ -831,12 +843,12 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           description: r.description,
           amount: r.amount * total,       // amount total; addTransaction divide por N
           date: startDate,
-          category: r.category || 'Outros',
+          category: effectiveCategory,
           paymentMethod: method,
           cardId: card?.id,
           accountId: account?.id,
           installments: total,
-          type: r.type,
+          type: effectiveType,
           owner,
         });
         count += total;
@@ -846,11 +858,11 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           description: r.description,
           amount: r.amount,
           date: r.date,
-          category: r.category || 'Outros',
+          category: effectiveCategory,
           paymentMethod: method,
           cardId: card?.id,
           accountId: account?.id,
-          type: r.type,
+          type: effectiveType,
           owner,
         });
         count += 1;
@@ -924,6 +936,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {rows.length} lançamentos · {rows.filter(r => r._duplicate).length} duplicatas
+                    {transferCount > 0 && <> · <span className="text-sky-600 dark:text-sky-400 font-medium">{transferCount} transferências</span></>}
                   </p>
                 </div>
                 <div className="md:col-span-1 space-y-1">
@@ -954,10 +967,10 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-2 text-xs flex-wrap">
                 <Button size="sm" variant="outline" className="h-7"
-                  onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: !r._duplicate })))}>
-                  Selecionar não-duplicadas
+                  onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: !r._duplicate && r.type !== 'transferencia' })))}>
+                  Só receitas/despesas reais
                 </Button>
                 <Button size="sm" variant="outline" className="h-7"
                   onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: true })))}>
@@ -967,6 +980,11 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   onClick={() => setRows(prev => prev.map(r => ({ ...r, _import: false })))}>
                   Nenhuma
                 </Button>
+                {transferCount > 0 && (
+                  <span className="text-[10px] text-sky-700 dark:text-sky-400 ml-auto">
+                    ↔ {transferCount} transferência{transferCount > 1 ? 's' : ''} detectada{transferCount > 1 ? 's' : ''} e desmarcada{transferCount > 1 ? 's' : ''} — não entram em receitas/despesas
+                  </span>
+                )}
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto border border-border rounded-lg">
@@ -982,10 +1000,13 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map(r => (
+                    {rows.map(r => {
+                      const isTransfer = r.type === 'transferencia';
+                      return (
                       <tr key={r._id} className={cn(
                         'border-t border-border',
                         r._duplicate && 'bg-amber-50 dark:bg-amber-950/20',
+                        isTransfer && !r._duplicate && 'bg-sky-50/60 dark:bg-sky-950/20',
                         !r._import && 'opacity-40',
                       )}>
                         <td className="p-1.5 text-center">
@@ -1003,9 +1024,16 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                         <td className="p-1.5">
                           <Input className="h-7 text-xs px-1" value={r.description}
                             onChange={e => updateRow(r._id, { description: e.target.value })} />
-                          {r._duplicate && (
-                            <span className="text-[9px] text-amber-700 dark:text-amber-400">⚠ já existe</span>
-                          )}
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {isTransfer && (
+                              <span className="text-[9px] px-1 rounded bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 font-medium">
+                                ↔ transferência{r.transferReason ? ` — ${r.transferReason}` : ''}
+                              </span>
+                            )}
+                            {r._duplicate && (
+                              <span className="text-[9px] text-amber-700 dark:text-amber-400">⚠ já existe</span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-1.5">
                           <Select value={r.category} onValueChange={v => updateRow(r._id, { category: v })}>
@@ -1016,7 +1044,9 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                           </Select>
                         </td>
                         <td className="p-1.5">
-                          {r.installmentTotal && r.installmentTotal > 1 ? (
+                          {isTransfer ? (
+                            <span className="text-[10px] text-sky-600 dark:text-sky-400">—</span>
+                          ) : r.installmentTotal && r.installmentTotal > 1 ? (
                             <Badge variant="outline" className="text-[9px] h-5 px-1.5">
                               {r.installmentCurrent}/{r.installmentTotal}
                             </Badge>
@@ -1026,12 +1056,14 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                         </td>
                         <td className={cn(
                           'p-1.5 text-right font-semibold tabular-nums',
-                          r.type === 'despesa' ? 'text-rose-600' : 'text-emerald-600',
+                          isTransfer ? 'text-sky-600 dark:text-sky-400'
+                            : r.type === 'despesa' ? 'text-rose-600' : 'text-emerald-600',
                         )}>
-                          {r.type === 'despesa' ? '-' : '+'}{formatCurrency(r.amount)}
+                          {isTransfer ? '↔ ' : r.type === 'despesa' ? '-' : '+'}{formatCurrency(r.amount)}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
