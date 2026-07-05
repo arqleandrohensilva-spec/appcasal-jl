@@ -457,7 +457,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       [monthKey]: { paidAt: dateISO, accountId, amount: Math.abs(amount), txId },
     };
     setCards(prev => prev.map(c => c.id === cardId ? { ...c, paidInvoices: nextPaid } : c));
-    supabase.from('cards').update({ paid_invoices: nextPaid }).eq('id', cardId)
+    supabase.from('cards').update({ paid_invoices: nextPaid } as any).eq('id', cardId)
       .then(({ error }) => { if (error) refetchAll(wsId!); });
     toast.success('Fatura marcada como paga!');
   };
@@ -475,7 +475,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const nextPaid = { ...(card.paidInvoices || {}) };
     delete nextPaid[monthKey];
     setCards(prev => prev.map(c => c.id === cardId ? { ...c, paidInvoices: nextPaid } : c));
-    supabase.from('cards').update({ paid_invoices: nextPaid }).eq('id', cardId)
+    supabase.from('cards').update({ paid_invoices: nextPaid } as any).eq('id', cardId)
       .then(({ error }) => { if (error) refetchAll(wsId!); });
     toast.success('Pagamento estornado.');
   };
