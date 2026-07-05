@@ -754,10 +754,27 @@ function MonthStrip({
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
 
-  // Ao mudar o offset, garante que o botão ativo fique visível (centralizado).
+  // Centraliza o botão ativo dentro do próprio container (sem rolar a página).
+  // Roda no mount (tab switch / reload) e a cada mudança de offset/base.
+  const didInitialScroll = useRef(false);
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  }, [offset]);
+    const container = scrollRef.current;
+    const btn = activeRef.current;
+    if (!container || !btn) return;
+    const doScroll = () => {
+      const target = btn.offsetLeft - (container.clientWidth - btn.clientWidth) / 2;
+      const max = container.scrollWidth - container.clientWidth;
+      const left = Math.max(0, Math.min(max, target));
+      container.scrollTo({ left, behavior: didInitialScroll.current ? 'smooth' : 'auto' });
+      didInitialScroll.current = true;
+    };
+    // Aguarda layout (fontes / tab que acabou de montar) antes de medir.
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(doScroll);
+      (doScroll as any)._raf2 = raf2;
+    });
+    return () => cancelAnimationFrame(raf1);
+  }, [offset, baseKey, range]);
 
   const offsets = Array.from({ length: range * 2 + 1 }, (_, i) => i - range);
   // Anos únicos presentes na faixa (para o seletor rápido).
