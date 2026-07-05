@@ -1097,13 +1097,33 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                         isTransfer && !r._duplicate && 'bg-sky-50/60 dark:bg-sky-950/20',
                         !r._import && 'opacity-40',
                       )}>
-                        <td className="p-1.5 text-center">
-                          <input
-                            type="checkbox"
-                            checked={r._import}
-                            onChange={e => updateRow(r._id, { _import: e.target.checked })}
-                            className="h-3.5 w-3.5"
-                          />
+                        <td className="p-1.5 text-center align-top">
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => updateRow(r._id, { _import: true })}
+                              className={cn(
+                                'text-[9px] font-semibold rounded px-1.5 py-0.5 border transition',
+                                r._import
+                                  ? 'bg-emerald-500 text-white border-emerald-500'
+                                  : 'bg-transparent text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40',
+                              )}
+                            >
+                              Importar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateRow(r._id, { _import: false })}
+                              className={cn(
+                                'text-[9px] font-semibold rounded px-1.5 py-0.5 border transition',
+                                !r._import
+                                  ? 'bg-muted-foreground/80 text-white border-muted-foreground/80'
+                                  : 'bg-transparent text-muted-foreground border-border hover:bg-muted',
+                              )}
+                            >
+                              Pular
+                            </button>
+                          </div>
                         </td>
                         <td className="p-1.5">
                           <Input type="date" className="h-7 text-xs px-1" value={r.date}
