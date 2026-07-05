@@ -824,7 +824,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         if (result.periodStart && (!periodStart || result.periodStart < periodStart)) periodStart = result.periodStart;
         if (result.periodEnd && (!periodEnd || result.periodEnd > periodEnd)) periodEnd = result.periodEnd;
 
-        (result.entries ?? []).forEach(e => allEntries.push(e));
+        (result.entries ?? []).forEach(e => allEntries.push({ ...e, _sourceFile: file.name }));
 
         // Progresso proporcional aos arquivos processados
         setProgress(Math.min(90, 10 + Math.round(((idx + 1) / files.length) * 80)));
