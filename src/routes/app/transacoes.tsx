@@ -828,8 +828,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       // para não contaminar os relatórios de gastos reais.
       const isTransfer = r.type === 'transferencia';
       const effectiveType: 'despesa' | 'receita' = isTransfer
-        ? 'despesa' // maioria dos casos (pagto fatura, aplicação, PIX saída) — fácil de ajustar depois
-        : r.type;
+        ? 'despesa'
+        : (r.type as 'despesa' | 'receita');
       const effectiveCategory = isTransfer ? 'Transferência' : (r.category || 'Outros');
 
       const isParcelado = !isTransfer && r.installmentTotal && r.installmentTotal > 1 && r.installmentCurrent && r.installmentCurrent >= 1;
