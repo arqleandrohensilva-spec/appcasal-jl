@@ -689,6 +689,32 @@ interface PdfRow extends StatementEntry {
   _id: string;
   _import: boolean;
   _duplicate: boolean;
+  _duplicateOf?: { description: string; date: string; amount: number; matchType: 'exata' | 'nome+valor' | 'valor+data' };
+}
+
+// Normaliza texto para comparação
+function normDesc(s: string) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Sobreposição de palavras significativas (>=3 chars)
+function descOverlap(a: string, b: string): number {
+  const wa = new Set(normDesc(a).split(' ').filter(w => w.length >= 3));
+  const wb = new Set(normDesc(b).split(' ').filter(w => w.length >= 3));
+  if (wa.size === 0 || wb.size === 0) return 0;
+  let hits = 0;
+  wa.forEach(w => { if (wb.has(w)) hits++; });
+  return hits / Math.min(wa.size, wb.size);
+}
+
+function daysBetween(a: string, b: string) {
+  const da = new Date(a).getTime();
+  const db = new Date(b).getTime();
+  return Math.abs(Math.round((da - db) / 86400000));
 }
 
 function fileToDataUrl(file: File): Promise<string> {
