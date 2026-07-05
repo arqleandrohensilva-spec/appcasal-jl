@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -711,6 +712,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState<string>('');
   const [statement, setStatement] = useState<ParsedStatement | null>(null);
   const [rows, setRows] = useState<PdfRow[]>([]);
   const [destination, setDestination] = useState<string>('');
@@ -734,10 +737,28 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     setOpen(true);
     setStatement(null);
     setRows([]);
+    setProgress(5);
+    setStatus('Preparando o arquivo…');
+
+    // Progresso simulado enquanto a IA processa (não temos streaming do gateway).
+    // Sobe devagar até 90% e trava — os 100% vêm quando a resposta chega.
+    let simTarget = 90;
+    const tick = setInterval(() => {
+      setProgress(p => (p < simTarget ? p + Math.max(1, Math.round((simTarget - p) * 0.08)) : p));
+    }, 400);
+
     try {
       const dataUrl = await fileToDataUrl(file);
+      setProgress(p => Math.max(p, 20));
+      setStatus('Enviando PDF para a IA…');
+
+      // A partir daqui a IA está lendo o PDF
+      setTimeout(() => setStatus('IA lendo o extrato e identificando lançamentos…'), 600);
+
       const result = await parseFn({ data: { pdfDataUrl: dataUrl, filename: file.name } });
       setStatement(result);
+      setStatus('Organizando transações e detectando parcelamentos…');
+      setProgress(95);
 
       // Dedup contra existentes (mesmo owner)
       const existingKeys = new Set(
@@ -763,11 +784,15 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       } else if (myAccounts.length > 0) {
         setDestination(`account:${myAccounts[0].id}`);
       }
+
+      setProgress(100);
+      setStatus(`Pronto! ${parsed.length} lançamentos encontrados.`);
     } catch (err) {
       console.error(err);
       toast.error('Não foi possível ler o PDF. Envie o extrato original do banco.');
       setOpen(false);
     } finally {
+      clearInterval(tick);
       setLoading(false);
     }
   };
@@ -855,9 +880,15 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           </DialogHeader>
 
           {loading && (
-            <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3">
+            <div className="flex-1 flex flex-col items-center justify-center py-16 gap-4 px-6">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Lendo o PDF e extraindo transações…</p>
+              <div className="w-full max-w-md space-y-2">
+                <Progress value={progress} className="h-2" />
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{status || 'Processando…'}</span>
+                  <span className="tabular-nums">{progress}%</span>
+                </div>
+              </div>
               <p className="text-xs text-muted-foreground">Pode levar 20-40 segundos em faturas longas.</p>
             </div>
           )}
