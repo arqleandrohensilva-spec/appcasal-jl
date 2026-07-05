@@ -28,7 +28,15 @@ function AppLayout() {
     <div className="flex bg-background text-foreground min-h-screen">
       <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
       <main className="flex-1 min-w-0 md:ml-64 min-h-screen">
-        <header className="md:hidden sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/95 backdrop-blur px-3 h-12">
+        <header
+          className="md:hidden sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/95 backdrop-blur px-3"
+          style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
+            paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
+            minHeight: 'calc(3rem + env(safe-area-inset-top))',
+          }}
+        >
           <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setMobileOpen(true)} aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </Button>
