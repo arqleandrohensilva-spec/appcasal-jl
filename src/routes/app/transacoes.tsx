@@ -951,6 +951,13 @@ function TxRow({
         <p className="text-xs text-muted-foreground truncate">
           {formatDate(tx.date)} · {tx.category} · {tx.paymentMethod}
         </p>
+        {tx.tags && tx.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {tx.tags.map(tg => (
+              <span key={tg} className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">#{tg}</span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-1 shrink-0">
         <span className={`font-bold text-sm ${tx.type === 'receita' ? 'text-emerald-600' : 'text-rose-600'}`}>
