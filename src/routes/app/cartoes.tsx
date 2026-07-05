@@ -23,10 +23,13 @@ const COLORS = ['purple', 'emerald', 'blue', 'orange', 'rose', 'amber', 'cyan', 
 
 function Cartoes() {
   const { activeProfile } = useAppContext();
-  const { cards, transactions, addCard, updateCard, removeCard } = useData();
+  const { cards, transactions, addCard, updateCard, removeCard, updateTransaction, removeTransaction } = useData();
   const [open, setOpen] = useState(false);
 
+  const owner: 'leandro' | 'jonathan' = activeProfile === 'casal' ? 'leandro' : activeProfile;
   const myCards = cards.filter(c => activeProfile === 'casal' || c.owner === activeProfile);
+
+  const todayISO = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -51,56 +54,62 @@ function Cartoes() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {myCards.map(card => {
-            const cardTx = transactions.filter(t => t.cardId === card.id && t.type === 'despesa');
-            const today = new Date();
-            const monthBills = cardTx.filter(t => {
-              const d = new Date(t.date);
-              return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
-            });
-            const billTotal = monthBills.reduce((s, t) => s + Math.abs(t.amount), 0);
-            const pct = Math.min(100, (billTotal / card.limit) * 100);
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {myCards.map(card => {
+              const cardTx = transactions.filter(t => t.cardId === card.id && t.type === 'despesa');
+              // Usa o ciclo de fatura (mesmo cálculo da visão detalhada) para bater o total.
+              const currentKey = invoiceMonthOf(todayISO, card.closingDay);
+              const monthBills = cardTx.filter(t => invoiceMonthOf(t.date, card.closingDay) === currentKey);
+              const billTotal = monthBills.reduce((s, t) => s + Math.abs(t.amount), 0);
+              const pct = Math.min(100, (billTotal / card.limit) * 100);
 
-            return (
-              <Card key={card.id}>
-                <CardHeader className="flex flex-row items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full bg-${card.color}-500`} />
-                      {card.name}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      Fecha dia {card.closingDay} · Vence dia {card.dueDay}
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    <EditCardButton card={card} onSave={(patch) => { updateCard(card.id, patch); toast.success('Cartão atualizado'); }} />
-                    <Button size="icon" variant="ghost" onClick={() => { removeCard(card.id); toast.success('Cartão removido'); }}>
-                      <Trash2 className="h-4 w-4 text-rose-500" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Fatura do mês</span>
-                      <span className="font-bold">{formatCurrency(billTotal)}</span>
+              return (
+                <Card key={card.id}>
+                  <CardHeader className="flex flex-row items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="flex items-center gap-2">
+                        <span className={`w-3 h-3 rounded-full bg-${card.color}-500`} />
+                        {card.name}
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        Fecha dia {card.closingDay} · Vence dia {card.dueDay}
+                      </p>
                     </div>
-                    <Progress value={pct} />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Limite</span>
-                      <span>{formatCurrency(card.limit)}</span>
+                    <div className="flex gap-1">
+                      <EditCardButton card={card} onSave={(patch) => { updateCard(card.id, patch); toast.success('Cartão atualizado'); }} />
+                      <Button size="icon" variant="ghost" onClick={() => { removeCard(card.id); toast.success('Cartão removido'); }}>
+                        <Trash2 className="h-4 w-4 text-rose-500" />
+                      </Button>
                     </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground pt-2 border-t border-border">
-                    {monthBills.length} lançamento{monthBills.length !== 1 ? 's' : ''} este mês
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Fatura atual</span>
+                        <span className="font-bold">{formatCurrency(billTotal)}</span>
+                      </div>
+                      <Progress value={pct} />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Limite</span>
+                        <span>{formatCurrency(card.limit)}</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground pt-2 border-t border-border">
+                      {monthBills.length} lançamento{monthBills.length !== 1 ? 's' : ''} na fatura
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Fatura detalhada com navegação mês a mês (movida da aba Transações) */}
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Fatura detalhada</h2>
+            <CardInvoiceView owner={owner} onUpdate={updateTransaction} onRemove={removeTransaction} />
+          </div>
+        </>
       )}
     </div>
   );
