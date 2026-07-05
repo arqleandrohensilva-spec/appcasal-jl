@@ -1246,6 +1246,26 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                                 ⚠ já existe: "{r._duplicateOf.description}" · {formatDate(r._duplicateOf.date)} · {formatCurrency(Math.abs(r._duplicateOf.amount))}
                               </span>
                             )}
+                            {hasConflict && siblings.map(sib => {
+                              const diffs: string[] = [];
+                              if (normDesc(sib.description) !== normDesc(r.description)) diffs.push(`nome: "${sib.description}"`);
+                              if (Math.abs(Math.abs(sib.amount) - Math.abs(r.amount)) >= 0.01) diffs.push(`valor: ${formatCurrency(Math.abs(sib.amount))}`);
+                              if (sib.date !== r.date) diffs.push(`data: ${formatDate(sib.date)}`);
+                              return (
+                                <span
+                                  key={sib._id}
+                                  className="text-[9px] px-1 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-800 dark:text-violet-300 font-medium"
+                                  title={`Divergência com "${sib._sourceFile ?? 'outra leitura'}"`}
+                                >
+                                  🔀 conflito com outra leitura{sib._sourceFile ? ` (${sib._sourceFile})` : ''}{diffs.length ? ` — ${diffs.join(' · ')}` : ''}
+                                </span>
+                              );
+                            })}
+                            {r._sourceFile && (
+                              <span className="text-[9px] px-1 rounded bg-muted text-muted-foreground">
+                                📄 {r._sourceFile}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="p-1.5">
