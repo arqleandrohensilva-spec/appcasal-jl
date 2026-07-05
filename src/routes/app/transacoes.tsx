@@ -61,11 +61,15 @@ function Transacoes() {
   });
   const [salaryThursdayAmount, setSalaryThursdayAmount] = useState('');
 
-  // Filtros
+  // Modo de visualização do painel direito: Cartões (fatura) / Contas (extrato) / Tudo (histórico)
+  const [viewMode, setViewMode] = useState<'cards' | 'accounts' | 'all'>('cards');
+
+  // Filtros (usados na aba "Tudo")
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterType, setFilterType] = useState<'all' | 'receita' | 'despesa'>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all'); // 'all' | 'YYYY-MM'
+
 
   const valorNum = parseFloat(amount) || 0;
   const parcelasNum = isInstallment ? Math.max(2, Math.min(parseInt(installments) || 2, 60)) : 1;
