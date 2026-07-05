@@ -758,52 +758,94 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   const isCard = destination.startsWith('card:');
   const isAccount = destination.startsWith('account:');
 
-  const onFile = async (file: File) => {
-    const name = file.name.toLowerCase();
-    const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
-    const isImage = file.type.startsWith('image/')
-      || /\.(png|jpe?g|webp|heic|heif)$/i.test(name);
-    if (!isPdf && !isImage) {
-      toast.error('Envie um PDF do banco ou um print (PNG/JPG) da fatura.');
-      return;
+  const onFiles = async (files: File[]) => {
+    if (files.length === 0) return;
+
+    // Valida cada arquivo antes de começar
+    for (const file of files) {
+      const name = file.name.toLowerCase();
+      const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
+      const isImage = file.type.startsWith('image/')
+        || /\.(png|jpe?g|webp|heic|heif)$/i.test(name);
+      if (!isPdf && !isImage) {
+        toast.error(`"${file.name}": envie um PDF do banco ou um print (PNG/JPG).`);
+        return;
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        toast.error(`"${file.name}" acima de 15MB. Envie um arquivo menor.`);
+        return;
+      }
     }
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error('Arquivo acima de 15MB. Envie o extrato de um mês por vez ou um print menor.');
-      return;
-    }
-    const kindLabel = isImage ? 'print' : 'PDF';
+
     setLoading(true);
     setOpen(true);
     setStatement(null);
     setRows([]);
-    setProgress(5);
-    setStatus('Preparando o arquivo…');
+    setProgress(3);
+    setStatus(files.length > 1 ? `Preparando ${files.length} arquivos…` : 'Preparando o arquivo…');
 
-    // Progresso simulado enquanto a IA processa (não temos streaming do gateway).
-    // Sobe devagar até 90% e trava — os 100% vêm quando a resposta chega.
+    // Progresso simulado enquanto a IA processa (sobe devagar até 90% e trava)
     let simTarget = 90;
     const tick = setInterval(() => {
-      setProgress(p => (p < simTarget ? p + Math.max(1, Math.round((simTarget - p) * 0.08)) : p));
+      setProgress(p => (p < simTarget ? p + Math.max(1, Math.round((simTarget - p) * 0.06)) : p));
     }, 400);
 
+    // Acumuladores entre arquivos
+    const allEntries: StatementEntry[] = [];
+    let firstStatement: ParsedStatement | null = null;
+    const banks = new Set<string>();
+    let statementTypeAcc: ParsedStatement['statementType'] | null = null;
+    let periodStart: string | null = null;
+    let periodEnd: string | null = null;
+
     try {
-      const dataUrl = await fileToDataUrl(file);
-      setProgress(p => Math.max(p, 20));
-      setStatus(`Enviando ${kindLabel} para a IA…`);
+      for (let idx = 0; idx < files.length; idx++) {
+        const file = files[idx];
+        const name = file.name.toLowerCase();
+        const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
+        const isImage = !isPdf;
+        const kindLabel = isImage ? 'print' : 'PDF';
+        const stepPrefix = files.length > 1 ? `[${idx + 1}/${files.length}] ` : '';
 
-      // A partir daqui a IA está lendo o arquivo
-      setTimeout(() => setStatus(`IA lendo o ${kindLabel} e identificando lançamentos…`), 600);
+        setStatus(`${stepPrefix}Enviando ${kindLabel} "${file.name}" para a IA…`);
+        const dataUrl = await fileToDataUrl(file);
+        setTimeout(() => setStatus(`${stepPrefix}IA lendo "${file.name}"…`), 400);
 
-      const mediaType = file.type || (isImage ? 'image/png' : 'application/pdf');
-      const result = await parseFn({ data: { pdfDataUrl: dataUrl, filename: file.name, mediaType } });
-      setStatement(result);
-      setStatus('Organizando transações e detectando parcelamentos…');
+        const mediaType = file.type || (isImage ? 'image/png' : 'application/pdf');
+        const result = await parseFn({ data: { pdfDataUrl: dataUrl, filename: file.name, mediaType } });
+
+        if (!firstStatement) firstStatement = result;
+        if (result.bank) banks.add(result.bank);
+        if (result.statementType && result.statementType !== 'unknown') {
+          if (!statementTypeAcc) statementTypeAcc = result.statementType;
+        }
+        if (result.periodStart && (!periodStart || result.periodStart < periodStart)) periodStart = result.periodStart;
+        if (result.periodEnd && (!periodEnd || result.periodEnd > periodEnd)) periodEnd = result.periodEnd;
+
+        (result.entries ?? []).forEach(e => allEntries.push(e));
+
+        // Progresso proporcional aos arquivos processados
+        setProgress(Math.min(90, 10 + Math.round(((idx + 1) / files.length) * 80)));
+      }
+
+      // Statement combinado
+      const combinedStatement: ParsedStatement = {
+        ...(firstStatement as ParsedStatement),
+        bank: banks.size > 0 ? Array.from(banks).join(' + ') : (firstStatement?.bank ?? ''),
+        statementType: statementTypeAcc ?? firstStatement?.statementType ?? 'unknown',
+        periodStart: periodStart ?? firstStatement?.periodStart ?? '',
+        periodEnd: periodEnd ?? firstStatement?.periodEnd ?? '',
+        entries: allEntries,
+      };
+      setStatement(combinedStatement);
+      setStatus('Organizando transações e detectando duplicatas…');
       setProgress(95);
 
-      // Dedup contra existentes (mesmo owner) — casa por nome parcial + valor
+      // Dedup contra existentes + entre os próprios arquivos (mesmo owner)
       const ownerTx = transactions.filter(t => t.owner === owner);
+      const seenIntra = new Set<string>();
 
-      const parsed: PdfRow[] = (result.entries ?? []).map((e, i) => {
+      const parsed: PdfRow[] = allEntries.map((e, i) => {
         const amt = Math.abs(e.amount);
         const isTransfer = e.type === 'transferencia';
         const isParcelado = !isTransfer && e.installmentTotal && e.installmentTotal > 1 && e.installmentCurrent && e.installmentCurrent >= 1;
@@ -816,7 +858,6 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           const startDate = addMonthsISO(e.date, -(current - 1));
           plan = Array.from({ length: total }, (_, k) => {
             const expected = addMonthsISO(startDate, k);
-            // procura parcela com mesmo valor e nome parcial numa janela de ±10 dias
             const found = ownerTx.find(t =>
               Math.abs(Math.abs(t.amount) - amt) < 0.01
               && descOverlap(t.description, e.description) >= 0.4
@@ -831,7 +872,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           });
         }
 
-        // --- Dedup para gastos à vista (não-parcelados) ---
+        // --- Dedup para gastos à vista ---
         let match: PdfRow['_duplicateOf'] | undefined;
         if (!isParcelado) {
           const sameAmount = ownerTx.filter(t => Math.abs(Math.abs(t.amount) - amt) < 0.01);
@@ -852,37 +893,37 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           }
         }
 
-        // Parcelado é duplicado só se TODAS as parcelas já existem
+        // Dedup entre arquivos do mesmo lote (mesmo valor + descrição normalizada + data)
+        const intraKey = `${e.date}::${amt.toFixed(2)}::${normDesc(e.description).slice(0, 24)}`;
+        const intraDup = seenIntra.has(intraKey);
+        if (!intraDup) seenIntra.add(intraKey);
+
         const allExist = plan ? plan.every(s => s.exists) : false;
-        const dup = isParcelado ? allExist : !!match;
+        const dup = isParcelado ? allExist : (!!match || intraDup);
 
         return {
           ...e,
           _id: `${i}`,
           _import: !dup && !isTransfer,
           _duplicate: dup,
-          _duplicateOf: match,
+          _duplicateOf: match ?? (intraDup ? { description: e.description, date: e.date, amount: e.amount, matchType: 'exata' as const } : undefined),
           _installmentPlan: plan,
         };
       });
       setRows(parsed);
 
-      // Sugere destino automaticamente
-      if (result.statementType === 'card' && myCards.length > 0) {
-        setDestination(`card:${myCards[0].id}`);
-      } else if (result.statementType === 'account' && myAccounts.length > 0) {
-        setDestination(`account:${myAccounts[0].id}`);
-      } else if (myCards.length > 0) {
-        setDestination(`card:${myCards[0].id}`);
-      } else if (myAccounts.length > 0) {
-        setDestination(`account:${myAccounts[0].id}`);
-      }
+      // Sugere destino
+      const st = combinedStatement.statementType;
+      if (st === 'card' && myCards.length > 0) setDestination(`card:${myCards[0].id}`);
+      else if (st === 'account' && myAccounts.length > 0) setDestination(`account:${myAccounts[0].id}`);
+      else if (myCards.length > 0) setDestination(`card:${myCards[0].id}`);
+      else if (myAccounts.length > 0) setDestination(`account:${myAccounts[0].id}`);
 
       setProgress(100);
-      setStatus(`Pronto! ${parsed.length} lançamentos encontrados.`);
+      setStatus(`Pronto! ${parsed.length} lançamentos encontrados${files.length > 1 ? ` em ${files.length} arquivos` : ''}.`);
     } catch (err) {
       console.error(err);
-      toast.error('Não foi possível ler o arquivo. Envie o PDF original do banco ou um print nítido da fatura.');
+      toast.error('Não foi possível ler um dos arquivos. Envie o PDF original do banco ou prints nítidos da fatura.');
       setOpen(false);
     } finally {
       clearInterval(tick);
@@ -966,13 +1007,17 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   return (
     <>
       <input
-        ref={fileRef} type="file"
+        ref={fileRef} type="file" multiple
         accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
         className="hidden"
-        onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.currentTarget.value = ''; }}
+        onChange={e => {
+          const fs = Array.from(e.target.files ?? []);
+          if (fs.length > 0) onFiles(fs);
+          e.currentTarget.value = '';
+        }}
       />
       <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
-        <FileText className="h-4 w-4" /> Importar PDF ou print
+        <FileText className="h-4 w-4" /> Importar PDF ou prints
       </Button>
 
       <Dialog open={open} onOpenChange={(o) => { if (!loading) setOpen(o); }}>
