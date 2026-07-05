@@ -175,3 +175,51 @@ export function goalProgressByOwner(contributions: GoalContribution[], goalId: s
   }
   return byOwner;
 }
+
+/**
+ * Retorna o mês (YYYY-MM) da fatura de cartão para uma data de compra.
+ * Compras feitas após o `closingDay` entram na fatura do mês seguinte
+ * (que vence no mês seguinte, no `dueDay`). A fatura é identificada pelo
+ * mês da data de vencimento.
+ */
+export function invoiceMonthOf(dateISO: string, closingDay: number): string {
+  const [y, m, d] = dateISO.split('-').map(Number);
+  // Se a compra é feita no fechamento ou antes → fatura fecha nesse mês
+  // e vence no próximo mês (mesmo mês do fechamento + 1).
+  // Se é depois do fechamento → fatura fecha no próximo mês e vence no seguinte.
+  const monthsAhead = d <= closingDay ? 1 : 2;
+  const dt = new Date(y, m - 1 + monthsAhead, 1);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Adiciona meses a um YYYY-MM. */
+export function addMonthsToKey(key: string, offset: number): string {
+  const [y, m] = key.split('-').map(Number);
+  const dt = new Date(y, m - 1 + offset, 1);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Nome legível pt-BR para um YYYY-MM (ex.: "Nov/26"). */
+export function labelMonthKey(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  return `${MONTH_NAMES[m - 1]}/${String(y).slice(-2)}`;
+}
+
+/** Data de vencimento (ISO) da fatura de um mês, respeitando fim de mês curto. */
+export function invoiceDueDateISO(monthKey: string, dueDay: number): string {
+  const [y, m] = monthKey.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  const day = Math.min(dueDay, lastDay);
+  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/** Data de fechamento (ISO) da fatura de um mês (o fechamento ocorre no mês anterior). */
+export function invoiceClosingDateISO(monthKey: string, closingDay: number): string {
+  const [y, m] = monthKey.split('-').map(Number);
+  const dt = new Date(y, m - 2, 1); // mês anterior ao vencimento
+  const yy = dt.getFullYear();
+  const mm = dt.getMonth() + 1;
+  const lastDay = new Date(yy, mm, 0).getDate();
+  const day = Math.min(closingDay, lastDay);
+  return `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
