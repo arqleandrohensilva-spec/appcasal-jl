@@ -1902,3 +1902,153 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   );
 }
 
+
+// ============ TagsInput: chips com autocomplete ============
+function TagsInput({
+  value, onChange, suggestions,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+  suggestions: string[];
+}) {
+  const [text, setText] = useState('');
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-').slice(0, 24);
+
+  const commit = (raw: string) => {
+    const t = norm(raw);
+    if (!t) return;
+    if (value.includes(t)) { setText(''); return; }
+    onChange([...value, t]);
+    setText('');
+  };
+
+  const remove = (tg: string) => onChange(value.filter(v => v !== tg));
+
+  const hints = suggestions
+    .filter(s => !value.includes(s) && (text ? s.includes(norm(text)) : true))
+    .slice(0, 6);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-1 min-h-[24px]">
+        {value.map(tg => (
+          <span key={tg} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">
+            #{tg}
+            <button type="button" onClick={() => remove(tg)} className="hover:text-rose-500">
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <Input
+        value={text}
+        onChange={e => setText(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); commit(text); }
+          else if (e.key === 'Backspace' && !text && value.length) { remove(value[value.length - 1]); }
+        }}
+        onBlur={() => text && commit(text)}
+        placeholder="Ex.: viagem, reforma, presente (Enter para adicionar)"
+        className="h-8 text-xs"
+      />
+      {hints.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {hints.map(h => (
+            <button
+              key={h}
+              type="button"
+              onClick={() => commit(h)}
+              className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted hover:bg-muted-foreground/10 text-muted-foreground"
+            >
+              +#{h}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============ PayInvoiceDialog: modal de pagamento da fatura ============
+function PayInvoiceDialog({
+  open, onOpenChange, cardName, monthKey, total, accounts, onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  cardName: string;
+  monthKey: string;
+  total: number;
+  accounts: { id: string; name: string; balance: number }[];
+  onConfirm: (accountId: string, amount: number, dateISO: string) => void;
+}) {
+  const [accountId, setAccountId] = useState<string>(accounts[0]?.id || '');
+  const [amount, setAmount] = useState<string>(String(total.toFixed(2)));
+  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+
+  useEffect(() => {
+    if (open) {
+      setAmount(String(total.toFixed(2)));
+      setDate(new Date().toISOString().slice(0, 10));
+      if (!accountId && accounts[0]) setAccountId(accounts[0].id);
+    }
+  }, [open, total, accounts, accountId]);
+
+  const acc = accounts.find(a => a.id === accountId);
+  const amountNum = parseFloat(amount) || 0;
+  const insufficient = acc && amountNum > acc.balance;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Pagar fatura
+          </DialogTitle>
+          <DialogDescription>
+            {cardName} — {labelMonthKey(monthKey)}. Vamos criar uma saída na conta escolhida.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Conta de origem</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger><SelectValue placeholder="Escolha uma conta" /></SelectTrigger>
+              <SelectContent>
+                {accounts.map(a => (
+                  <SelectItem key={a.id} value={a.id}>
+                    🏦 {a.name} · saldo {formatCurrency(a.balance)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Valor pago</Label>
+              <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Data</Label>
+              <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+            </div>
+          </div>
+          {insufficient && (
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-start gap-1">
+              <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+              Saldo da conta pode ficar negativo após o pagamento.
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            disabled={!accountId || amountNum <= 0}
+            onClick={() => onConfirm(accountId, amountNum, date)}
+          >
+            Confirmar pagamento
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
