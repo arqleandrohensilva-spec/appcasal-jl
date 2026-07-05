@@ -70,6 +70,7 @@ function Transacoes() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterType, setFilterType] = useState<'all' | 'receita' | 'despesa'>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all'); // 'all' | 'YYYY-MM'
+  const [filterTag, setFilterTag] = useState<string>('all');
 
 
   const valorNum = parseFloat(amount) || 0;
