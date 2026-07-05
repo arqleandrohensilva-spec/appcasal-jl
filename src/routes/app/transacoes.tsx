@@ -1877,9 +1877,33 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                             <span className="text-[10px] text-sky-600 dark:text-sky-400">—</span>
                           ) : r.installmentTotal && r.installmentTotal > 1 ? (
                             <div className="flex flex-col gap-0.5">
-                              <Badge variant="outline" className="text-[9px] h-5 px-1.5 w-fit">
-                                {r.installmentCurrent}/{r.installmentTotal}
-                              </Badge>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={r.installmentTotal || 60}
+                                  value={r.installmentCurrent ?? 1}
+                                  onChange={e => {
+                                    const v = Math.max(1, parseInt(e.target.value) || 1);
+                                    updateRow(r._id, { installmentCurrent: Math.min(v, r.installmentTotal || 60) });
+                                  }}
+                                  className="h-6 w-10 px-1 text-[10px] text-center tabular-nums"
+                                  title="Parcela atual"
+                                />
+                                <span className="text-[10px] text-muted-foreground">/</span>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={60}
+                                  value={r.installmentTotal ?? 1}
+                                  onChange={e => {
+                                    const v = Math.max(1, Math.min(parseInt(e.target.value) || 1, 60));
+                                    updateRow(r._id, { installmentTotal: v });
+                                  }}
+                                  className="h-6 w-10 px-1 text-[10px] text-center tabular-nums"
+                                  title="Total de parcelas"
+                                />
+                              </div>
                               {r._installmentPlan && (() => {
                                 const destCard = destination.startsWith('card:')
                                   ? cards.find(c => c.id === destination.slice('card:'.length))
