@@ -1170,6 +1170,12 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                 )}
               </div>
 
+              {conflictGroups.size > 0 && (
+                <div className="rounded-md border border-violet-300 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/20 p-2 text-[11px] leading-snug text-violet-900 dark:text-violet-200">
+                  <strong>🔀 {conflictGroups.size} conflito{conflictGroups.size > 1 ? 's' : ''} entre leituras.</strong> Encontramos gastos parecidos vindos de arquivos diferentes com pequenas divergências (nome, valor ou data). Cada grupo já tem uma leitura marcada como <em>Importar</em> — clique em "Importar" na linha que preferir manter e as outras são puladas automaticamente.
+                </div>
+              )}
+
               <div className="flex-1 min-h-0 overflow-auto border border-border rounded-lg">
                 <table className="w-full min-w-[640px] text-xs">
 
