@@ -610,7 +610,7 @@ function CardInvoiceView({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fatura de {labelMonthKey(invoiceKey)}</p>
-                  <p className="text-2xl font-bold tabular-nums">{formatCurrency(Math.max(0, total))}</p>
+                  <p className={cn('text-2xl font-bold tabular-nums', paidInfo && 'line-through text-muted-foreground')}>{formatCurrency(Math.max(0, total))}</p>
                 </div>
                 <Badge
                   variant="outline"
@@ -619,9 +619,10 @@ function CardInvoiceView({
                     status === 'aberta' && 'border-emerald-500 text-emerald-700 dark:text-emerald-400',
                     status === 'fechada' && 'border-amber-500 text-amber-700 dark:text-amber-400',
                     status === 'vencida' && 'border-rose-500 text-rose-700 dark:text-rose-400',
+                    status === 'paga' && 'border-emerald-600 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
                   )}
                 >
-                  {status}
+                  {status === 'paga' ? '✓ paga' : status}
                 </Badge>
               </div>
               <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
@@ -630,11 +631,50 @@ function CardInvoiceView({
                 <span>Limite <strong className="text-foreground">{formatCurrency(card.limit)}</strong></span>
                 {futureParcelas > 0 && <span>· {futureParcelas} parcela{futureParcelas > 1 ? 's' : ''} futura{futureParcelas > 1 ? 's' : ''}</span>}
               </div>
+              {!paidInfo && status !== 'paga' && offset === 0 && (
+                <div className="text-[11px] rounded-md bg-muted/50 border border-border/60 px-2 py-1 flex items-center gap-1">
+                  {daysToClose > 0 && daysToClose <= 7 && <span>⏰ Fecha em <strong>{daysToClose}d</strong></span>}
+                  {daysToClose <= 0 && daysToDue > 0 && daysToDue <= 10 && <span>💰 Vence em <strong>{daysToDue}d</strong></span>}
+                  {daysToDue < 0 && <span className="text-rose-600 font-semibold">⚠ Fatura vencida há {Math.abs(daysToDue)}d</span>}
+                </div>
+              )}
+              {paidInfo && (
+                <div className="text-[11px] rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 px-2 py-1 text-emerald-800 dark:text-emerald-300">
+                  Paga em {formatDate(paidInfo.paidAt)} · {formatCurrency(paidInfo.amount)} · {accounts.find(a => a.id === paidInfo.accountId)?.name || 'conta'}
+                </div>
+              )}
+              {total > 0 && (
+                <div className="flex gap-2 pt-1">
+                  {!paidInfo ? (
+                    <Button size="sm" className="h-7 text-xs gap-1 flex-1" onClick={() => setPayOpen(true)}>
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Marcar fatura como paga
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 flex-1" onClick={() => unmarkInvoicePaid(card.id, invoiceKey)}>
+                      Estornar pagamento
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Navegador de mês (-12 a +12) */}
             <MonthStrip baseKey={currentInvoiceKey} offset={offset} onChange={setOffset} range={12} />
 
+            {card && (
+              <PayInvoiceDialog
+                open={payOpen}
+                onOpenChange={setPayOpen}
+                cardName={card.name}
+                monthKey={invoiceKey}
+                total={Math.max(0, total)}
+                accounts={myAccounts}
+                onConfirm={(accId, amt, dt) => {
+                  markInvoicePaid(card.id, invoiceKey, accId, amt, dt);
+                  setPayOpen(false);
+                }}
+              />
+            )}
           </>
         )}
       </CardHeader>
