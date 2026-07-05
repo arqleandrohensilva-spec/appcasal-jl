@@ -987,8 +987,9 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                 )}
               </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto border border-border rounded-lg">
-                <table className="w-full text-xs">
+              <div className="flex-1 min-h-0 overflow-auto border border-border rounded-lg">
+                <table className="w-full min-w-[640px] text-xs">
+
                   <thead className="bg-muted sticky top-0 z-10">
                     <tr>
                       <th className="p-2 w-8"></th>
