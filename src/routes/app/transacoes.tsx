@@ -697,6 +697,8 @@ interface PdfRow extends StatementEntry {
   _duplicate: boolean;
   _duplicateOf?: { description: string; date: string; amount: number; matchType: 'exata' | 'nome+valor' | 'valor+data' };
   _installmentPlan?: InstallmentSlot[]; // preenchido quando é parcelado
+  _conflictGroup?: string;               // id do grupo de conflito entre leituras
+  _sourceFile?: string;                  // arquivo de origem (útil quando importou vários)
 }
 
 // Normaliza texto para comparação
@@ -791,7 +793,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     }, 400);
 
     // Acumuladores entre arquivos
-    const allEntries: StatementEntry[] = [];
+    const allEntries: Array<StatementEntry & { _sourceFile: string }> = [];
     let firstStatement: ParsedStatement | null = null;
     const banks = new Set<string>();
     let statementTypeAcc: ParsedStatement['statementType'] | null = null;
@@ -822,7 +824,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         if (result.periodStart && (!periodStart || result.periodStart < periodStart)) periodStart = result.periodStart;
         if (result.periodEnd && (!periodEnd || result.periodEnd > periodEnd)) periodEnd = result.periodEnd;
 
-        (result.entries ?? []).forEach(e => allEntries.push(e));
+        (result.entries ?? []).forEach(e => allEntries.push({ ...e, _sourceFile: file.name }));
 
         // Progresso proporcional aos arquivos processados
         setProgress(Math.min(90, 10 + Math.round(((idx + 1) / files.length) * 80)));
@@ -908,8 +910,38 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           _duplicate: dup,
           _duplicateOf: match ?? (intraDup ? { description: e.description, date: e.date, amount: e.amount, matchType: 'exata' as const } : undefined),
           _installmentPlan: plan,
+          _sourceFile: e._sourceFile,
         };
       });
+
+      // --- Conflitos fuzzy entre leituras (mesmo gasto extraído com pequenas divergências) ---
+      // Agrupa linhas que provavelmente representam o mesmo lançamento mas divergem em
+      // nome/valor/data (ex.: R$45,90 vs R$45,89, "UBER *TRIP" vs "Uber Trip"). Ignora
+      // linhas já marcadas como duplicata do app (essas já têm tratamento próprio).
+      const candidates = parsed.filter(r => !r._duplicate && r.type !== 'transferencia');
+      for (let a = 0; a < candidates.length; a++) {
+        const ra = candidates[a];
+        if (ra._conflictGroup) continue;
+        for (let b = a + 1; b < candidates.length; b++) {
+          const rb = candidates[b];
+          if (rb._conflictGroup) continue;
+          if (ra._sourceFile && rb._sourceFile && ra._sourceFile === rb._sourceFile) continue; // só entre arquivos diferentes
+          const amtA = Math.abs(ra.amount), amtB = Math.abs(rb.amount);
+          const amtDiff = Math.abs(amtA - amtB);
+          const amtPct = amtDiff / Math.max(amtA, amtB, 0.01);
+          const overlap = descOverlap(ra.description, rb.description);
+          const days = daysBetween(ra.date, rb.date);
+          // Match "fuzzy": valor até 5% ou R$1 de diferença, sobreposição de nome ≥40%, mesmo mês
+          const looksLikeSame = (amtDiff <= 1 || amtPct <= 0.05) && overlap >= 0.4 && days <= 5;
+          if (looksLikeSame && !(amtDiff < 0.01 && overlap >= 0.9 && days === 0)) {
+            const gid = ra._conflictGroup ?? `cf-${a}`;
+            ra._conflictGroup = gid;
+            rb._conflictGroup = gid;
+            // Deixa apenas o primeiro marcado para importar; o outro fica pulado até o usuário escolher
+            rb._import = false;
+          }
+        }
+      }
       setRows(parsed);
 
       // Sugere destino
@@ -932,12 +964,30 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   };
 
   const updateRow = (id: string, patch: Partial<PdfRow>) => {
-    setRows(prev => prev.map(r => r._id === id ? { ...r, ...patch } : r));
+    setRows(prev => {
+      const target = prev.find(r => r._id === id);
+      const group = target?._conflictGroup;
+      // Se o usuário marcou "Importar" numa linha em conflito, desmarca as irmãs
+      // do mesmo grupo (uma leitura vence, as outras são puladas).
+      const isPickingWinner = group && patch._import === true;
+      return prev.map(r => {
+        if (r._id === id) return { ...r, ...patch };
+        if (isPickingWinner && r._conflictGroup === group) return { ...r, _import: false };
+        return r;
+      });
+    });
   };
 
   const toImport = rows.filter(r => r._import);
   const totalImport = toImport.reduce((s, r) => s + (r.type === 'despesa' ? r.amount : 0), 0);
   const transferCount = rows.filter(r => r.type === 'transferencia').length;
+  const conflictGroups = new Map<string, PdfRow[]>();
+  rows.forEach(r => {
+    if (!r._conflictGroup) return;
+    const arr = conflictGroups.get(r._conflictGroup) ?? [];
+    arr.push(r);
+    conflictGroups.set(r._conflictGroup, arr);
+  });
 
   const confirm = () => {
     if (!destination) { toast.error('Escolha um cartão ou conta de destino.'); return; }
@@ -1068,6 +1118,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {rows.length} lançamentos · {rows.filter(r => r._duplicate).length} duplicatas
+                    {conflictGroups.size > 0 && <> · <span className="text-violet-600 dark:text-violet-400 font-medium">🔀 {conflictGroups.size} conflito{conflictGroups.size > 1 ? 's' : ''} entre leituras</span></>}
                     {transferCount > 0 && <> · <span className="text-sky-600 dark:text-sky-400 font-medium">{transferCount} transferências</span></>}
                   </p>
                 </div>
@@ -1119,6 +1170,12 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                 )}
               </div>
 
+              {conflictGroups.size > 0 && (
+                <div className="rounded-md border border-violet-300 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/20 p-2 text-[11px] leading-snug text-violet-900 dark:text-violet-200">
+                  <strong>🔀 {conflictGroups.size} conflito{conflictGroups.size > 1 ? 's' : ''} entre leituras.</strong> Encontramos gastos parecidos vindos de arquivos diferentes com pequenas divergências (nome, valor ou data). Cada grupo já tem uma leitura marcada como <em>Importar</em> — clique em "Importar" na linha que preferir manter e as outras são puladas automaticamente.
+                </div>
+              )}
+
               <div className="flex-1 min-h-0 overflow-auto border border-border rounded-lg">
                 <table className="w-full min-w-[640px] text-xs">
 
@@ -1135,11 +1192,16 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   <tbody>
                     {rows.map(r => {
                       const isTransfer = r.type === 'transferencia';
+                      const siblings = r._conflictGroup
+                        ? (conflictGroups.get(r._conflictGroup) ?? []).filter(x => x._id !== r._id)
+                        : [];
+                      const hasConflict = siblings.length > 0;
                       return (
                       <tr key={r._id} className={cn(
                         'border-t border-border',
                         r._duplicate && 'bg-amber-50 dark:bg-amber-950/20',
-                        isTransfer && !r._duplicate && 'bg-sky-50/60 dark:bg-sky-950/20',
+                        hasConflict && !r._duplicate && 'bg-violet-50 dark:bg-violet-950/20',
+                        isTransfer && !r._duplicate && !hasConflict && 'bg-sky-50/60 dark:bg-sky-950/20',
                         !r._import && 'opacity-40',
                       )}>
                         <td className="p-1.5 text-center align-top">
@@ -1189,6 +1251,26 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                                 title={`Match ${r._duplicateOf.matchType}`}
                               >
                                 ⚠ já existe: "{r._duplicateOf.description}" · {formatDate(r._duplicateOf.date)} · {formatCurrency(Math.abs(r._duplicateOf.amount))}
+                              </span>
+                            )}
+                            {hasConflict && siblings.map(sib => {
+                              const diffs: string[] = [];
+                              if (normDesc(sib.description) !== normDesc(r.description)) diffs.push(`nome: "${sib.description}"`);
+                              if (Math.abs(Math.abs(sib.amount) - Math.abs(r.amount)) >= 0.01) diffs.push(`valor: ${formatCurrency(Math.abs(sib.amount))}`);
+                              if (sib.date !== r.date) diffs.push(`data: ${formatDate(sib.date)}`);
+                              return (
+                                <span
+                                  key={sib._id}
+                                  className="text-[9px] px-1 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-800 dark:text-violet-300 font-medium"
+                                  title={`Divergência com "${sib._sourceFile ?? 'outra leitura'}"`}
+                                >
+                                  🔀 conflito com outra leitura{sib._sourceFile ? ` (${sib._sourceFile})` : ''}{diffs.length ? ` — ${diffs.join(' · ')}` : ''}
+                                </span>
+                              );
+                            })}
+                            {r._sourceFile && (
+                              <span className="text-[9px] px-1 rounded bg-muted text-muted-foreground">
+                                📄 {r._sourceFile}
                               </span>
                             )}
                           </div>
