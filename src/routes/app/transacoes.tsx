@@ -701,34 +701,9 @@ function AccountLedgerView({
               </div>
             </div>
 
-            {/* Navegador de mês */}
-            <div className="flex items-center justify-between gap-2">
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o - 1)} aria-label="Mês anterior">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex-1 flex items-center justify-center gap-1 overflow-x-auto">
-                {[-2, -1, 0, 1, 2].map(o => {
-                  const k = addMonthsToKey(currentKey, o);
-                  const active = o === offset;
-                  return (
-                    <button
-                      key={o}
-                      type="button"
-                      onClick={() => setOffset(o)}
-                      className={cn(
-                        'text-[11px] px-2 h-7 rounded-md font-medium whitespace-nowrap',
-                        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
-                      )}
-                    >
-                      {labelMonthKey(k)}{o === 0 ? ' •' : ''}
-                    </button>
-                  );
-                })}
-              </div>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o + 1)} aria-label="Próximo mês">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            {/* Navegador de mês (-12 a +12) */}
+            <MonthStrip baseKey={currentKey} offset={offset} onChange={setOffset} range={12} />
+
 
             <div className="flex gap-1 p-0.5 bg-muted rounded-md">
               {([
