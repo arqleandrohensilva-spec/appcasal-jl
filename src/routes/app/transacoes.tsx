@@ -172,13 +172,14 @@ function Transacoes() {
   const filteredTx = useMemo(() => {
     const q = search.trim().toLowerCase();
     return myTx.filter(t => {
-      if (q && !t.description.toLowerCase().includes(q) && !t.category.toLowerCase().includes(q)) return false;
+      if (q && !t.description.toLowerCase().includes(q) && !t.category.toLowerCase().includes(q) && !(t.tags || []).some(tg => tg.toLowerCase().includes(q))) return false;
       if (filterCategory !== 'all' && t.category !== filterCategory) return false;
       if (filterType !== 'all' && t.type !== filterType) return false;
       if (filterMonth !== 'all' && !t.date.startsWith(filterMonth)) return false;
+      if (filterTag !== 'all' && !(t.tags || []).includes(filterTag)) return false;
       return true;
     });
-  }, [myTx, search, filterCategory, filterType, filterMonth]);
+  }, [myTx, search, filterCategory, filterType, filterMonth, filterTag]);
 
   const handleExport = () => {
     if (filteredTx.length === 0) { toast.error('Nada para exportar'); return; }
