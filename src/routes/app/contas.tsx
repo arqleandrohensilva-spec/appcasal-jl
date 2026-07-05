@@ -115,6 +115,10 @@ function Contas() {
           )}
         </TabsContent>
 
+        <TabsContent value="ledger" className="mt-4">
+          <AccountLedgerView owner={owner} onUpdate={updateTransaction} onRemove={removeTransaction} />
+        </TabsContent>
+
         <TabsContent value="extrato" className="mt-4">
           <Card>
             <CardContent className="pt-6 space-y-2">
