@@ -35,10 +35,10 @@ function AuthPage() {
     return msg;
   };
 
-  const handleGoogle = async () => {
+  const handleOAuth = async (provider: 'google' | 'apple') => {
     setBusy(true);
     try {
-      const r = await lovable.auth.signInWithOAuth('google', { redirect_uri: window.location.origin });
+      const r = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin });
       if (r.error) { toast.error(mapError(r.error.message)); setBusy(false); return; }
       if (r.redirected) return;
     } catch (e: any) {
