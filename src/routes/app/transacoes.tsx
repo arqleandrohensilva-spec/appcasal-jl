@@ -805,27 +805,65 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
 
       const parsed: PdfRow[] = (result.entries ?? []).map((e, i) => {
         const amt = Math.abs(e.amount);
-        // Candidatos com o mesmo valor (tolerância de 1 centavo)
-        const sameAmount = ownerTx.filter(t => Math.abs(Math.abs(t.amount) - amt) < 0.01);
+        const isTransfer = e.type === 'transferencia';
+        const isParcelado = !isTransfer && e.installmentTotal && e.installmentTotal > 1 && e.installmentCurrent && e.installmentCurrent >= 1;
+
+        // --- Plano de parcelas (quando parcelado) ---
+        let plan: InstallmentSlot[] | undefined;
+        if (isParcelado) {
+          const total = e.installmentTotal!;
+          const current = e.installmentCurrent!;
+          const startDate = addMonthsISO(e.date, -(current - 1));
+          plan = Array.from({ length: total }, (_, k) => {
+            const expected = addMonthsISO(startDate, k);
+            // procura parcela com mesmo valor e nome parcial numa janela de ±10 dias
+            const found = ownerTx.find(t =>
+              Math.abs(Math.abs(t.amount) - amt) < 0.01
+              && descOverlap(t.description, e.description) >= 0.4
+              && daysBetween(t.date, expected) <= 10,
+            );
+            return {
+              index: k + 1,
+              date: expected,
+              exists: !!found,
+              existing: found ? { description: found.description, date: found.date, amount: found.amount } : undefined,
+            };
+          });
+        }
+
+        // --- Dedup para gastos à vista (não-parcelados) ---
         let match: PdfRow['_duplicateOf'] | undefined;
-        for (const t of sameAmount) {
-          const overlap = descOverlap(t.description, e.description);
-          const days = daysBetween(t.date, e.date);
-          if (t.date === e.date && overlap >= 0.8) {
-            match = { description: t.description, date: t.date, amount: t.amount, matchType: 'exata' };
-            break;
-          }
-          if (overlap >= 0.5 && days <= 40) {
-            match = { description: t.description, date: t.date, amount: t.amount, matchType: 'nome+valor' };
-            break;
-          }
-          if (days <= 3 && !match) {
-            match = { description: t.description, date: t.date, amount: t.amount, matchType: 'valor+data' };
+        if (!isParcelado) {
+          const sameAmount = ownerTx.filter(t => Math.abs(Math.abs(t.amount) - amt) < 0.01);
+          for (const t of sameAmount) {
+            const overlap = descOverlap(t.description, e.description);
+            const days = daysBetween(t.date, e.date);
+            if (t.date === e.date && overlap >= 0.8) {
+              match = { description: t.description, date: t.date, amount: t.amount, matchType: 'exata' };
+              break;
+            }
+            if (overlap >= 0.5 && days <= 40) {
+              match = { description: t.description, date: t.date, amount: t.amount, matchType: 'nome+valor' };
+              break;
+            }
+            if (days <= 3 && !match) {
+              match = { description: t.description, date: t.date, amount: t.amount, matchType: 'valor+data' };
+            }
           }
         }
-        const dup = !!match;
-        const isTransfer = e.type === 'transferencia';
-        return { ...e, _id: `${i}`, _import: !dup && !isTransfer, _duplicate: dup, _duplicateOf: match };
+
+        // Parcelado é duplicado só se TODAS as parcelas já existem
+        const allExist = plan ? plan.every(s => s.exists) : false;
+        const dup = isParcelado ? allExist : !!match;
+
+        return {
+          ...e,
+          _id: `${i}`,
+          _import: !dup && !isTransfer,
+          _duplicate: dup,
+          _duplicateOf: match,
+          _installmentPlan: plan,
+        };
       });
       setRows(parsed);
 
