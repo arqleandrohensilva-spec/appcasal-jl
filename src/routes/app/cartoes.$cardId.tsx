@@ -55,10 +55,8 @@ function CardDetail() {
           <header className="flex items-start justify-between gap-3">
             <div className="space-y-1">
               <h1 className="text-2xl font-bold flex items-center gap-2">
-                <span
-                  className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: cssColor(card.color) }}
-                />
+                <span className={`h-3 w-3 rounded-full bg-${card.color}-500`} />
+
                 {card.name}
               </h1>
               <p className="text-xs text-muted-foreground">
