@@ -490,20 +490,25 @@ function Transacoes() {
 
 // ============ VISTA POR CARTÃO (fatura mês a mês) ============
 export function CardInvoiceView({
-  owner, onUpdate, onRemove,
+  owner, onUpdate, onRemove, cardId, hideCardChips,
 }: {
   owner: 'leandro' | 'jonathan';
   onUpdate: ReturnType<typeof useData>['updateTransaction'];
   onRemove: ReturnType<typeof useData>['removeTransaction'];
+  cardId?: string;       // força um cartão específico
+  hideCardChips?: boolean; // esconde a lista de chips
 }) {
   const { cards, transactions, accounts, markInvoicePaid, unmarkInvoicePaid } = useData();
   const myCards = cards.filter(c => c.owner === owner);
   const myAccounts = accounts.filter(a => a.owner === owner);
-  const [selectedCardId, setSelectedCardId] = useState<string>(myCards[0]?.id || '');
+  const [internalCardId, setInternalCardId] = useState<string>(cardId || myCards[0]?.id || '');
+  const selectedCardId = cardId || internalCardId;
+  const setSelectedCardId = cardId ? () => {} : setInternalCardId;
   const [offset, setOffset] = useState(0); // 0 = fatura atual, -1 = anterior, +1 = próxima…
   const [payOpen, setPayOpen] = useState(false);
 
   const card = myCards.find(c => c.id === selectedCardId);
+
 
   // Fatura atual = fatura cujo vencimento é este mês (ou próximo se hoje já passou do fechamento).
   const currentInvoiceKey = useMemo(() => {
