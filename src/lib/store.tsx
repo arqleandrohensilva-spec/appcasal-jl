@@ -335,6 +335,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt,
       recurrence: n === 1 ? recurrence : undefined,
       recurrenceEndDate: n === 1 ? input.recurrenceEndDate : undefined,
+      tags: input.tags && input.tags.length ? input.tags : undefined,
     }));
 
     setTransactions(prev => [...created, ...prev]);
@@ -349,6 +350,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       type: t.type, owner: t.owner, pessoa: t.owner,
       recurrence: t.recurrence ?? null,
       recurrence_end_date: t.recurrenceEndDate ?? null,
+      tags: t.tags ?? [],
     }));
     supabase.from('transactions').insert(rows).then(({ error }) => {
       if (error) { toast.error('Erro ao salvar transação'); refetchAll(wsId!); }
