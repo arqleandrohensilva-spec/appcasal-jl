@@ -964,12 +964,30 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   };
 
   const updateRow = (id: string, patch: Partial<PdfRow>) => {
-    setRows(prev => prev.map(r => r._id === id ? { ...r, ...patch } : r));
+    setRows(prev => {
+      const target = prev.find(r => r._id === id);
+      const group = target?._conflictGroup;
+      // Se o usuário marcou "Importar" numa linha em conflito, desmarca as irmãs
+      // do mesmo grupo (uma leitura vence, as outras são puladas).
+      const isPickingWinner = group && patch._import === true;
+      return prev.map(r => {
+        if (r._id === id) return { ...r, ...patch };
+        if (isPickingWinner && r._conflictGroup === group) return { ...r, _import: false };
+        return r;
+      });
+    });
   };
 
   const toImport = rows.filter(r => r._import);
   const totalImport = toImport.reduce((s, r) => s + (r.type === 'despesa' ? r.amount : 0), 0);
   const transferCount = rows.filter(r => r.type === 'transferencia').length;
+  const conflictGroups = new Map<string, PdfRow[]>();
+  rows.forEach(r => {
+    if (!r._conflictGroup) return;
+    const arr = conflictGroups.get(r._conflictGroup) ?? [];
+    arr.push(r);
+    conflictGroups.set(r._conflictGroup, arr);
+  });
 
   const confirm = () => {
     if (!destination) { toast.error('Escolha um cartão ou conta de destino.'); return; }
