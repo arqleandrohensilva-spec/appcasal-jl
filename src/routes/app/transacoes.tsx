@@ -464,9 +464,32 @@ function Transacoes() {
                       </SelectContent>
                     </Select>
                   </div>
-                  {(search || filterCategory !== 'all' || filterType !== 'all' || filterMonth !== 'all') && (
+                  {allTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setFilterTag('all')}
+                        className={cn(
+                          'h-6 px-2 rounded-full text-[10px] font-medium border transition',
+                          filterTag === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted',
+                        )}
+                      >Todas tags</button>
+                      {allTags.map(tg => (
+                        <button
+                          key={tg}
+                          type="button"
+                          onClick={() => setFilterTag(tg)}
+                          className={cn(
+                            'h-6 px-2 rounded-full text-[10px] font-medium border transition',
+                            filterTag === tg ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted',
+                          )}
+                        >#{tg}</button>
+                      ))}
+                    </div>
+                  )}
+                  {(search || filterCategory !== 'all' || filterType !== 'all' || filterMonth !== 'all' || filterTag !== 'all') && (
                     <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => {
-                      setSearch(''); setFilterCategory('all'); setFilterType('all'); setFilterMonth('all');
+                      setSearch(''); setFilterCategory('all'); setFilterType('all'); setFilterMonth('all'); setFilterTag('all');
                     }}>
                       <X className="h-3 w-3" /> Limpar filtros
                     </Button>
