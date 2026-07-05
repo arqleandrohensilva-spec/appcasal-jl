@@ -28,8 +28,10 @@ export const parseBankStatement = createServerFn({ method: 'POST' })
   .inputValidator((input: unknown) =>
     z
       .object({
+        // aceita PDF ou imagem (print) — data URL base64
         pdfDataUrl: z.string().min(20),
         filename: z.string().optional(),
+        mediaType: z.string().optional(), // ex: application/pdf, image/png, image/jpeg
       })
       .parse(input),
   )
@@ -40,8 +42,15 @@ export const parseBankStatement = createServerFn({ method: 'POST' })
     const gateway = createLovableAiGatewayProvider(key);
     const model = gateway('google/gemini-2.5-flash');
 
+    // Detecta mediaType a partir do data URL se não veio explícito
+    const detected = data.mediaType
+      || (data.pdfDataUrl.match(/^data:([^;]+);/)?.[1])
+      || 'application/pdf';
+    const isImage = detected.startsWith('image/');
+
     const system = `Você é especialista em extratos bancários e faturas de cartão brasileiros.
-Analise o PDF e extraia TODAS as transações reais.
+Analise o ${isImage ? 'PRINT DE TELA (imagem)' : 'PDF'} e extraia TODAS as transações reais visíveis.
+${isImage ? 'Como é um print, pode ser apenas parte da fatura/extrato — extraia só o que estiver visível, sem inventar linhas cortadas.' : ''}
 
 Regras:
 - statementType: "card" se for fatura de cartão de crédito, "account" se for extrato de conta corrente/poupança, "unknown" só se realmente não der pra saber.
@@ -55,9 +64,11 @@ Regras:
 - type: "despesa" para gasto/débito/compra; "receita" para entrada/crédito/estorno/salário/pix recebido.
 - Parcelamento: se a linha indicar parcela (ex: "PARC 03/10", "3/10", "10X", "PARCELA 3 DE 10"), preencha installmentCurrent (3) e installmentTotal (10). Caso à vista, use null nos dois campos.
 - category (escolha UMA): Alimentação, Moradia, Saúde, Transporte, Lazer, Vestuário, Educação, Assinaturas, Investimentos, Outros.
-- date no formato YYYY-MM-DD. Se aparecer só dia/mês, use o ano do período do extrato.
-- periodStart / periodEnd em YYYY-MM-DD.
-- Retorne TODAS as transações do PDF, sem resumir.`;
+- date no formato YYYY-MM-DD. Se aparecer só dia/mês, use o ano do período do extrato (ou o ano atual se não aparecer).
+- periodStart / periodEnd em YYYY-MM-DD. Se for print e não der pra determinar, use a primeira e última data visíveis.
+- Retorne TODAS as transações visíveis, sem resumir.`;
+
+    const filename = data.filename ?? (isImage ? 'print.png' : 'extrato.pdf');
 
     const result = await generateText({
       model,
@@ -69,13 +80,15 @@ Regras:
           content: [
             {
               type: 'text',
-              text: 'Extraia o extrato/fatura completo em JSON estruturado. Todas as transações.',
+              text: isImage
+                ? 'Extraia todas as transações visíveis neste print em JSON estruturado.'
+                : 'Extraia o extrato/fatura completo em JSON estruturado. Todas as transações.',
             },
             {
               type: 'file',
               data: data.pdfDataUrl,
-              mediaType: 'application/pdf',
-              filename: data.filename ?? 'extrato.pdf',
+              mediaType: detected,
+              filename,
             } as never,
           ],
         },
