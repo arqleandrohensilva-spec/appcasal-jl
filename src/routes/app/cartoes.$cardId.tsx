@@ -5,7 +5,7 @@ import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/store';
 import { CardInvoiceView } from '@/routes/app/transacoes';
 import { ArrowLeft, Plus, CreditCard } from 'lucide-react';
-import { cssColor } from '@/lib/accent';
+
 
 export const Route = createFileRoute('/app/cartoes/$cardId')({
   component: CardDetail,
