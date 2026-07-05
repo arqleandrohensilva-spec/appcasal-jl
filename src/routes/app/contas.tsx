@@ -80,7 +80,8 @@ function Contas() {
       <Tabs defaultValue="accounts">
         <TabsList>
           <TabsTrigger value="accounts">Minhas contas</TabsTrigger>
-          <TabsTrigger value="extrato">Extrato do mês</TabsTrigger>
+          <TabsTrigger value="ledger">Extrato por conta</TabsTrigger>
+          <TabsTrigger value="extrato">Resumo do mês</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounts" className="mt-4">
