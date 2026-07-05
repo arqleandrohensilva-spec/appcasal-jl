@@ -867,21 +867,23 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   return (
     <>
       <input
-        ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden"
+        ref={fileRef} type="file"
+        accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+        className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.currentTarget.value = ''; }}
       />
       <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
-        <FileText className="h-4 w-4" /> Importar PDF
+        <FileText className="h-4 w-4" /> Importar PDF ou print
       </Button>
 
       <Dialog open={open} onOpenChange={(o) => { if (!loading) setOpen(o); }}>
         <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" /> Importar extrato / fatura em PDF
+              <Sparkles className="h-4 w-4 text-primary" /> Importar extrato / fatura
             </DialogTitle>
             <DialogDescription>
-              A IA lê o PDF, identifica cada lançamento, categoriza e detecta parcelamentos automaticamente. Revise antes de salvar.
+              Envie o PDF do banco ou um print da fatura. A IA identifica cada lançamento, categoriza e detecta parcelamentos. Revise antes de salvar.
             </DialogDescription>
           </DialogHeader>
 
