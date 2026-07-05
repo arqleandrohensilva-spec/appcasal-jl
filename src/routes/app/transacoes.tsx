@@ -62,8 +62,8 @@ function Transacoes() {
   });
   const [salaryThursdayAmount, setSalaryThursdayAmount] = useState('');
 
-  // Modo de visualização do painel direito: Cartões (fatura) / Contas (extrato) / Tudo (histórico)
-  const [viewMode, setViewMode] = useState<'cards' | 'accounts' | 'all'>('cards');
+  // Painel direito agora mostra apenas o histórico "Tudo".
+  // As visões por cartão e por conta foram movidas para /app/cartoes e /app/contas.
 
   // Filtros (usados na aba "Tudo")
   const [search, setSearch] = useState('');
@@ -396,35 +396,8 @@ function Transacoes() {
         </Card>
 
         <div className="lg:col-span-2 space-y-3">
-          {/* Abas de visualização */}
-          <div className="flex gap-1 p-1 bg-muted rounded-lg">
-            {([
-              { id: 'cards', label: 'Cartões', icon: CardIcon },
-              { id: 'accounts', label: 'Contas', icon: Landmark },
-              { id: 'all', label: 'Tudo', icon: Receipt },
-            ] as const).map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setViewMode(id)}
-                className={cn(
-                  'flex-1 h-9 text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5',
-                  viewMode === id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {viewMode === 'cards' && (
-            <CardInvoiceView owner={owner} onUpdate={updateTransaction} onRemove={removeTransaction} />
-          )}
-          {viewMode === 'accounts' && (
-            <AccountLedgerView owner={owner} onUpdate={updateTransaction} onRemove={removeTransaction} />
-          )}
-          {viewMode === 'all' && (
+          {/* Visões de Cartões e Contas foram movidas para as abas dedicadas. */}
+          {true && (
             <Card>
               <CardHeader className="space-y-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -516,7 +489,7 @@ function Transacoes() {
 }
 
 // ============ VISTA POR CARTÃO (fatura mês a mês) ============
-function CardInvoiceView({
+export function CardInvoiceView({
   owner, onUpdate, onRemove,
 }: {
   owner: 'leandro' | 'jonathan';
@@ -693,7 +666,7 @@ function CardInvoiceView({
 }
 
 // ============ VISTA POR CONTA (extrato entradas x saídas) ============
-function AccountLedgerView({
+export function AccountLedgerView({
   owner, onUpdate, onRemove,
 }: {
   owner: 'leandro' | 'jonathan';

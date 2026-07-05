@@ -12,6 +12,7 @@ import { useData, type UserAccount } from '@/lib/store';
 import { formatCurrency, formatDate } from '@/lib/mockData';
 import { Plus, Trash2, Wallet, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { AccountLedgerView } from '@/routes/app/transacoes';
 
 export const Route = createFileRoute('/app/contas')({
   component: Contas,
@@ -26,7 +27,8 @@ const TYPES: { value: 'corrente' | 'poupanca' | 'dinheiro' | 'investimento'; lab
 
 function Contas() {
   const { activeProfile } = useAppContext();
-  const { accounts, addAccount, updateAccount, removeAccount, transactions } = useData();
+  const { accounts, addAccount, updateAccount, removeAccount, transactions, updateTransaction, removeTransaction } = useData();
+  const owner: 'leandro' | 'jonathan' = activeProfile === 'casal' ? 'leandro' : activeProfile;
   const [open, setOpen] = useState(false);
 
   const myAccounts = accounts.filter(a => activeProfile === 'casal' || a.owner === activeProfile);
@@ -78,7 +80,8 @@ function Contas() {
       <Tabs defaultValue="accounts">
         <TabsList>
           <TabsTrigger value="accounts">Minhas contas</TabsTrigger>
-          <TabsTrigger value="extrato">Extrato do mês</TabsTrigger>
+          <TabsTrigger value="ledger">Extrato por conta</TabsTrigger>
+          <TabsTrigger value="extrato">Resumo do mês</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounts" className="mt-4">
@@ -110,6 +113,10 @@ function Contas() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="ledger" className="mt-4">
+          <AccountLedgerView owner={owner} onUpdate={updateTransaction} onRemove={removeTransaction} />
         </TabsContent>
 
         <TabsContent value="extrato" className="mt-4">
