@@ -473,6 +473,336 @@ function Transacoes() {
   );
 }
 
+// ============ VISTA POR CARTÃO (fatura mês a mês) ============
+function CardInvoiceView({
+  owner, onUpdate, onRemove,
+}: {
+  owner: 'leandro' | 'jonathan';
+  onUpdate: ReturnType<typeof useData>['updateTransaction'];
+  onRemove: ReturnType<typeof useData>['removeTransaction'];
+}) {
+  const { cards, transactions } = useData();
+  const myCards = cards.filter(c => c.owner === owner);
+  const [selectedCardId, setSelectedCardId] = useState<string>(myCards[0]?.id || '');
+  const [offset, setOffset] = useState(0); // 0 = fatura atual, -1 = anterior, +1 = próxima…
+
+  const card = myCards.find(c => c.id === selectedCardId);
+
+  // Fatura atual = fatura cujo vencimento é este mês (ou próximo se hoje já passou do fechamento).
+  const currentInvoiceKey = useMemo(() => {
+    if (!card) return `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const today = new Date().toISOString().slice(0, 10);
+    return invoiceMonthOf(today, card.closingDay);
+  }, [card]);
+
+  const invoiceKey = card ? addMonthsToKey(currentInvoiceKey, offset) : currentInvoiceKey;
+
+  const cardTx = useMemo(
+    () => transactions.filter(t => t.cardId === selectedCardId),
+    [transactions, selectedCardId],
+  );
+
+  const invoiceTx = useMemo(() => {
+    if (!card) return [];
+    return cardTx
+      .filter(t => invoiceMonthOf(t.date, card.closingDay) === invoiceKey)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [cardTx, card, invoiceKey]);
+
+  const total = invoiceTx.reduce((s, t) => s + (t.type === 'despesa' ? Math.abs(t.amount) : -Math.abs(t.amount)), 0);
+  const futureParcelas = useMemo(() => {
+    if (!card) return 0;
+    return cardTx.filter(t => {
+      const k = invoiceMonthOf(t.date, card.closingDay);
+      return k > invoiceKey && t.installmentInfo;
+    }).length;
+  }, [cardTx, card, invoiceKey]);
+
+  if (myCards.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          Nenhum cartão cadastrado. Adicione um cartão em Configurações → Cartões.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const closingISO = card ? invoiceClosingDateISO(invoiceKey, card.closingDay) : '';
+  const dueISO = card ? invoiceDueDateISO(invoiceKey, card.dueDay) : '';
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const status = closingISO > todayISO ? 'aberta' : dueISO >= todayISO ? 'fechada' : 'vencida';
+
+  return (
+    <Card>
+      <CardHeader className="space-y-3">
+        {/* Chips de cartões */}
+        <div className="flex flex-wrap gap-1.5">
+          {myCards.map(c => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => { setSelectedCardId(c.id); setOffset(0); }}
+              className={cn(
+                'flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-medium border transition',
+                selectedCardId === c.id
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background text-foreground border-border hover:bg-muted',
+              )}
+            >
+              <span className={cn('h-2 w-2 rounded-full', `bg-${c.color}-500`)} style={{ backgroundColor: cssColor(c.color) }} />
+              {c.name}
+            </button>
+          ))}
+        </div>
+
+        {card && (
+          <>
+            {/* Cabeçalho da fatura */}
+            <div className="rounded-lg border p-3 space-y-2 bg-gradient-to-br from-muted/40 to-transparent">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fatura de {labelMonthKey(invoiceKey)}</p>
+                  <p className="text-2xl font-bold tabular-nums">{formatCurrency(Math.max(0, total))}</p>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-[10px] uppercase',
+                    status === 'aberta' && 'border-emerald-500 text-emerald-700 dark:text-emerald-400',
+                    status === 'fechada' && 'border-amber-500 text-amber-700 dark:text-amber-400',
+                    status === 'vencida' && 'border-rose-500 text-rose-700 dark:text-rose-400',
+                  )}
+                >
+                  {status}
+                </Badge>
+              </div>
+              <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+                <span>Fecha <strong className="text-foreground">{formatDate(closingISO)}</strong></span>
+                <span>Vence <strong className="text-foreground">{formatDate(dueISO)}</strong></span>
+                <span>Limite <strong className="text-foreground">{formatCurrency(card.limit)}</strong></span>
+                {futureParcelas > 0 && <span>· {futureParcelas} parcela{futureParcelas > 1 ? 's' : ''} futura{futureParcelas > 1 ? 's' : ''}</span>}
+              </div>
+            </div>
+
+            {/* Navegador de mês */}
+            <div className="flex items-center justify-between gap-2">
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o - 1)} aria-label="Fatura anterior">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex-1 flex items-center justify-center gap-1 overflow-x-auto">
+                {[-1, 0, 1, 2, 3].map(o => {
+                  const k = addMonthsToKey(currentInvoiceKey, o);
+                  const active = o === offset;
+                  return (
+                    <button
+                      key={o}
+                      type="button"
+                      onClick={() => setOffset(o)}
+                      className={cn(
+                        'text-[11px] px-2 h-7 rounded-md font-medium whitespace-nowrap',
+                        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
+                      )}
+                    >
+                      {labelMonthKey(k)}{o === 0 ? ' •' : ''}
+                    </button>
+                  );
+                })}
+              </div>
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o + 1)} aria-label="Próxima fatura">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </>
+        )}
+      </CardHeader>
+
+      <CardContent className="space-y-1 max-h-[500px] overflow-y-auto">
+        {invoiceTx.length === 0 ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            Sem lançamentos nesta fatura.
+          </div>
+        ) : (
+          invoiceTx.map(t => <TxRow key={t.id} tx={t} onUpdate={onUpdate} onRemove={onRemove} />)
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============ VISTA POR CONTA (extrato entradas x saídas) ============
+function AccountLedgerView({
+  owner, onUpdate, onRemove,
+}: {
+  owner: 'leandro' | 'jonathan';
+  onUpdate: ReturnType<typeof useData>['updateTransaction'];
+  onRemove: ReturnType<typeof useData>['removeTransaction'];
+}) {
+  const { accounts, transactions } = useData();
+  const myAccounts = accounts.filter(a => a.owner === owner);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>(myAccounts[0]?.id || '');
+  const [offset, setOffset] = useState(0);
+  const [filter, setFilter] = useState<'all' | 'receita' | 'despesa'>('all');
+
+  const account = myAccounts.find(a => a.id === selectedAccountId);
+  const now = new Date();
+  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthKey = addMonthsToKey(currentKey, offset);
+
+  const accountTx = useMemo(
+    () => transactions.filter(t => t.accountId === selectedAccountId && t.date.startsWith(monthKey)),
+    [transactions, selectedAccountId, monthKey],
+  );
+
+  const entradas = accountTx.filter(t => t.type === 'receita').reduce((s, t) => s + Math.abs(t.amount), 0);
+  const saidas = accountTx.filter(t => t.type === 'despesa').reduce((s, t) => s + Math.abs(t.amount), 0);
+  const saldo = entradas - saidas;
+
+  const visible = useMemo(() => {
+    const list = filter === 'all' ? accountTx : accountTx.filter(t => t.type === filter);
+    return [...list].sort((a, b) => b.date.localeCompare(a.date));
+  }, [accountTx, filter]);
+
+  if (myAccounts.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          Nenhuma conta cadastrada. Adicione uma conta em Configurações → Contas.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="space-y-3">
+        <div className="flex flex-wrap gap-1.5">
+          {myAccounts.map(a => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => { setSelectedAccountId(a.id); setOffset(0); setFilter('all'); }}
+              className={cn(
+                'flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-medium border transition',
+                selectedAccountId === a.id
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background text-foreground border-border hover:bg-muted',
+              )}
+            >
+              🏦 {a.name}
+            </button>
+          ))}
+        </div>
+
+        {account && (
+          <>
+            <div className="rounded-lg border p-3 space-y-3 bg-gradient-to-br from-muted/40 to-transparent">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{account.name} — {labelMonthKey(monthKey)}</p>
+                  <p className={cn('text-2xl font-bold tabular-nums', saldo >= 0 ? 'text-emerald-600' : 'text-rose-600')}>
+                    {saldo >= 0 ? '+' : ''}{formatCurrency(saldo)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Saldo do mês</p>
+                </div>
+                <div className="text-right space-y-1">
+                  <p className="text-[11px] text-muted-foreground">Saldo atual</p>
+                  <p className="text-sm font-semibold tabular-nums">{formatCurrency(account.balance)}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-md border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 p-2">
+                  <div className="flex items-center gap-1 text-[10px] font-semibold uppercase text-emerald-700 dark:text-emerald-400">
+                    <TrendingUp className="h-3 w-3" /> Entradas
+                  </div>
+                  <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{formatCurrency(entradas)}</p>
+                </div>
+                <div className="rounded-md border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/20 p-2">
+                  <div className="flex items-center gap-1 text-[10px] font-semibold uppercase text-rose-700 dark:text-rose-400">
+                    <TrendingDown className="h-3 w-3" /> Saídas
+                  </div>
+                  <p className="text-sm font-bold text-rose-700 dark:text-rose-400 tabular-nums">{formatCurrency(saidas)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Navegador de mês */}
+            <div className="flex items-center justify-between gap-2">
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o - 1)} aria-label="Mês anterior">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex-1 flex items-center justify-center gap-1 overflow-x-auto">
+                {[-2, -1, 0, 1, 2].map(o => {
+                  const k = addMonthsToKey(currentKey, o);
+                  const active = o === offset;
+                  return (
+                    <button
+                      key={o}
+                      type="button"
+                      onClick={() => setOffset(o)}
+                      className={cn(
+                        'text-[11px] px-2 h-7 rounded-md font-medium whitespace-nowrap',
+                        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
+                      )}
+                    >
+                      {labelMonthKey(k)}{o === 0 ? ' •' : ''}
+                    </button>
+                  );
+                })}
+              </div>
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o + 1)} aria-label="Próximo mês">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="flex gap-1 p-0.5 bg-muted rounded-md">
+              {([
+                { id: 'all', label: 'Todas' },
+                { id: 'receita', label: 'Entradas' },
+                { id: 'despesa', label: 'Saídas' },
+              ] as const).map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setFilter(id)}
+                  className={cn(
+                    'flex-1 h-7 text-[11px] font-medium rounded',
+                    filter === id ? 'bg-background shadow-sm' : 'text-muted-foreground',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </CardHeader>
+
+      <CardContent className="space-y-1 max-h-[500px] overflow-y-auto">
+        {visible.length === 0 ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            Sem lançamentos neste mês.
+          </div>
+        ) : (
+          visible.map(t => <TxRow key={t.id} tx={t} onUpdate={onUpdate} onRemove={onRemove} />)
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Mapa simples de cor do cartão para valor CSS (usado no chip do cartão).
+function cssColor(name: string): string {
+  const map: Record<string, string> = {
+    purple: '#a855f7', blue: '#3b82f6', gray: '#6b7280', orange: '#f97316',
+    green: '#22c55e', red: '#ef4444', pink: '#ec4899', yellow: '#eab308',
+    black: '#111827', teal: '#14b8a6',
+  };
+  return map[name] || '#6b7280';
+}
+
+
+
 function TxRow({
   tx, onUpdate, onRemove,
 }: {
