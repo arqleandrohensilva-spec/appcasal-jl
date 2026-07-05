@@ -811,6 +811,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
 
   const toImport = rows.filter(r => r._import);
   const totalImport = toImport.reduce((s, r) => s + (r.type === 'despesa' ? r.amount : 0), 0);
+  const transferCount = rows.filter(r => r.type === 'transferencia').length;
 
   const confirm = () => {
     if (!destination) { toast.error('Escolha um cartão ou conta de destino.'); return; }
