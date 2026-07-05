@@ -4,16 +4,19 @@ import { z } from 'zod';
 import { createLovableAiGatewayProvider } from './ai-gateway.server';
 
 
+// Schema tolerante: campos opcionais em vez de .nullable() estrito, pois
+// o Gemini às vezes omite chaves — validamos e normalizamos depois.
 const EntrySchema = z.object({
   date: z.string(),
   description: z.string(),
   amount: z.number(),
   type: z.enum(['despesa', 'receita', 'transferencia']),
   category: z.string(),
-  installmentCurrent: z.number().nullable(),
-  installmentTotal: z.number().nullable(),
-  transferReason: z.string().nullable(), // por que foi marcado como transferência (ex: "PIX entre contas próprias", "Pagamento de fatura")
+  installmentCurrent: z.number().nullish().optional(),
+  installmentTotal: z.number().nullish().optional(),
+  transferReason: z.string().nullish().optional(),
 });
+
 
 const StatementSchema = z.object({
   statementType: z.enum(['card', 'account', 'unknown']),
