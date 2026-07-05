@@ -1497,73 +1497,72 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     }
   };
 
+  // Recomputa o plano de parcelas de uma linha, ancorando na fatura de destino.
+  const computeRowPlan = (r: PdfRow): PdfRow => {
+    const isTransfer = r.type === 'transferencia';
+    const isParcelado = !isTransfer && r.installmentTotal && r.installmentTotal > 1 && r.installmentCurrent && r.installmentCurrent >= 1;
+    if (!isParcelado) return { ...r, _installmentPlan: undefined };
+    if (!statement || !destination.startsWith('card:')) return r;
+    const cardId = destination.slice('card:'.length);
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return r;
+    const anchorDate = statement.periodEnd || statement.periodStart;
+    if (!anchorDate) return r;
+    const targetInvoiceKey = invoiceMonthOf(anchorDate, card.closingDay);
+
+    const total = r.installmentTotal!;
+    const current = Math.min(r.installmentCurrent!, total);
+    const amt = Math.abs(r.amount);
+
+    const plan: InstallmentSlot[] = Array.from({ length: total }, (_, k) => {
+      const slotIndex = k + 1;
+      const monthKey = addMonthsToKey(targetInvoiceKey, slotIndex - current);
+      const expected = invoiceClosingDateISO(monthKey, card.closingDay);
+      const found = transactions.find(t =>
+        Math.abs(Math.abs(t.amount) - amt) < 0.01
+        && t.cardId === card.id
+        && invoiceMonthOf(t.date, card.closingDay) === monthKey
+        && descOverlap(t.description, r.description) >= 0.4,
+      );
+      return {
+        index: slotIndex,
+        date: expected,
+        exists: !!found,
+        existing: found ? { description: found.description, date: found.date, amount: found.amount } : undefined,
+      };
+    });
+    const allExist = plan.every(s => s.exists);
+    return {
+      ...r,
+      installmentCurrent: current,
+      _installmentPlan: plan,
+      _duplicate: allExist ? true : r._duplicate,
+      _import: allExist ? false : r._import,
+    };
+  };
+
   const updateRow = (id: string, patch: Partial<PdfRow>) => {
     setRows(prev => {
       const target = prev.find(r => r._id === id);
       const group = target?._conflictGroup;
-      // Se o usuário marcou "Importar" numa linha em conflito, desmarca as irmãs
-      // do mesmo grupo (uma leitura vence, as outras são puladas).
+      // Se o usuário marcou "Importar" numa linha em conflito, desmarca as irmãs.
       const isPickingWinner = group && patch._import === true;
+      const touchesInstall = 'installmentTotal' in patch || 'installmentCurrent' in patch;
       return prev.map(r => {
-        if (r._id === id) return { ...r, ...patch };
+        if (r._id === id) {
+          const merged = { ...r, ...patch };
+          return touchesInstall ? computeRowPlan(merged) : merged;
+        }
         if (isPickingWinner && r._conflictGroup === group) return { ...r, _import: false };
         return r;
       });
     });
   };
 
-  // Reancorar plano de parcelas na FATURA de destino:
-  // quando o destino é um cartão, a parcela `current` extraída pela IA
-  // pertence à fatura que está sendo importada (não ao mês da compra).
-  // Ex.: compra 13/01, "6/6", fatura de Jul → parcela 6 = Jul, parcela 1 = Fev.
+  // Reancorar plano de parcelas quando destino/extrato/cartões/transações mudarem.
   useEffect(() => {
-    if (!statement || !destination.startsWith('card:')) return;
-    const cardId = destination.slice('card:'.length);
-    const card = cards.find(c => c.id === cardId);
-    if (!card) return;
-
-    // Fatura-alvo deste import: usa o fim do período do extrato + fechamento do cartão.
-    const anchorDate = statement.periodEnd || statement.periodStart;
-    if (!anchorDate) return;
-    const targetInvoiceKey = invoiceMonthOf(anchorDate, card.closingDay);
-
-    const ownerTx = transactions.filter(t => t.owner === owner);
-    const otherTx = transactions.filter(t => t.owner !== owner);
-
-    setRows(prev => prev.map(r => {
-      const isTransfer = r.type === 'transferencia';
-      const isParcelado = !isTransfer && r.installmentTotal && r.installmentTotal > 1 && r.installmentCurrent && r.installmentCurrent >= 1;
-      if (!isParcelado) return r;
-      const total = r.installmentTotal!;
-      const current = r.installmentCurrent!;
-      const amt = Math.abs(r.amount);
-
-      const plan: InstallmentSlot[] = Array.from({ length: total }, (_, k) => {
-        const slotIndex = k + 1;
-        const monthKey = addMonthsToKey(targetInvoiceKey, slotIndex - current);
-        // Data dentro do ciclo dessa fatura (garante invoiceMonthOf == monthKey)
-        const expected = invoiceClosingDateISO(monthKey, card.closingDay);
-        const found = [...ownerTx, ...otherTx].find(t =>
-          Math.abs(Math.abs(t.amount) - amt) < 0.01
-          && t.cardId === card.id
-          && invoiceMonthOf(t.date, card.closingDay) === monthKey
-          && descOverlap(t.description, r.description) >= 0.4,
-        );
-        return {
-          index: slotIndex,
-          date: expected,
-          exists: !!found,
-          existing: found ? { description: found.description, date: found.date, amount: found.amount } : undefined,
-        };
-      });
-      const allExist = plan.every(s => s.exists);
-      return {
-        ...r,
-        _installmentPlan: plan,
-        _duplicate: allExist ? true : r._duplicate,
-        _import: allExist ? false : r._import,
-      };
-    }));
+    setRows(prev => prev.map(r => computeRowPlan(r)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destination, statement, cards, transactions, owner]);
 
 
