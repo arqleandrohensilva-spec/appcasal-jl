@@ -35,6 +35,7 @@ import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
 import { Route as AppAgenteRouteImport } from './routes/app/agente'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AppAssistenteIndexRouteImport } from './routes/app/assistente.index'
+import { Route as AppCartoesCardIdRouteImport } from './routes/app/cartoes.$cardId'
 import { Route as AppAssistenteThreadIdRouteImport } from './routes/app/assistente.$threadId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -167,6 +168,11 @@ const AppAssistenteIndexRoute = AppAssistenteIndexRouteImport.update({
   path: '/assistente/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCartoesCardIdRoute = AppCartoesCardIdRouteImport.update({
+  id: '/$cardId',
+  path: '/$cardId',
+  getParentRoute: () => AppCartoesRoute,
+} as any)
 const AppAssistenteThreadIdRoute = AppAssistenteThreadIdRouteImport.update({
   id: '/assistente/$threadId',
   path: '/assistente/$threadId',
@@ -179,7 +185,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
-  '/app/cartoes': typeof AppCartoesRoute
+  '/app/cartoes': typeof AppCartoesRouteWithChildren
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/app/transacoes': typeof AppTransacoesRoute
   '/app/transferencia': typeof AppTransferenciaRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
+  '/app/cartoes/$cardId': typeof AppCartoesCardIdRoute
   '/app/assistente/': typeof AppAssistenteIndexRoute
 }
 export interface FileRoutesByTo {
@@ -208,7 +215,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
-  '/app/cartoes': typeof AppCartoesRoute
+  '/app/cartoes': typeof AppCartoesRouteWithChildren
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/app/transacoes': typeof AppTransacoesRoute
   '/app/transferencia': typeof AppTransferenciaRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
+  '/app/cartoes/$cardId': typeof AppCartoesCardIdRoute
   '/app/assistente': typeof AppAssistenteIndexRoute
 }
 export interface FileRoutesById {
@@ -238,7 +246,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
-  '/app/cartoes': typeof AppCartoesRoute
+  '/app/cartoes': typeof AppCartoesRouteWithChildren
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -259,6 +267,7 @@ export interface FileRoutesById {
   '/app/transacoes': typeof AppTransacoesRoute
   '/app/transferencia': typeof AppTransferenciaRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
+  '/app/cartoes/$cardId': typeof AppCartoesCardIdRoute
   '/app/assistente/': typeof AppAssistenteIndexRoute
 }
 export interface FileRouteTypes {
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/app/transacoes'
     | '/app/transferencia'
     | '/app/assistente/$threadId'
+    | '/app/cartoes/$cardId'
     | '/app/assistente/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/app/transacoes'
     | '/app/transferencia'
     | '/app/assistente/$threadId'
+    | '/app/cartoes/$cardId'
     | '/app/assistente'
   id:
     | '__root__'
@@ -348,6 +359,7 @@ export interface FileRouteTypes {
     | '/app/transacoes'
     | '/app/transferencia'
     | '/app/assistente/$threadId'
+    | '/app/cartoes/$cardId'
     | '/app/assistente/'
   fileRoutesById: FileRoutesById
 }
@@ -542,6 +554,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssistenteIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/cartoes/$cardId': {
+      id: '/app/cartoes/$cardId'
+      path: '/$cardId'
+      fullPath: '/app/cartoes/$cardId'
+      preLoaderRoute: typeof AppCartoesCardIdRouteImport
+      parentRoute: typeof AppCartoesRoute
+    }
     '/app/assistente/$threadId': {
       id: '/app/assistente/$threadId'
       path: '/assistente/$threadId'
@@ -552,9 +571,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppCartoesRouteChildren {
+  AppCartoesCardIdRoute: typeof AppCartoesCardIdRoute
+}
+
+const AppCartoesRouteChildren: AppCartoesRouteChildren = {
+  AppCartoesCardIdRoute: AppCartoesCardIdRoute,
+}
+
+const AppCartoesRouteWithChildren = AppCartoesRoute._addFileChildren(
+  AppCartoesRouteChildren,
+)
+
 interface AppRouteChildren {
   AppAgenteRoute: typeof AppAgenteRoute
-  AppCartoesRoute: typeof AppCartoesRoute
+  AppCartoesRoute: typeof AppCartoesRouteWithChildren
   AppComparadorRoute: typeof AppComparadorRoute
   AppComportamentoRoute: typeof AppComportamentoRoute
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
@@ -580,7 +611,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAgenteRoute: AppAgenteRoute,
-  AppCartoesRoute: AppCartoesRoute,
+  AppCartoesRoute: AppCartoesRouteWithChildren,
   AppComparadorRoute: AppComparadorRoute,
   AppComportamentoRoute: AppComportamentoRoute,
   AppConfiguracoesRoute: AppConfiguracoesRoute,

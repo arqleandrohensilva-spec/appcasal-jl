@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,9 @@ import { useAppContext } from '@/lib/context';
 import { useData, type UserCard } from '@/lib/store';
 import { formatCurrency } from '@/lib/mockData';
 import { invoiceMonthOf } from '@/lib/finance';
-import { CardInvoiceView } from '@/routes/app/transacoes';
-import { CreditCard, Plus, Trash2, Pencil } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Pencil, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+
 
 export const Route = createFileRoute('/app/cartoes')({
   component: Cartoes,
@@ -23,11 +23,11 @@ const COLORS = ['purple', 'emerald', 'blue', 'orange', 'rose', 'amber', 'cyan', 
 
 function Cartoes() {
   const { activeProfile } = useAppContext();
-  const { cards, transactions, addCard, updateCard, removeCard, updateTransaction, removeTransaction } = useData();
+  const { cards, transactions, addCard, updateCard, removeCard } = useData();
   const [open, setOpen] = useState(false);
 
-  const owner: 'leandro' | 'jonathan' = activeProfile === 'casal' ? 'leandro' : activeProfile;
   const myCards = cards.filter(c => activeProfile === 'casal' || c.owner === activeProfile);
+
 
   const todayISO = new Date().toISOString().slice(0, 10);
 
@@ -65,17 +65,22 @@ function Cartoes() {
               const pct = Math.min(100, (billTotal / card.limit) * 100);
 
               return (
-                <Card key={card.id}>
+                <Card key={card.id} className="group hover:border-primary/50 hover:shadow-md transition-all">
                   <CardHeader className="flex flex-row items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="flex items-center gap-2">
+                    <Link
+                      to="/app/cartoes/$cardId"
+                      params={{ cardId: card.id }}
+                      className="flex-1 space-y-1 cursor-pointer"
+                    >
+                      <CardTitle className="flex items-center gap-2 group-hover:text-primary transition-colors">
                         <span className={`w-3 h-3 rounded-full bg-${card.color}-500`} />
                         {card.name}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                       </CardTitle>
                       <p className="text-xs text-muted-foreground">
                         Fecha dia {card.closingDay} · Vence dia {card.dueDay}
                       </p>
-                    </div>
+                    </Link>
                     <div className="flex gap-1">
                       <EditCardButton card={card} onSave={(patch) => { updateCard(card.id, patch); toast.success('Cartão atualizado'); }} />
                       <Button size="icon" variant="ghost" onClick={() => { removeCard(card.id); toast.success('Cartão removido'); }}>
@@ -83,36 +88,34 @@ function Cartoes() {
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>Fatura atual</span>
-                        <span className="font-bold">{formatCurrency(billTotal)}</span>
+                  <Link to="/app/cartoes/$cardId" params={{ cardId: card.id }} className="block">
+                    <CardContent className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Fatura atual</span>
+                          <span className="font-bold">{formatCurrency(billTotal)}</span>
+                        </div>
+                        <Progress value={pct} />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Limite</span>
+                          <span>{formatCurrency(card.limit)}</span>
+                        </div>
                       </div>
-                      <Progress value={pct} />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Limite</span>
-                        <span>{formatCurrency(card.limit)}</span>
+                      <div className="text-xs text-muted-foreground pt-2 border-t border-border flex items-center justify-between">
+                        <span>{monthBills.length} lançamento{monthBills.length !== 1 ? 's' : ''} na fatura</span>
+                        <span className="text-primary font-medium">Ver detalhes →</span>
                       </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground pt-2 border-t border-border">
-                      {monthBills.length} lançamento{monthBills.length !== 1 ? 's' : ''} na fatura
-                    </div>
-                  </CardContent>
+                    </CardContent>
+                  </Link>
                 </Card>
               );
             })}
-          </div>
-
-          {/* Fatura detalhada com navegação mês a mês (movida da aba Transações) */}
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Fatura detalhada</h2>
-            <CardInvoiceView owner={owner} onUpdate={updateTransaction} onRemove={removeTransaction} />
           </div>
         </>
       )}
     </div>
   );
+
 }
 
 function EditCardButton({ card, onSave }: { card: UserCard; onSave: (p: Partial<Omit<UserCard, 'id'>>) => void }) {
