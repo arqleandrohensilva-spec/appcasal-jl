@@ -23,11 +23,11 @@ const COLORS = ['purple', 'emerald', 'blue', 'orange', 'rose', 'amber', 'cyan', 
 
 function Cartoes() {
   const { activeProfile } = useAppContext();
-  const { cards, transactions, addCard, updateCard, removeCard, updateTransaction, removeTransaction } = useData();
+  const { cards, transactions, addCard, updateCard, removeCard } = useData();
   const [open, setOpen] = useState(false);
 
-  const owner: 'leandro' | 'jonathan' = activeProfile === 'casal' ? 'leandro' : activeProfile;
   const myCards = cards.filter(c => activeProfile === 'casal' || c.owner === activeProfile);
+
 
   const todayISO = new Date().toISOString().slice(0, 10);
 
