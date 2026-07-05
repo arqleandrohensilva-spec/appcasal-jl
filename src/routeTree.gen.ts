@@ -36,7 +36,6 @@ import { Route as AppAgenteRouteImport } from './routes/app/agente'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AppAssistenteIndexRouteImport } from './routes/app/assistente.index'
 import { Route as AppAssistenteThreadIdRouteImport } from './routes/app/assistente.$threadId'
-import { Route as ApiPublicSetpwOnceRouteImport } from './routes/api/public/setpw-once'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -173,11 +172,6 @@ const AppAssistenteThreadIdRoute = AppAssistenteThreadIdRouteImport.update({
   path: '/assistente/$threadId',
   getParentRoute: () => AppRoute,
 } as any)
-const ApiPublicSetpwOnceRoute = ApiPublicSetpwOnceRouteImport.update({
-  id: '/api/public/setpw-once',
-  path: '/api/public/setpw-once',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -205,7 +199,6 @@ export interface FileRoutesByFullPath {
   '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
   '/app/transferencia': typeof AppTransferenciaRoute
-  '/api/public/setpw-once': typeof ApiPublicSetpwOnceRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
   '/app/assistente/': typeof AppAssistenteIndexRoute
 }
@@ -235,7 +228,6 @@ export interface FileRoutesByTo {
   '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
   '/app/transferencia': typeof AppTransferenciaRoute
-  '/api/public/setpw-once': typeof ApiPublicSetpwOnceRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
   '/app/assistente': typeof AppAssistenteIndexRoute
 }
@@ -266,7 +258,6 @@ export interface FileRoutesById {
   '/app/scanner': typeof AppScannerRoute
   '/app/transacoes': typeof AppTransacoesRoute
   '/app/transferencia': typeof AppTransferenciaRoute
-  '/api/public/setpw-once': typeof ApiPublicSetpwOnceRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
   '/app/assistente/': typeof AppAssistenteIndexRoute
 }
@@ -298,7 +289,6 @@ export interface FileRouteTypes {
     | '/app/scanner'
     | '/app/transacoes'
     | '/app/transferencia'
-    | '/api/public/setpw-once'
     | '/app/assistente/$threadId'
     | '/app/assistente/'
   fileRoutesByTo: FileRoutesByTo
@@ -328,7 +318,6 @@ export interface FileRouteTypes {
     | '/app/scanner'
     | '/app/transacoes'
     | '/app/transferencia'
-    | '/api/public/setpw-once'
     | '/app/assistente/$threadId'
     | '/app/assistente'
   id:
@@ -358,7 +347,6 @@ export interface FileRouteTypes {
     | '/app/scanner'
     | '/app/transacoes'
     | '/app/transferencia'
-    | '/api/public/setpw-once'
     | '/app/assistente/$threadId'
     | '/app/assistente/'
   fileRoutesById: FileRoutesById
@@ -368,7 +356,6 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiChatRoute: typeof ApiChatRoute
-  ApiPublicSetpwOnceRoute: typeof ApiPublicSetpwOnceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -562,13 +549,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssistenteThreadIdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/api/public/setpw-once': {
-      id: '/api/public/setpw-once'
-      path: '/api/public/setpw-once'
-      fullPath: '/api/public/setpw-once'
-      preLoaderRoute: typeof ApiPublicSetpwOnceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -631,18 +611,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiChatRoute: ApiChatRoute,
-  ApiPublicSetpwOnceRoute: ApiPublicSetpwOnceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
