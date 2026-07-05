@@ -381,6 +381,13 @@ function Transacoes() {
                 </div>
               )}
 
+              {!isSalary && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Tags (opcional)</Label>
+                  <TagsInput value={tags} onChange={setTags} suggestions={allTags} />
+                </div>
+              )}
+
               <Button type="submit" className="w-full">
                 {isSalary ? 'Cadastrar salário (2 recorrências)' : (isInstallment && parcelasNum > 1 ? `Lançar ${parcelasNum} parcelas` : 'Salvar transação')}
               </Button>
