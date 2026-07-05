@@ -1185,11 +1185,16 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   <tbody>
                     {rows.map(r => {
                       const isTransfer = r.type === 'transferencia';
+                      const siblings = r._conflictGroup
+                        ? (conflictGroups.get(r._conflictGroup) ?? []).filter(x => x._id !== r._id)
+                        : [];
+                      const hasConflict = siblings.length > 0;
                       return (
                       <tr key={r._id} className={cn(
                         'border-t border-border',
                         r._duplicate && 'bg-amber-50 dark:bg-amber-950/20',
-                        isTransfer && !r._duplicate && 'bg-sky-50/60 dark:bg-sky-950/20',
+                        hasConflict && !r._duplicate && 'bg-violet-50 dark:bg-violet-950/20',
+                        isTransfer && !r._duplicate && !hasConflict && 'bg-sky-50/60 dark:bg-sky-950/20',
                         !r._import && 'opacity-40',
                       )}>
                         <td className="p-1.5 text-center align-top">
