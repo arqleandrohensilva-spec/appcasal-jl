@@ -585,34 +585,9 @@ function CardInvoiceView({
               </div>
             </div>
 
-            {/* Navegador de mês */}
-            <div className="flex items-center justify-between gap-2">
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o - 1)} aria-label="Fatura anterior">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex-1 flex items-center justify-center gap-1 overflow-x-auto">
-                {[-1, 0, 1, 2, 3].map(o => {
-                  const k = addMonthsToKey(currentInvoiceKey, o);
-                  const active = o === offset;
-                  return (
-                    <button
-                      key={o}
-                      type="button"
-                      onClick={() => setOffset(o)}
-                      className={cn(
-                        'text-[11px] px-2 h-7 rounded-md font-medium whitespace-nowrap',
-                        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
-                      )}
-                    >
-                      {labelMonthKey(k)}{o === 0 ? ' •' : ''}
-                    </button>
-                  );
-                })}
-              </div>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o + 1)} aria-label="Próxima fatura">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            {/* Navegador de mês (-12 a +12) */}
+            <MonthStrip baseKey={currentInvoiceKey} offset={offset} onChange={setOffset} range={12} />
+
           </>
         )}
       </CardHeader>
