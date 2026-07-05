@@ -1007,13 +1007,17 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   return (
     <>
       <input
-        ref={fileRef} type="file"
+        ref={fileRef} type="file" multiple
         accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
         className="hidden"
-        onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.currentTarget.value = ''; }}
+        onChange={e => {
+          const fs = Array.from(e.target.files ?? []);
+          if (fs.length > 0) onFiles(fs);
+          e.currentTarget.value = '';
+        }}
       />
       <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
-        <FileText className="h-4 w-4" /> Importar PDF ou print
+        <FileText className="h-4 w-4" /> Importar PDF ou prints
       </Button>
 
       <Dialog open={open} onOpenChange={(o) => { if (!loading) setOpen(o); }}>
