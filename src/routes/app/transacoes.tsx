@@ -1156,13 +1156,35 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                             </SelectContent>
                           </Select>
                         </td>
-                        <td className="p-1.5">
+                        <td className="p-1.5 align-top">
                           {isTransfer ? (
                             <span className="text-[10px] text-sky-600 dark:text-sky-400">—</span>
                           ) : r.installmentTotal && r.installmentTotal > 1 ? (
-                            <Badge variant="outline" className="text-[9px] h-5 px-1.5">
-                              {r.installmentCurrent}/{r.installmentTotal}
-                            </Badge>
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="outline" className="text-[9px] h-5 px-1.5 w-fit">
+                                {r.installmentCurrent}/{r.installmentTotal}
+                              </Badge>
+                              {r._installmentPlan && (() => {
+                                const exists = r._installmentPlan.filter(s => s.exists).length;
+                                const missing = r._installmentPlan.length - exists;
+                                return (
+                                  <span
+                                    className="text-[9px] leading-tight text-muted-foreground"
+                                    title={r._installmentPlan.map(s =>
+                                      `${s.index}/${r.installmentTotal} ${formatDate(s.date)} ${s.exists ? '✓ já no app' : '＋ criar'}`,
+                                    ).join('\n')}
+                                  >
+                                    {exists > 0 && (
+                                      <span className="text-amber-700 dark:text-amber-400">✓{exists} já</span>
+                                    )}
+                                    {exists > 0 && missing > 0 && ' · '}
+                                    {missing > 0 && (
+                                      <span className="text-emerald-700 dark:text-emerald-400">＋{missing} criar</span>
+                                    )}
+                                  </span>
+                                );
+                              })()}
+                            </div>
                           ) : (
                             <span className="text-[10px] text-muted-foreground">à vista</span>
                           )}
