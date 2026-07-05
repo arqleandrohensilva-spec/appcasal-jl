@@ -4,6 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './auth';
 import type { UserProfile } from './context';
 
+export interface PaidInvoiceInfo {
+  paidAt: string;
+  accountId: string;
+  amount: number;
+  txId?: string;
+}
+
 export interface UserCard {
   id: string;
   name: string;
@@ -12,6 +19,7 @@ export interface UserCard {
   dueDay: number;
   color: string;
   owner: UserProfile;
+  paidInvoices?: Record<string, PaidInvoiceInfo>;
 }
 
 export interface UserAccount {
