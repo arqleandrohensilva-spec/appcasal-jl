@@ -1874,29 +1874,49 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                                 {r.installmentCurrent}/{r.installmentTotal}
                               </Badge>
                               {r._installmentPlan && (() => {
+                                const destCard = destination.startsWith('card:')
+                                  ? cards.find(c => c.id === destination.slice('card:'.length))
+                                  : undefined;
+                                const monthKeyOf = (iso: string) =>
+                                  destCard ? labelMonthKey(invoiceMonthOf(iso, destCard.closingDay)) : '';
+                                const current = r._installmentPlan.find(s => s.index === r.installmentCurrent);
                                 const exists = r._installmentPlan.filter(s => s.exists).length;
                                 const missing = r._installmentPlan.length - exists;
                                 return (
-                                  <span
-                                    className="text-[9px] leading-tight text-muted-foreground"
-                                    title={r._installmentPlan.map(s =>
-                                      `${s.index}/${r.installmentTotal} ${formatDate(s.date)} ${s.exists ? '✓ já no app' : '＋ criar'}`,
-                                    ).join('\n')}
-                                  >
-                                    {exists > 0 && (
-                                      <span className="text-amber-700 dark:text-amber-400">✓{exists} já</span>
+                                  <>
+                                    {destCard && current && (
+                                      <span className="text-[9px] leading-tight text-primary font-medium">
+                                        Fatura {monthKeyOf(current.date)}
+                                      </span>
                                     )}
-                                    {exists > 0 && missing > 0 && ' · '}
-                                    {missing > 0 && (
-                                      <span className="text-emerald-700 dark:text-emerald-400">＋{missing} criar</span>
-                                    )}
-                                  </span>
+                                    <span
+                                      className="text-[9px] leading-tight text-muted-foreground"
+                                      title={r._installmentPlan.map(s =>
+                                        `${s.index}/${r.installmentTotal} ${destCard ? monthKeyOf(s.date) + ' · ' : ''}${formatDate(s.date)} ${s.exists ? '✓ já no app' : '＋ criar'}`,
+                                      ).join('\n')}
+                                    >
+                                      {destCard && r._installmentPlan.length > 0 && (
+                                        <span>
+                                          {monthKeyOf(r._installmentPlan[0].date)} → {monthKeyOf(r._installmentPlan[r._installmentPlan.length - 1].date)}
+                                        </span>
+                                      )}
+                                      {destCard && (exists > 0 || missing > 0) && <br />}
+                                      {exists > 0 && (
+                                        <span className="text-amber-700 dark:text-amber-400">✓{exists} já</span>
+                                      )}
+                                      {exists > 0 && missing > 0 && ' · '}
+                                      {missing > 0 && (
+                                        <span className="text-emerald-700 dark:text-emerald-400">＋{missing} criar</span>
+                                      )}
+                                    </span>
+                                  </>
                                 );
                               })()}
                             </div>
                           ) : (
                             <span className="text-[10px] text-muted-foreground">à vista</span>
                           )}
+
                         </td>
                         <td className={cn(
                           'p-1.5 text-right font-semibold tabular-nums',
