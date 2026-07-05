@@ -737,10 +737,28 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     setOpen(true);
     setStatement(null);
     setRows([]);
+    setProgress(5);
+    setStatus('Preparando o arquivo…');
+
+    // Progresso simulado enquanto a IA processa (não temos streaming do gateway).
+    // Sobe devagar até 90% e trava — os 100% vêm quando a resposta chega.
+    let simTarget = 90;
+    const tick = setInterval(() => {
+      setProgress(p => (p < simTarget ? p + Math.max(1, Math.round((simTarget - p) * 0.08)) : p));
+    }, 400);
+
     try {
       const dataUrl = await fileToDataUrl(file);
+      setProgress(p => Math.max(p, 20));
+      setStatus('Enviando PDF para a IA…');
+
+      // A partir daqui a IA está lendo o PDF
+      setTimeout(() => setStatus('IA lendo o extrato e identificando lançamentos…'), 600);
+
       const result = await parseFn({ data: { pdfDataUrl: dataUrl, filename: file.name } });
       setStatement(result);
+      setStatus('Organizando transações e detectando parcelamentos…');
+      setProgress(95);
 
       // Dedup contra existentes (mesmo owner)
       const existingKeys = new Set(
@@ -766,11 +784,15 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       } else if (myAccounts.length > 0) {
         setDestination(`account:${myAccounts[0].id}`);
       }
+
+      setProgress(100);
+      setStatus(`Pronto! ${parsed.length} lançamentos encontrados.`);
     } catch (err) {
       console.error(err);
       toast.error('Não foi possível ler o PDF. Envie o extrato original do banco.');
       setOpen(false);
     } finally {
+      clearInterval(tick);
       setLoading(false);
     }
   };
