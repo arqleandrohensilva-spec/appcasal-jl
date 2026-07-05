@@ -104,9 +104,19 @@ function Cartoes() {
                         <span className="font-bold">{formatCurrency(billTotal)}</span>
                       </div>
                       <Progress value={pct} />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Limite</span>
-                        <span>{formatCurrency(card.limit)}</span>
+                      <div className="grid grid-cols-3 gap-2 text-xs pt-1">
+                        <div>
+                          <div className="text-muted-foreground">Limite atual</div>
+                          <div className="font-medium tabular-nums">{formatCurrency(card.limit)}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Em uso</div>
+                          <div className="font-medium tabular-nums text-rose-600 dark:text-rose-400">{formatCurrency(billTotal)}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Disponível</div>
+                          <div className="font-medium tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(Math.max(0, card.limit - billTotal))}</div>
+                        </div>
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground pt-2 border-t border-border flex items-center justify-between">
