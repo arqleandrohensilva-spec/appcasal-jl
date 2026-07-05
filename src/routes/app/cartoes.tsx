@@ -22,6 +22,7 @@ export const Route = createFileRoute('/app/cartoes')({
 const COLORS = ['purple', 'emerald', 'blue', 'orange', 'rose', 'amber', 'cyan', 'slate'];
 
 function Cartoes() {
+  const navigate = useNavigate();
   const { activeProfile } = useAppContext();
   const { cards, transactions, addCard, updateCard, removeCard } = useData();
   const [open, setOpen] = useState(false);
