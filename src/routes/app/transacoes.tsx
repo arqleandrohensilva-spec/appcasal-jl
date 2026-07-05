@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -585,34 +585,9 @@ function CardInvoiceView({
               </div>
             </div>
 
-            {/* Navegador de mês */}
-            <div className="flex items-center justify-between gap-2">
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o - 1)} aria-label="Fatura anterior">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex-1 flex items-center justify-center gap-1 overflow-x-auto">
-                {[-1, 0, 1, 2, 3].map(o => {
-                  const k = addMonthsToKey(currentInvoiceKey, o);
-                  const active = o === offset;
-                  return (
-                    <button
-                      key={o}
-                      type="button"
-                      onClick={() => setOffset(o)}
-                      className={cn(
-                        'text-[11px] px-2 h-7 rounded-md font-medium whitespace-nowrap',
-                        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
-                      )}
-                    >
-                      {labelMonthKey(k)}{o === 0 ? ' •' : ''}
-                    </button>
-                  );
-                })}
-              </div>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o + 1)} aria-label="Próxima fatura">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            {/* Navegador de mês (-12 a +12) */}
+            <MonthStrip baseKey={currentInvoiceKey} offset={offset} onChange={setOffset} range={12} />
+
           </>
         )}
       </CardHeader>
@@ -726,34 +701,9 @@ function AccountLedgerView({
               </div>
             </div>
 
-            {/* Navegador de mês */}
-            <div className="flex items-center justify-between gap-2">
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o - 1)} aria-label="Mês anterior">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex-1 flex items-center justify-center gap-1 overflow-x-auto">
-                {[-2, -1, 0, 1, 2].map(o => {
-                  const k = addMonthsToKey(currentKey, o);
-                  const active = o === offset;
-                  return (
-                    <button
-                      key={o}
-                      type="button"
-                      onClick={() => setOffset(o)}
-                      className={cn(
-                        'text-[11px] px-2 h-7 rounded-md font-medium whitespace-nowrap',
-                        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
-                      )}
-                    >
-                      {labelMonthKey(k)}{o === 0 ? ' •' : ''}
-                    </button>
-                  );
-                })}
-              </div>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOffset(o => o + 1)} aria-label="Próximo mês">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            {/* Navegador de mês (-12 a +12) */}
+            <MonthStrip baseKey={currentKey} offset={offset} onChange={setOffset} range={12} />
+
 
             <div className="flex gap-1 p-0.5 bg-muted rounded-md">
               {([
@@ -792,7 +742,119 @@ function AccountLedgerView({
 }
 
 // Mapa simples de cor do cartão para valor CSS (usado no chip do cartão).
+// Navegador horizontal de meses: -12 a +12, com auto-scroll para o mês ativo.
+function MonthStrip({
+  baseKey, offset, onChange, range = 12,
+}: {
+  baseKey: string;                 // YYYY-MM que representa offset 0
+  offset: number;                  // -range..+range
+  onChange: (offset: number) => void;
+  range?: number;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  // Ao mudar o offset, garante que o botão ativo fique visível (centralizado).
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [offset]);
+
+  const offsets = Array.from({ length: range * 2 + 1 }, (_, i) => i - range);
+  // Anos únicos presentes na faixa (para o seletor rápido).
+  const yearsSet = new Set<number>();
+  offsets.forEach(o => yearsSet.add(Number(addMonthsToKey(baseKey, o).slice(0, 4))));
+  const years = Array.from(yearsSet).sort();
+
+  const jumpToYear = (year: number) => {
+    // Vai para o mês atual do mesmo dia do ano escolhido (mesmo mês do baseKey).
+    const [by] = baseKey.split('-').map(Number);
+    const monthsDiff = (year - by) * 12;
+    // clamp para dentro do range
+    const clamped = Math.max(-range, Math.min(range, monthsDiff));
+    onChange(clamped);
+  };
+
+  const activeYear = Number(addMonthsToKey(baseKey, offset).slice(0, 4));
+
+  return (
+    <div className="space-y-2">
+      {/* Linha 1: setas + tira de meses */}
+      <div className="flex items-center gap-1">
+        <Button
+          size="icon" variant="ghost" className="h-8 w-8 shrink-0"
+          onClick={() => onChange(Math.max(-range, offset - 1))}
+          disabled={offset <= -range}
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div ref={scrollRef} className="flex-1 flex items-center gap-1 overflow-x-auto scroll-smooth snap-x">
+          {offsets.map(o => {
+            const k = addMonthsToKey(baseKey, o);
+            const active = o === offset;
+            const isToday = o === 0;
+            return (
+              <button
+                key={o}
+                ref={active ? activeRef : undefined}
+                type="button"
+                onClick={() => onChange(o)}
+                className={cn(
+                  'text-[11px] px-2 h-7 rounded-md font-medium whitespace-nowrap snap-center shrink-0 border',
+                  active
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : isToday
+                      ? 'border-primary/40 text-primary hover:bg-primary/5'
+                      : 'text-muted-foreground border-transparent hover:bg-muted',
+                )}
+                aria-current={active ? 'true' : undefined}
+              >
+                {labelMonthKey(k)}{isToday ? ' •' : ''}
+              </button>
+            );
+          })}
+        </div>
+        <Button
+          size="icon" variant="ghost" className="h-8 w-8 shrink-0"
+          onClick={() => onChange(Math.min(range, offset + 1))}
+          disabled={offset >= range}
+          aria-label="Próximo mês"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Linha 2: atalhos de ano + botão "hoje" */}
+      <div className="flex items-center gap-1 flex-wrap">
+        {years.map(y => (
+          <button
+            key={y}
+            type="button"
+            onClick={() => jumpToYear(y)}
+            className={cn(
+              'text-[10px] font-semibold h-6 px-2 rounded',
+              activeYear === y ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted',
+            )}
+          >
+            {y}
+          </button>
+        ))}
+        {offset !== 0 && (
+          <button
+            type="button"
+            onClick={() => onChange(0)}
+            className="text-[10px] font-semibold h-6 px-2 rounded ml-auto text-primary hover:bg-primary/10"
+          >
+            Hoje
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function cssColor(name: string): string {
+
   const map: Record<string, string> = {
     purple: '#a855f7', blue: '#3b82f6', gray: '#6b7280', orange: '#f97316',
     green: '#22c55e', red: '#ef4444', pink: '#ec4899', yellow: '#eab308',
