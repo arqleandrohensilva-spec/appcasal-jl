@@ -795,7 +795,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       setStatus(`Pronto! ${parsed.length} lançamentos encontrados.`);
     } catch (err) {
       console.error(err);
-      toast.error('Não foi possível ler o PDF. Envie o extrato original do banco.');
+      toast.error('Não foi possível ler o arquivo. Envie o PDF original do banco ou um print nítido da fatura.');
       setOpen(false);
     } finally {
       clearInterval(tick);
