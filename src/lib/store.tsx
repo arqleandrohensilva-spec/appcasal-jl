@@ -103,6 +103,7 @@ interface DataContextType {
     owner: UserProfile;
     recurrence?: Recurrence;
     recurrenceEndDate?: string;
+    tags?: string[];
   }) => number;
   updateTransaction: (id: string, patch: Partial<{
     description: string;
@@ -115,7 +116,10 @@ interface DataContextType {
     type: 'receita' | 'despesa';
     recurrence: Recurrence;
     recurrenceEndDate?: string;
+    tags: string[];
   }>) => void;
+  markInvoicePaid: (cardId: string, monthKey: string, accountId: string, amount: number, dateISO: string) => void;
+  unmarkInvoicePaid: (cardId: string, monthKey: string) => void;
   removeTransaction: (id: string, removeGroup?: boolean) => void;
   addGoal: (g: Omit<UserGoal, 'id' | 'createdAt'>) => void;
   updateGoal: (id: string, patch: Partial<Omit<UserGoal, 'id' | 'createdAt'>>) => void;
