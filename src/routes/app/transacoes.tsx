@@ -651,8 +651,9 @@ function ImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
               </Select>
             </div>
           </div>
-          <div className="max-h-72 overflow-y-auto border border-border rounded text-xs">
-            <table className="w-full">
+          <div className="max-h-72 overflow-auto border border-border rounded text-xs">
+            <table className="w-full min-w-[480px]">
+
               <thead className="bg-muted sticky top-0">
                 <tr><th className="text-left p-2">Data</th><th className="text-left p-2">Descrição</th><th className="text-left p-2">Cat.</th><th className="text-right p-2">Valor</th></tr>
               </thead>
@@ -987,8 +988,9 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                 )}
               </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto border border-border rounded-lg">
-                <table className="w-full text-xs">
+              <div className="flex-1 min-h-0 overflow-auto border border-border rounded-lg">
+                <table className="w-full min-w-[640px] text-xs">
+
                   <thead className="bg-muted sticky top-0 z-10">
                     <tr>
                       <th className="p-2 w-8"></th>
