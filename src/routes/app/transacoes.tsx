@@ -1118,6 +1118,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {rows.length} lançamentos · {rows.filter(r => r._duplicate).length} duplicatas
+                    {conflictGroups.size > 0 && <> · <span className="text-violet-600 dark:text-violet-400 font-medium">🔀 {conflictGroups.size} conflito{conflictGroups.size > 1 ? 's' : ''} entre leituras</span></>}
                     {transferCount > 0 && <> · <span className="text-sky-600 dark:text-sky-400 font-medium">{transferCount} transferências</span></>}
                   </p>
                 </div>
