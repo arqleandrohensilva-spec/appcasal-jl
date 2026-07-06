@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { expandRecurring } from '@/lib/finance';
-import { AlertTriangle, Repeat } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Landmark,
