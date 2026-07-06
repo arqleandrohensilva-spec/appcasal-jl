@@ -183,7 +183,7 @@ export const CASAL_DATA = {
 };
 
 export const CATEGORIES = [
-  'Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Assinaturas', 'Investimentos', 'Educação', 'Outros'
+  'Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Assinaturas', 'Investimentos', 'Educação', 'Empréstimo', 'Outros'
 ];
 
 export const ACCOUNTS = [
