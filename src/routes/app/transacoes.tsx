@@ -1127,6 +1127,7 @@ function TxRow({
 }
 
 function EditTxDialog({ tx, onUpdate }: { tx: UserTransaction; onUpdate: ReturnType<typeof useData>['updateTransaction'] }) {
+  const { transactions, cards } = useData();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState(tx.description);
   const [amount, setAmount] = useState(String(Math.abs(tx.amount)));
@@ -1134,6 +1135,37 @@ function EditTxDialog({ tx, onUpdate }: { tx: UserTransaction; onUpdate: ReturnT
   const [category, setCategory] = useState(tx.category);
   const [type, setType] = useState<'receita' | 'despesa'>(tx.type);
   const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>(tx.recurrence || 'none');
+  const [lastInvoiceMonth, setLastInvoiceMonth] = useState('');
+
+  const card = tx.cardId ? cards.find(c => c.id === tx.cardId) : undefined;
+  const parsedInstallment = tx.installmentInfo ?? parseInstallmentLabel(tx.description);
+  const canAdjustInstallments = !!card && !!parsedInstallment && parsedInstallment.total > 1;
+
+  const installmentSiblings = useMemo(() => {
+    if (!parsedInstallment) return [];
+    if (tx.groupId) return transactions.filter(t => t.groupId === tx.groupId);
+    const base = parseInstallmentLabel(tx.description)?.base ?? tx.description;
+    const amountAbs = Math.abs(tx.amount);
+    return transactions.filter(t => {
+      const p = parseInstallmentLabel(t.description);
+      return t.cardId === tx.cardId
+        && p?.total === parsedInstallment.total
+        && descOverlap(p.base, base) >= 0.6
+        && Math.abs(Math.abs(t.amount) - amountAbs) < 0.01;
+    });
+  }, [parsedInstallment, transactions, tx]);
+
+  const installmentPreview = useMemo(() => {
+    if (!canAdjustInstallments || !card || !parsedInstallment || !lastInvoiceMonth) return [];
+    return installmentSiblings
+      .map(sibling => {
+        const meta = sibling.installmentInfo ?? parseInstallmentLabel(sibling.description);
+        if (!meta) return null;
+        const monthKey = addMonthsToKey(lastInvoiceMonth, meta.current - parsedInstallment.total);
+        return { id: sibling.id, current: meta.current, date: invoiceAnchorDateISO(monthKey, card.closingDay), monthKey };
+      })
+      .filter(Boolean) as { id: string; current: number; date: string; monthKey: string }[];
+  }, [canAdjustInstallments, card, parsedInstallment, lastInvoiceMonth, installmentSiblings]);
 
   const reopen = (o: boolean) => {
     setOpen(o);
@@ -1144,7 +1176,21 @@ function EditTxDialog({ tx, onUpdate }: { tx: UserTransaction; onUpdate: ReturnT
       setCategory(tx.category);
       setType(tx.type);
       setRecurrence(tx.recurrence || 'none');
+      const meta = tx.installmentInfo ?? parseInstallmentLabel(tx.description);
+      const txCard = tx.cardId ? cards.find(c => c.id === tx.cardId) : undefined;
+      if (meta && txCard) {
+        setLastInvoiceMonth(addMonthsToKey(invoiceMonthOf(tx.date, txCard.closingDay), meta.total - meta.current));
+      } else {
+        setLastInvoiceMonth('');
+      }
     }
+  };
+
+  const applyInstallmentRealignment = () => {
+    if (!canAdjustInstallments || !lastInvoiceMonth || installmentPreview.length === 0) return;
+    installmentPreview.forEach(item => onUpdate(item.id, { date: item.date }));
+    toast.success(`${installmentPreview.length} parcela${installmentPreview.length === 1 ? '' : 's'} ajustada${installmentPreview.length === 1 ? '' : 's'}`);
+    setOpen(false);
   };
 
   return (
@@ -1195,6 +1241,22 @@ function EditTxDialog({ tx, onUpdate }: { tx: UserTransaction; onUpdate: ReturnT
                   <SelectItem value="monthly">Todo mês</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          {canAdjustInstallments && (
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+              <div className="space-y-1.5">
+                <Label>Última parcela deve cair na fatura</Label>
+                <Input type="month" value={lastInvoiceMonth} onChange={e => setLastInvoiceMonth(e.target.value)} />
+              </div>
+              {installmentPreview.length > 0 && (
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Vai ajustar {installmentPreview.length} parcela{installmentPreview.length === 1 ? '' : 's'}: {labelMonthKey(installmentPreview[0].monthKey)} → {labelMonthKey(installmentPreview[installmentPreview.length - 1].monthKey)}.
+                </p>
+              )}
+              <Button type="button" variant="outline" size="sm" className="w-full" onClick={applyInstallmentRealignment} disabled={!lastInvoiceMonth || installmentPreview.length === 0}>
+                Ajustar parcelamento inteiro
+              </Button>
             </div>
           )}
         </div>
@@ -1388,11 +1450,42 @@ function addMonthsISO(iso: string, months: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function isMonthKey(value?: string | null): value is string {
+  return !!value && /^\d{4}-\d{2}$/.test(value);
+}
+
+function newUuid() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+function parseInstallmentLabel(description: string) {
+  const match = description.match(/\(([0-9]{1,2})\/([0-9]{1,2})\)\s*$/);
+  if (!match) return null;
+  const current = Number(match[1]);
+  const total = Number(match[2]);
+  if (!current || !total || current > total) return null;
+  return {
+    current,
+    total,
+    base: description.replace(/\s*\([0-9]{1,2}\/[0-9]{1,2}\)\s*$/, '').trim(),
+  };
+}
+
 // Retorna uma data-âncora que, segundo invoiceMonthOf, cai NA fatura de `monthKey`.
 // Usamos o próprio dia de fechamento (dia <= closingDay => mesma fatura). Isso garante
 // que a parcela criada seja atribuída à fatura correta, sem deslocamento de mês.
 function invoiceAnchorDateISO(monthKey: string, closingDay: number) {
   return invoiceClosingDateISO(monthKey, closingDay);
+}
+
+function statementInvoiceMonth(statement: ParsedStatement | null, card: { closingDay: number }, override?: string) {
+  if (isMonthKey(override)) return override;
+  if (isMonthKey(statement?.invoiceMonth)) return statement.invoiceMonth;
+  const anchorDate = statement?.periodEnd || statement?.periodStart;
+  if (!anchorDate) return '';
+  return invoiceMonthOf(anchorDate, card.closingDay);
 }
 
 function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
@@ -1407,12 +1500,14 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   const [statement, setStatement] = useState<ParsedStatement | null>(null);
   const [rows, setRows] = useState<PdfRow[]>([]);
   const [destination, setDestination] = useState<string>('');
+  const [invoiceMonthOverride, setInvoiceMonthOverride] = useState<string>('');
 
   const myCards = cards.filter(c => c.owner === owner);
   const myAccounts = accounts.filter(a => a.owner === owner);
 
   const isCard = destination.startsWith('card:');
   const isAccount = destination.startsWith('account:');
+  const importCard = isCard ? cards.find(c => c.id === destination.slice('card:'.length)) : undefined;
 
   const onFiles = async (files: File[]) => {
     if (files.length === 0) return;
@@ -1437,6 +1532,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     setOpen(true);
     setStatement(null);
     setRows([]);
+    setInvoiceMonthOverride('');
     setProgress(3);
     setStatus(files.length > 1 ? `Preparando ${files.length} arquivos…` : 'Preparando o arquivo…');
 
@@ -1453,6 +1549,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     let statementTypeAcc: ParsedStatement['statementType'] | null = null;
     let periodStart: string | null = null;
     let periodEnd: string | null = null;
+    let invoiceMonth: string | null = null;
 
     try {
       for (let idx = 0; idx < files.length; idx++) {
@@ -1477,6 +1574,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         }
         if (result.periodStart && (!periodStart || result.periodStart < periodStart)) periodStart = result.periodStart;
         if (result.periodEnd && (!periodEnd || result.periodEnd > periodEnd)) periodEnd = result.periodEnd;
+        if (isMonthKey(result.invoiceMonth) && !invoiceMonth) invoiceMonth = result.invoiceMonth;
 
         (result.entries ?? []).forEach(e => allEntries.push({ ...e, _sourceFile: file.name }));
 
@@ -1489,11 +1587,13 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         ...(firstStatement as ParsedStatement),
         bank: banks.size > 0 ? Array.from(banks).join(' + ') : (firstStatement?.bank ?? ''),
         statementType: statementTypeAcc ?? firstStatement?.statementType ?? 'unknown',
+        invoiceMonth: invoiceMonth ?? firstStatement?.invoiceMonth ?? null,
         periodStart: periodStart ?? firstStatement?.periodStart ?? '',
         periodEnd: periodEnd ?? firstStatement?.periodEnd ?? '',
         entries: allEntries,
       };
       setStatement(combinedStatement);
+      if (isMonthKey(combinedStatement.invoiceMonth)) setInvoiceMonthOverride(combinedStatement.invoiceMonth);
       setStatus('Organizando transações e detectando duplicatas…');
       setProgress(95);
 
@@ -1634,9 +1734,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     const cardId = destination.slice('card:'.length);
     const card = cards.find(c => c.id === cardId);
     if (!card) return r;
-    const anchorDate = statement.periodEnd || statement.periodStart;
-    if (!anchorDate) return r;
-    const targetInvoiceKey = invoiceMonthOf(anchorDate, card.closingDay);
+    const targetInvoiceKey = statementInvoiceMonth(statement, card, invoiceMonthOverride);
+    if (!targetInvoiceKey) return r;
 
     const total = r.installmentTotal!;
     const current = Math.min(r.installmentCurrent!, total);
@@ -1691,7 +1790,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   useEffect(() => {
     setRows(prev => prev.map(r => computeRowPlan(r)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destination, statement, cards, transactions, owner]);
+  }, [destination, statement, invoiceMonthOverride, cards, transactions, owner]);
 
 
 
@@ -1729,6 +1828,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         const total = r.installmentTotal!;
         const plan = r._installmentPlan!;
         const missing = plan.filter(s => !s.exists);
+        const importGroupId = newUuid();
         skipped += plan.length - missing.length;
         if (missing.length === 0) continue;
         // Cria cada parcela faltante individualmente (installments:1) para não recriar as que já existem.
@@ -1741,6 +1841,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
             paymentMethod: method,
             cardId: card?.id,
             accountId: account?.id,
+            groupId: importGroupId,
+            installmentInfo: { current: slot.index, total },
             type: effectiveType,
             owner,
           });
@@ -1863,6 +1965,17 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   )}
                   {statement.statementType === 'account' && !isAccount && (
                     <p className="text-[10px] text-orange-600">Detectamos extrato de conta — o ideal é lançar em uma conta.</p>
+                  )}
+                  {isCard && importCard && (
+                    <div className="space-y-1 pt-1">
+                      <Label className="text-xs">Fatura alvo</Label>
+                      <Input
+                        type="month"
+                        className="h-8 text-xs"
+                        value={statementInvoiceMonth(statement, importCard, invoiceMonthOverride)}
+                        onChange={e => setInvoiceMonthOverride(e.target.value)}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
