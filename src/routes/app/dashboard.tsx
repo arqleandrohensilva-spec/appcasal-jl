@@ -188,31 +188,47 @@ function Dashboard() {
           <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Receita do Mês</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(data.receita)}</div>
-            <p className="text-xs text-emerald-600 flex items-center mt-1"><ArrowUpRight className="h-3 w-3 mr-1" /> +12% vs mês ant.</p>
+            {receitaPct === null ? (
+              <p className="text-xs text-muted-foreground mt-1">Sem base do mês anterior</p>
+            ) : (
+              <p className={cn('text-xs flex items-center mt-1', receitaPct >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                {receitaPct >= 0 ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
+                {receitaPct >= 0 ? '+' : ''}{receitaPct}% vs mês ant.
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Gastos do Mês</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(data.gastos)}</div>
-            <p className="text-xs text-red-600 flex items-center mt-1"><ArrowDownRight className="h-3 w-3 mr-1" /> +5% vs mês ant.</p>
+            {gastosPct === null ? (
+              <p className="text-xs text-muted-foreground mt-1">Sem base do mês anterior</p>
+            ) : (
+              <p className={cn('text-xs flex items-center mt-1', gastosPct <= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                {gastosPct <= 0 ? <ArrowDownRight className="h-3 w-3 mr-1" /> : <ArrowUpRight className="h-3 w-3 mr-1" />}
+                {gastosPct >= 0 ? '+' : ''}{gastosPct}% vs mês ant.
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Poupança</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Sobra do Mês</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(data.poupanca)}</div>
-            <p className="text-xs text-emerald-600 mt-1">{('poupancaPercent' in data ? (data as any).poupancaPercent : 31)}% da receita</p>
+            <div className={cn('text-2xl font-bold', sobraMes >= 0 ? 'text-emerald-600' : 'text-red-600')}>{formatCurrency(sobraMes)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.receita > 0 ? `${poupancaPct}% da receita` : 'Sem receita no mês'}
+            </p>
           </CardContent>
         </Card>
-        {activeProfile === 'casal' && (
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Patrimônio Líquido</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency((data as any).patrimonio)}</div>
-              <p className="text-xs text-emerald-600 mt-1">Crescimento constante</p>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Saldo em Contas</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(saldoTotal)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Somatório das contas visíveis</p>
+          </CardContent>
+        </Card>
+
         )}
       </div>
 
