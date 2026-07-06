@@ -187,7 +187,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                     {Icon && <Icon className="h-3 w-3 fill-current text-rose-500" />}
                     {data.name}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">Score: {data.score}</p>
+                  <ProfileScoreLine profile={id} />
                 </div>
                 {activeProfile === id && <Check className="h-4 w-4 text-emerald-600" />}
               </DropdownMenuItem>
