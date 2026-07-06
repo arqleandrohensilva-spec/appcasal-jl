@@ -162,6 +162,8 @@ type DbTransaction = {
   installment_current: number | null; installment_total: number | null; type: 'receita' | 'despesa';
   owner: UserProfile; recurrence: Recurrence | null; recurrence_end_date: string | null; created_at: string;
   tags: string[] | null;
+  recurrence_weekdays: number[] | null;
+  recurrence_interval_days: number | null;
 };
 type DbGoal = { id: string; name: string; target: number | string; deadline: string | null; owner: UserProfile; created_at: string };
 type DbContrib = { id: string; goal_id: string; amount: number | string; date: string; owner: UserProfile; note: string | null };
