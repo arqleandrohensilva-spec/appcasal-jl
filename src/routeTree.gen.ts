@@ -23,6 +23,7 @@ import { Route as AppPatrimonioRouteImport } from './routes/app/patrimonio'
 import { Route as AppOrcamentoRouteImport } from './routes/app/orcamento'
 import { Route as AppMetasRouteImport } from './routes/app/metas'
 import { Route as AppFluxoRouteImport } from './routes/app/fluxo'
+import { Route as AppExtratoRouteImport } from './routes/app/extrato'
 import { Route as AppDividasRouteImport } from './routes/app/dividas'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppContasRouteImport } from './routes/app/contas'
@@ -107,6 +108,11 @@ const AppMetasRoute = AppMetasRouteImport.update({
 const AppFluxoRoute = AppFluxoRouteImport.update({
   id: '/fluxo',
   path: '/fluxo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExtratoRoute = AppExtratoRouteImport.update({
+  id: '/extrato',
+  path: '/extrato',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDividasRoute = AppDividasRouteImport.update({
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
+  '/app/extrato': typeof AppExtratoRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
   '/app/orcamento': typeof AppOrcamentoRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
+  '/app/extrato': typeof AppExtratoRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
   '/app/orcamento': typeof AppOrcamentoRoute
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/app/contas': typeof AppContasRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/dividas': typeof AppDividasRoute
+  '/app/extrato': typeof AppExtratoRoute
   '/app/fluxo': typeof AppFluxoRoute
   '/app/metas': typeof AppMetasRoute
   '/app/orcamento': typeof AppOrcamentoRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
+    | '/app/extrato'
     | '/app/fluxo'
     | '/app/metas'
     | '/app/orcamento'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
+    | '/app/extrato'
     | '/app/fluxo'
     | '/app/metas'
     | '/app/orcamento'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/app/contas'
     | '/app/dashboard'
     | '/app/dividas'
+    | '/app/extrato'
     | '/app/fluxo'
     | '/app/metas'
     | '/app/orcamento'
@@ -478,6 +490,13 @@ declare module '@tanstack/react-router' {
       path: '/fluxo'
       fullPath: '/app/fluxo'
       preLoaderRoute: typeof AppFluxoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/extrato': {
+      id: '/app/extrato'
+      path: '/extrato'
+      fullPath: '/app/extrato'
+      preLoaderRoute: typeof AppExtratoRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/dividas': {
@@ -613,6 +632,7 @@ interface AppRouteChildren {
   AppContasRoute: typeof AppContasRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDividasRoute: typeof AppDividasRoute
+  AppExtratoRoute: typeof AppExtratoRoute
   AppFluxoRoute: typeof AppFluxoRoute
   AppMetasRoute: typeof AppMetasRoute
   AppOrcamentoRoute: typeof AppOrcamentoRoute
@@ -639,6 +659,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppContasRoute: AppContasRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDividasRoute: AppDividasRoute,
+  AppExtratoRoute: AppExtratoRoute,
   AppFluxoRoute: AppFluxoRoute,
   AppMetasRoute: AppMetasRoute,
   AppOrcamentoRoute: AppOrcamentoRoute,
