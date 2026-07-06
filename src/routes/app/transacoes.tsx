@@ -1445,6 +1445,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
 
   const isCard = destination.startsWith('card:');
   const isAccount = destination.startsWith('account:');
+  const importCard = isCard ? cards.find(c => c.id === destination.slice('card:'.length)) : undefined;
 
   const onFiles = async (files: File[]) => {
     if (files.length === 0) return;
@@ -1727,7 +1728,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   useEffect(() => {
     setRows(prev => prev.map(r => computeRowPlan(r)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destination, statement, cards, transactions, owner]);
+  }, [destination, statement, invoiceMonthOverride, cards, transactions, owner]);
 
 
 
@@ -1903,13 +1904,13 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   {statement.statementType === 'account' && !isAccount && (
                     <p className="text-[10px] text-orange-600">Detectamos extrato de conta — o ideal é lançar em uma conta.</p>
                   )}
-                  {isCard && card && (
+                  {isCard && importCard && (
                     <div className="space-y-1 pt-1">
                       <Label className="text-xs">Fatura alvo</Label>
                       <Input
                         type="month"
                         className="h-8 text-xs"
-                        value={statementInvoiceMonth(statement, card, invoiceMonthOverride)}
+                        value={statementInvoiceMonth(statement, importCard, invoiceMonthOverride)}
                         onChange={e => setInvoiceMonthOverride(e.target.value)}
                       />
                     </div>
