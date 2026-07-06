@@ -1388,6 +1388,13 @@ function addMonthsISO(iso: string, months: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function dayAfterInvoiceClosingISO(monthKey: string, closingDay: number) {
+  const closing = invoiceClosingDateISO(monthKey, closingDay);
+  const [year, month, day] = closing.split('-').map(Number);
+  const nextDay = new Date(year, month - 1, day + 1);
+  return `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+}
+
 function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   const { cards, accounts, transactions, addTransaction } = useData();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -1638,7 +1645,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     const plan: InstallmentSlot[] = Array.from({ length: total }, (_, k) => {
       const slotIndex = k + 1;
       const monthKey = addMonthsToKey(targetInvoiceKey, slotIndex - current);
-      const expected = invoiceClosingDateISO(monthKey, card.closingDay);
+      const expected = dayAfterInvoiceClosingISO(monthKey, card.closingDay);
       const found = transactions.find(t =>
         Math.abs(Math.abs(t.amount) - amt) < 0.01
         && t.cardId === card.id
