@@ -519,9 +519,161 @@ function Extrato() {
           ))}
         </div>
       )}
+
+      <EditTxInlineDialog
+        tx={editingTx}
+        accounts={visibleAccounts}
+        onClose={() => setEditingId(null)}
+        onSave={(patch) => {
+          if (!editingTx) return;
+          updateTransaction(editingTx.id, patch);
+          toast.success('Transação atualizada');
+          setEditingId(null);
+        }}
+        onDelete={(removeGroup) => {
+          if (!editingTx) return;
+          removeTransaction(editingTx.id, removeGroup);
+          toast.success(removeGroup ? 'Grupo removido' : 'Transação removida');
+          setEditingId(null);
+        }}
+      />
     </div>
   );
 }
+
+function EditTxInlineDialog({
+  tx, accounts, onClose, onSave, onDelete,
+}: {
+  tx: UserTransaction | null;
+  accounts: UserAccount[];
+  onClose: () => void;
+  onSave: (patch: Partial<UserTransaction>) => void;
+  onDelete: (removeGroup?: boolean) => void;
+}) {
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState('');
+  const [category, setCategory] = useState('');
+  const [type, setType] = useState<'receita' | 'despesa'>('despesa');
+  const [accountId, setAccountId] = useState<string>('');
+  const [confirmDel, setConfirmDel] = useState(false);
+
+  useEffect(() => {
+    if (!tx) return;
+    setDescription(tx.description);
+    setAmount(String(Math.abs(tx.amount)));
+    setDate(tx.date);
+    setCategory(tx.category);
+    setType(tx.type);
+    setAccountId(tx.accountId ?? '');
+    setConfirmDel(false);
+  }, [tx]);
+
+  if (!tx) return null;
+  const isInstallment = !!tx.groupId;
+
+  const save = () => {
+    const v = parseFloat(amount);
+    if (!description.trim() || !v || v <= 0) {
+      toast.error('Descrição e valor são obrigatórios');
+      return;
+    }
+    onSave({
+      description: description.trim(),
+      amount: v,
+      date,
+      category,
+      type,
+      accountId: accountId || undefined,
+    });
+  };
+
+  return (
+    <Dialog open={!!tx} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar transação</DialogTitle>
+          {isInstallment && (
+            <DialogDescription>
+              Parcela {tx.installmentInfo?.current}/{tx.installmentInfo?.total} — a alteração afeta somente esta parcela.
+            </DialogDescription>
+          )}
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant={type === 'despesa' ? 'default' : 'outline'}
+              className={type === 'despesa' ? 'bg-rose-600 hover:bg-rose-700' : ''}
+              onClick={() => setType('despesa')}>Saída</Button>
+            <Button type="button" variant={type === 'receita' ? 'default' : 'outline'}
+              className={type === 'receita' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+              onClick={() => setType('receita')}>Entrada</Button>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Descrição</Label>
+            <Input value={description} onChange={e => setDescription(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Valor</Label>
+              <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Data</Label>
+              <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Categoria</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {accounts.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Conta</Label>
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger><SelectValue placeholder="Selecionar conta" /></SelectTrigger>
+                <SelectContent>
+                  {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-between">
+          {confirmDel ? (
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDel(false)}>Cancelar</Button>
+              {isInstallment && (
+                <Button variant="destructive" size="sm" onClick={() => onDelete(true)}>
+                  Excluir todas as parcelas
+                </Button>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => onDelete(false)}>
+                {isInstallment ? 'Só esta parcela' : 'Confirmar exclusão'}
+              </Button>
+            </div>
+          ) : (
+            <Button variant="ghost" size="sm" className="text-rose-600 hover:text-rose-700 gap-2"
+              onClick={() => setConfirmDel(true)}>
+              <Trash2 className="h-4 w-4" /> Excluir
+            </Button>
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button onClick={save}>Salvar</Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function SummaryCard({
   label, value, icon: Icon, hint, tone, bold,
