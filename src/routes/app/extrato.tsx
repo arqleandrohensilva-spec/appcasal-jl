@@ -121,18 +121,23 @@ function Extrato() {
     }
   }, [preset, customStart, customEnd]);
 
-  // Movimentos que afetam esta conta, incluindo expansão de recorrências no range visível.
+  // Movimentos que afetam esta conta. Inclui instâncias virtuais de recorrências
+  // apenas para o FUTURO (não deslocam saldo passado nem o saldo atual do banco).
   const accountMoves = useMemo(() => {
     if (!account) return [] as UserTransaction[];
-    // range amplo para cobrir período (com folga) mesmo se end > hoje
-    const rangeStart = isoAddDays(start, -31);
+    const today = todayISO();
     const rangeEnd = isoAddDays(end, 31);
-    const expanded = expandRecurring(transactions, rangeStart, rangeEnd);
-    return expanded
-      .filter(t => t.accountId === account.id)
+    const expanded = expandRecurring(transactions, today, rangeEnd);
+    // remove instâncias virtuais que caíram em data passada (só nos interessa futuro).
+    const filtered = expanded.filter(t => {
+      const isVirtual = t.id.includes('__r');
+      if (isVirtual && t.date <= today) return false;
+      return t.accountId === account.id;
+    });
+    return filtered
       .slice()
       .sort((x, y) => x.date.localeCompare(y.date) || x.createdAt.localeCompare(y.createdAt));
-  }, [transactions, account, start, end]);
+  }, [transactions, account, end]);
 
   // Reconstrói saldo do zero.
   // IMPORTANTE: account.balance reflete apenas movimentos JÁ REALIZADOS (data <= hoje),
