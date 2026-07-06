@@ -1,5 +1,6 @@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Info, Lightbulb } from 'lucide-react';
+import { Info, Lightbulb, Sparkles } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { useScore } from '@/hooks/useScore';
 import { cn } from '@/lib/utils';
 
