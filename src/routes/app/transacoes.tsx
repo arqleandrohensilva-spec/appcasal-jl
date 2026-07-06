@@ -640,7 +640,24 @@ export function CardInvoiceView({
             </div>
 
             {/* Navegador de mês (-12 a +12) */}
-            <MonthStrip baseKey={currentInvoiceKey} offset={offset} onChange={setOffset} range={12} />
+            <MonthStrip
+              baseKey={currentInvoiceKey}
+              offset={offset}
+              onChange={setOffset}
+              range={12}
+              getMonthMeta={(k) => {
+                let value = 0;
+                for (const tx of cardTx) {
+                  if (!card) continue;
+                  if (invoiceMonthOf(tx.date, card.closingDay) !== k) continue;
+                  value += tx.type === 'despesa' ? Math.abs(tx.amount) : -Math.abs(tx.amount);
+                }
+                const paid = !!card?.paidInvoices?.[k];
+                const status: 'paid' | 'current' | 'past' | 'future' =
+                  paid ? 'paid' : k === currentInvoiceKey ? 'current' : k < currentInvoiceKey ? 'past' : 'future';
+                return { total: value, status };
+              }}
+            />
 
             {card && (
               <PayInvoiceDialog
@@ -809,21 +826,20 @@ export function AccountLedgerView({
   );
 }
 
-// Mapa simples de cor do cartão para valor CSS (usado no chip do cartão).
 // Navegador horizontal de meses: -12 a +12, com auto-scroll para o mês ativo.
+// Quando `getMonthMeta` é passado, renderiza o layout de timeline com cards e valores.
 function MonthStrip({
-  baseKey, offset, onChange, range = 12,
+  baseKey, offset, onChange, range = 12, getMonthMeta,
 }: {
   baseKey: string;                 // YYYY-MM que representa offset 0
   offset: number;                  // -range..+range
   onChange: (offset: number) => void;
   range?: number;
+  getMonthMeta?: (monthKey: string) => { total: number; status: 'paid' | 'current' | 'past' | 'future' };
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
 
-  // Centraliza o botão ativo dentro do próprio container (sem rolar a página).
-  // Roda no mount (tab switch / reload) e a cada mudança de offset/base.
   const didInitialScroll = useRef(false);
   useEffect(() => {
     const container = scrollRef.current;
@@ -836,34 +852,30 @@ function MonthStrip({
       container.scrollTo({ left, behavior: didInitialScroll.current ? 'smooth' : 'auto' });
       didInitialScroll.current = true;
     };
-    // Aguarda layout (fontes / tab que acabou de montar) antes de medir.
     const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(doScroll);
-      (doScroll as any)._raf2 = raf2;
+      requestAnimationFrame(doScroll);
     });
     return () => cancelAnimationFrame(raf1);
   }, [offset, baseKey, range]);
 
   const offsets = Array.from({ length: range * 2 + 1 }, (_, i) => i - range);
-  // Anos únicos presentes na faixa (para o seletor rápido).
   const yearsSet = new Set<number>();
   offsets.forEach(o => yearsSet.add(Number(addMonthsToKey(baseKey, o).slice(0, 4))));
   const years = Array.from(yearsSet).sort();
 
   const jumpToYear = (year: number) => {
-    // Vai para o mês atual do mesmo dia do ano escolhido (mesmo mês do baseKey).
     const [by] = baseKey.split('-').map(Number);
     const monthsDiff = (year - by) * 12;
-    // clamp para dentro do range
     const clamped = Math.max(-range, Math.min(range, monthsDiff));
     onChange(clamped);
   };
 
   const activeYear = Number(addMonthsToKey(baseKey, offset).slice(0, 4));
 
+  const isTimeline = !!getMonthMeta;
+
   return (
     <div className="space-y-2">
-      {/* Linha 1: setas + tira de meses */}
       <div className="flex items-center gap-1">
         <Button
           size="icon" variant="ghost" className="h-8 w-8 shrink-0"
@@ -873,35 +885,145 @@ function MonthStrip({
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div ref={scrollRef} className="flex-1 flex items-center gap-1 overflow-x-auto scroll-smooth snap-x">
-          {offsets.map(o => {
-            const k = addMonthsToKey(baseKey, o);
-            const active = o === offset;
-            const isToday = o === 0;
-            return (
-              <button
-                key={o}
-                ref={active ? activeRef : undefined}
-                type="button"
-                onClick={() => onChange(o)}
-                className={cn(
-                  'relative text-[11px] px-2.5 h-8 rounded-md font-medium whitespace-nowrap snap-center shrink-0 border transition-all',
-                  active
-                    ? 'bg-primary text-primary-foreground border-primary shadow-md ring-2 ring-primary/40 ring-offset-1 ring-offset-background scale-105 font-semibold'
-                    : isToday
-                      ? 'border-primary/40 text-primary hover:bg-primary/5'
-                      : 'text-muted-foreground border-transparent hover:bg-muted',
-                )}
-                aria-current={active ? 'true' : undefined}
-              >
-                {labelMonthKey(k)}{isToday ? ' •' : ''}
-                {active && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" />
-                )}
-              </button>
-            );
-          })}
-        </div>
+
+        {isTimeline ? (
+          <div
+            ref={scrollRef}
+            className="flex-1 flex items-stretch gap-2 overflow-x-auto scroll-smooth snap-x py-3 px-1"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {offsets.map(o => {
+              const k = addMonthsToKey(baseKey, o);
+              const meta = getMonthMeta!(k);
+              const active = o === offset;
+              const [, mm] = k.split('-');
+              const monthLabel = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][Number(mm) - 1];
+              const yearShort = k.slice(2, 4);
+
+              // Cores por status
+              const isPaid = meta.status === 'paid';
+              const isCurrent = meta.status === 'current';
+              const isFuture = meta.status === 'future';
+
+              const dotClass = active
+                ? 'bg-white border-primary'
+                : isPaid
+                  ? 'bg-emerald-600 border-emerald-600'
+                  : isCurrent
+                    ? 'bg-primary border-primary'
+                    : isFuture
+                      ? 'bg-background border-muted-foreground/40'
+                      : 'bg-muted-foreground/60 border-muted-foreground/60';
+
+              const leftLineClass = o === -range
+                ? 'opacity-0'
+                : isFuture || meta.status === 'current'
+                  ? 'border-t-2 border-dashed border-muted-foreground/30'
+                  : 'bg-emerald-600/70 h-[2px]';
+
+              const rightLineClass = o === range
+                ? 'opacity-0'
+                : isFuture || isCurrent
+                  ? 'border-t-2 border-dashed border-muted-foreground/30'
+                  : 'bg-emerald-600/70 h-[2px]';
+
+              const cardBase = active
+                ? 'w-24 h-40 bg-primary/5 border-2 border-primary shadow-lg shadow-primary/10 -mt-1'
+                : 'w-20 h-36 bg-muted/40 border border-transparent';
+
+              const monthTextClass = active
+                ? 'text-primary font-bold'
+                : isFuture
+                  ? 'text-muted-foreground/70'
+                  : 'text-foreground/80 font-semibold';
+
+              const valueTextClass = active
+                ? 'text-primary font-bold'
+                : isPaid
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : isFuture
+                    ? 'text-muted-foreground/70'
+                    : 'text-foreground';
+
+              return (
+                <button
+                  key={o}
+                  ref={active ? activeRef : undefined}
+                  type="button"
+                  onClick={() => onChange(o)}
+                  className={cn(
+                    'relative flex-shrink-0 rounded-2xl flex flex-col items-center justify-between py-4 snap-center transition-all',
+                    cardBase,
+                  )}
+                  aria-current={active ? 'true' : undefined}
+                >
+                  <div className="flex flex-col items-center leading-tight">
+                    <span className={cn('text-xs', monthTextClass)}>{monthLabel}</span>
+                    <span className="text-[9px] text-muted-foreground/70">/{yearShort}</span>
+                  </div>
+
+                  {/* Timeline: linhas + ponto */}
+                  <div className="relative w-full flex items-center justify-center px-0">
+                    <div className={cn('absolute left-0 top-1/2 -translate-y-1/2 w-1/2 h-[2px]', leftLineClass)} />
+                    <div className={cn('absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-[2px]', rightLineClass)} />
+                    <div className={cn(
+                      'relative z-10 rounded-full border-2 flex items-center justify-center',
+                      active ? 'w-4 h-4' : 'w-3 h-3',
+                      dotClass,
+                    )}>
+                      {active && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                    </div>
+                  </div>
+
+                  <div className="text-center px-1">
+                    <span className={cn('text-[10px] tabular-nums whitespace-nowrap', valueTextClass)}>
+                      {meta.total >= 0
+                        ? `R$ ${meta.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : '—'}
+                    </span>
+                    {isPaid && (
+                      <div className="text-[8px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400 font-semibold mt-0.5">Paga</div>
+                    )}
+                    {isCurrent && !active && (
+                      <div className="text-[8px] uppercase tracking-wide text-primary font-semibold mt-0.5">Atual</div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div ref={scrollRef} className="flex-1 flex items-center gap-1 overflow-x-auto scroll-smooth snap-x">
+            {offsets.map(o => {
+              const k = addMonthsToKey(baseKey, o);
+              const active = o === offset;
+              const isToday = o === 0;
+              return (
+                <button
+                  key={o}
+                  ref={active ? activeRef : undefined}
+                  type="button"
+                  onClick={() => onChange(o)}
+                  className={cn(
+                    'relative text-[11px] px-2.5 h-8 rounded-md font-medium whitespace-nowrap snap-center shrink-0 border transition-all',
+                    active
+                      ? 'bg-primary text-primary-foreground border-primary shadow-md ring-2 ring-primary/40 ring-offset-1 ring-offset-background scale-105 font-semibold'
+                      : isToday
+                        ? 'border-primary/40 text-primary hover:bg-primary/5'
+                        : 'text-muted-foreground border-transparent hover:bg-muted',
+                  )}
+                  aria-current={active ? 'true' : undefined}
+                >
+                  {labelMonthKey(k)}{isToday ? ' •' : ''}
+                  {active && (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <Button
           size="icon" variant="ghost" className="h-8 w-8 shrink-0"
           onClick={() => onChange(Math.min(range, offset + 1))}
@@ -942,15 +1064,14 @@ function MonthStrip({
 }
 
 function cssColor(name: string): string {
-
   const map: Record<string, string> = {
     purple: '#a855f7', blue: '#3b82f6', gray: '#6b7280', orange: '#f97316',
     green: '#22c55e', red: '#ef4444', pink: '#ec4899', yellow: '#eab308',
-    black: '#111827', teal: '#14b8a6',
+    black: '#111827', teal: '#14b8a6', emerald: '#10b981', rose: '#f43f5e',
+    amber: '#f59e0b', cyan: '#06b6d4', slate: '#64748b',
   };
   return map[name] || '#6b7280';
 }
-
 
 
 function TxRow({
