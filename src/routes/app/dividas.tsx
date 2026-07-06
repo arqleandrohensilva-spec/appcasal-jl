@@ -315,8 +315,10 @@ function LoanDialog({
   const [name, setName] = useState('');
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
   const [principal, setPrincipal] = useState('');
+  const [contracted, setContracted] = useState('');
   const [installmentsN, setInstallmentsN] = useState('12');
   const [monthlyValue, setMonthlyValue] = useState('');
+  const [monthlyTouched, setMonthlyTouched] = useState(false);
   const [firstDueDate, setFirstDueDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
@@ -327,13 +329,25 @@ function LoanDialog({
 
   const nParcelas = Math.max(1, Math.min(parseInt(installmentsN) || 1, 240));
   const principalNum = parseFloat(principal) || 0;
+  const contractedNum = parseFloat(contracted) || 0;
   const monthlyNum = parseFloat(monthlyValue) || 0;
-  const totalPago = monthlyNum * nParcelas;
+  const effectiveMonthly = monthlyTouched && monthlyNum > 0
+    ? monthlyNum
+    : (contractedNum > 0 ? contractedNum / nParcelas : 0);
+  const totalPago = monthlyTouched && monthlyNum > 0 ? monthlyNum * nParcelas : contractedNum;
   const juros = totalPago - principalNum;
+
+  // Auto-preenche parcela a partir do valor contratado (se usuário não editou manualmente)
+  useEffect(() => {
+    if (!monthlyTouched && contractedNum > 0 && nParcelas > 0) {
+      setMonthlyValue((contractedNum / nParcelas).toFixed(2));
+    }
+  }, [contractedNum, nParcelas, monthlyTouched]);
 
   useEffect(() => {
     if (!open) {
-      setName(''); setPrincipal(''); setInstallmentsN('12'); setMonthlyValue('');
+      setName(''); setPrincipal(''); setContracted(''); setInstallmentsN('12'); setMonthlyValue('');
+      setMonthlyTouched(false);
       setCreditNow(true); setCreditDate(new Date().toISOString().slice(0, 10));
       const d = new Date(); d.setMonth(d.getMonth() + 1);
       setFirstDueDate(d.toISOString().slice(0, 10));
@@ -343,14 +357,15 @@ function LoanDialog({
   const submit = () => {
     if (!name.trim()) { toast.error('Dê um nome ao empréstimo.'); return; }
     if (!accountId) { toast.error('Escolha uma conta.'); return; }
-    if (principalNum <= 0) { toast.error('Informe o valor do empréstimo.'); return; }
-    if (monthlyNum <= 0) { toast.error('Informe o valor da parcela.'); return; }
+    if (principalNum <= 0) { toast.error('Informe o valor escolhido (recebido).'); return; }
+    if (contractedNum <= 0) { toast.error('Informe o valor contratado (com juros/IOF).'); return; }
+    if (effectiveMonthly <= 0) { toast.error('Informe o valor da parcela.'); return; }
     if (nParcelas < 1) { toast.error('Número de parcelas inválido.'); return; }
     onCreate({
       name: name.trim(), accountId,
       principal: principalNum,
       installmentsN: nParcelas,
-      monthlyValue: monthlyNum,
+      monthlyValue: effectiveMonthly,
       firstDueDate,
       creditNow,
       creditDate,
@@ -376,19 +391,26 @@ function LoanDialog({
             <Input placeholder="Ex.: Empréstimo Nubank" value={name} onChange={e => setName(e.target.value)} />
           </div>
 
+          <div className="space-y-1.5">
+            <Label>Conta</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+              <SelectContent>
+                {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Valor total contratado</Label>
+              <Label>Valor escolhido (recebido)</Label>
               <Input type="number" step="0.01" placeholder="10000,00" value={principal} onChange={e => setPrincipal(e.target.value)} />
+              <p className="text-[10px] text-muted-foreground">Valor que cai na sua conta</p>
             </div>
             <div className="space-y-1.5">
-              <Label>Conta</Label>
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>
-                  {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Valor contratado (com juros/IOF)</Label>
+              <Input type="number" step="0.01" placeholder="12500,00" value={contracted} onChange={e => setContracted(e.target.value)} />
+              <p className="text-[10px] text-muted-foreground">Total a pagar ao banco</p>
             </div>
           </div>
 
@@ -399,7 +421,12 @@ function LoanDialog({
             </div>
             <div className="space-y-1.5">
               <Label>Valor da parcela</Label>
-              <Input type="number" step="0.01" placeholder="450,00" value={monthlyValue} onChange={e => setMonthlyValue(e.target.value)} />
+              <Input
+                type="number" step="0.01" placeholder="450,00"
+                value={monthlyValue}
+                onChange={e => { setMonthlyTouched(true); setMonthlyValue(e.target.value); }}
+              />
+              <p className="text-[10px] text-muted-foreground">Auto: contratado ÷ parcelas</p>
             </div>
           </div>
 
