@@ -74,37 +74,93 @@ function Dividas() {
 
   if (!isMounted) return null;
 
+  const loanButton = (
+    <Button onClick={() => setLoanOpen(true)} className="gap-2">
+      <HandCoins className="h-4 w-4" /> Cadastrar empréstimo
+    </Button>
+  );
+
   if (totalDivida === 0) {
     return (
       <div className="space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold">Plano de Quitação de Dívidas</h1>
-          <p className="text-muted-foreground">Estratégias inteligentes para zerar suas pendências.</p>
+        <header className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold">Plano de Quitação de Dívidas</h1>
+            <p className="text-muted-foreground">Estratégias inteligentes para zerar suas pendências.</p>
+          </div>
+          {loanButton}
         </header>
         <Card className="bg-emerald-50 border-emerald-200">
           <CardContent className="p-8 text-center space-y-2">
             <p className="text-4xl">🎉</p>
             <p className="font-bold text-emerald-900">Você não tem dívidas pendentes!</p>
-            <p className="text-sm text-emerald-700">Nenhuma fatura em aberto nem parcelamento ativo.</p>
+            <p className="text-sm text-emerald-700">
+              Nenhuma fatura em aberto nem parcelamento ativo. Cadastrou um empréstimo?
+              Ele passa a impactar o saldo da conta escolhida — o valor recebido entra hoje e cada
+              parcela mensal sai automaticamente na data prevista.
+            </p>
           </CardContent>
         </Card>
+        <LoanDialog
+          open={loanOpen}
+          onOpenChange={setLoanOpen}
+          accounts={accounts.filter(a => activeProfile === 'casal' || a.owner === activeProfile)}
+          owner={activeProfile === 'casal' ? 'jonathan' : activeProfile}
+          onCreate={(payload) => {
+            const { accountId, name, principal, installmentsN, monthlyValue, firstDueDate, creditNow, creditDate } = payload;
+            const acc = accounts.find(a => a.id === accountId);
+            if (!acc) return;
+            const ownerForTx = acc.owner;
+            if (creditNow) {
+              addTransaction({
+                description: `Empréstimo ${name} — valor recebido`,
+                amount: principal,
+                date: creditDate,
+                category: 'Empréstimo',
+                paymentMethod: acc.name,
+                accountId,
+                installments: 1,
+                type: 'receita',
+                owner: ownerForTx,
+                tags: ['emprestimo', name.toLowerCase()],
+              });
+            }
+            addTransaction({
+              description: `Empréstimo ${name}`,
+              amount: monthlyValue * installmentsN,
+              date: firstDueDate,
+              category: 'Empréstimo',
+              paymentMethod: acc.name,
+              accountId,
+              installments: installmentsN,
+              type: 'despesa',
+              owner: ownerForTx,
+              tags: ['emprestimo', name.toLowerCase()],
+            });
+            toast.success('Empréstimo cadastrado e lançado nas movimentações!');
+            setLoanOpen(false);
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Plano de Quitação</h1>
-          <p className="text-muted-foreground">Faturas em aberto + parcelamentos a vencer.</p>
+          <p className="text-muted-foreground">Faturas em aberto + parcelamentos e empréstimos a vencer.</p>
         </div>
-        <Tabs value={method} onValueChange={(v: any) => setMethod(v)}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="snowball">Snowball</TabsTrigger>
-            <TabsTrigger value="avalanche">Avalanche</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-2">
+          {loanButton}
+          <Tabs value={method} onValueChange={(v: any) => setMethod(v)}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="snowball">Snowball</TabsTrigger>
+              <TabsTrigger value="avalanche">Avalanche</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
