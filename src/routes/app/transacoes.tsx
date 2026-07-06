@@ -1709,9 +1709,10 @@ export function PdfImportButton({ owner, defaultDestination, triggerLabel, trigg
       }
       setRows(parsed);
 
-      // Sugere destino
+      // Sugere destino (respeitando defaultDestination quando informado)
       const st = combinedStatement.statementType;
-      if (st === 'card' && myCards.length > 0) setDestination(`card:${myCards[0].id}`);
+      if (defaultDestination) setDestination(defaultDestination);
+      else if (st === 'card' && myCards.length > 0) setDestination(`card:${myCards[0].id}`);
       else if (st === 'account' && myAccounts.length > 0) setDestination(`account:${myAccounts[0].id}`);
       else if (myCards.length > 0) setDestination(`card:${myCards[0].id}`);
       else if (myAccounts.length > 0) setDestination(`account:${myAccounts[0].id}`);
