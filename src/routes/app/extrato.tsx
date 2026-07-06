@@ -196,6 +196,89 @@ function Extrato() {
     URL.revokeObjectURL(url);
   };
 
+  const exportPDF = async () => {
+    if (!account) return;
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const marginX = 40;
+    const brFmt = (n: number) => formatCurrency(n);
+    const dFmt = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR');
+
+    // Cabeçalho
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('Extrato', marginX, 50);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(110);
+    doc.text(`${account.name} · ${account.type}`, marginX, 66);
+    doc.text(`Período: ${dFmt(start)} — ${dFmt(end)}`, marginX, 80);
+    doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')}`, pageW - marginX, 80, { align: 'right' });
+
+    // Resumo
+    doc.setDrawColor(230);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(marginX, 96, pageW - marginX * 2, 60, 6, 6, 'FD');
+    const boxW = (pageW - marginX * 2) / 4;
+    const rows = [
+      ['Saldo inicial', brFmt(openingBalance), [17, 24, 39]],
+      ['Entradas', brFmt(entradas), [5, 150, 105]],
+      ['Saídas', brFmt(saidas), [225, 29, 72]],
+      ['Saldo final', brFmt(closingBalance), [17, 24, 39]],
+    ] as const;
+    rows.forEach((r, i) => {
+      const x = marginX + boxW * i + 12;
+      doc.setTextColor(110);
+      doc.setFontSize(9);
+      doc.text(r[0], x, 116);
+      doc.setTextColor(r[2][0], r[2][1], r[2][2]);
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(r[1], x, 138);
+      doc.setFont('helvetica', 'normal');
+    });
+
+    // Tabela
+    const body = periodRows.map(r => [
+      dFmt(r.tx.date),
+      r.tx.description,
+      r.tx.category,
+      r.delta > 0 ? 'Entrada' : 'Saída',
+      { content: (r.delta > 0 ? '+ ' : '− ') + brFmt(Math.abs(r.delta)), styles: { halign: 'right', textColor: r.delta > 0 ? [5, 150, 105] : [225, 29, 72] } },
+      { content: brFmt(r.running), styles: { halign: 'right' } },
+    ]);
+
+    autoTable(doc, {
+      startY: 176,
+      head: [['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Saldo']],
+      body: body as never,
+      styles: { fontSize: 9, cellPadding: 5, textColor: [30, 41, 59] },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 62 },
+        2: { cellWidth: 82 },
+        3: { cellWidth: 50 },
+        4: { cellWidth: 78, halign: 'right' },
+        5: { cellWidth: 78, halign: 'right' },
+      },
+      margin: { left: marginX, right: marginX },
+      didDrawPage: () => {
+        const pageH = doc.internal.pageSize.getHeight();
+        const pageNo = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Página ${pageNo}`, pageW - marginX, pageH - 20, { align: 'right' });
+        doc.text('Gerado pelo seu app financeiro', marginX, pageH - 20);
+      },
+    });
+
+    doc.save(`extrato-${account.name}-${start}_a_${end}.pdf`);
+  };
+
   if (visibleAccounts.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center space-y-3">
@@ -218,9 +301,14 @@ function Extrato() {
             Como no seu banco: cada entrada, saída e transferência com o saldo evoluindo linha por linha.
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
-          <Download className="h-4 w-4" /> Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
+            <Download className="h-4 w-4" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={exportPDF}>
+            <Download className="h-4 w-4" /> PDF
+          </Button>
+        </div>
       </header>
 
       {/* Seletor de conta */}
