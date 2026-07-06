@@ -1874,6 +1874,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     setOpen(false);
     setStatement(null);
     setRows([]);
+    setSetupConfirmed(false);
   };
 
   return (
