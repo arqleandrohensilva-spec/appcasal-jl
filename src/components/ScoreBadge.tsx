@@ -1,7 +1,46 @@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Info } from 'lucide-react';
+import { Info, Lightbulb } from 'lucide-react';
 import { useScore } from '@/hooks/useScore';
 import { cn } from '@/lib/utils';
+
+const RECOMMENDATIONS: Record<string, { title: string; tip: string }> = {
+  balance: {
+    title: 'Aumente seu saldo em conta',
+    tip: 'Deixe uma reserva mínima na conta corrente. Programe transferências automáticas no dia do salário para separar o que sobra.',
+  },
+  flow: {
+    title: 'Melhore o fluxo do mês',
+    tip: 'Suas despesas estão próximas (ou acima) das receitas. Revise categorias com maior gasto em Transações e corte assinaturas ou supérfluos.',
+  },
+  card: {
+    title: 'Reduza o uso do cartão',
+    tip: 'Você está usando uma fatia alta do limite. Antecipe pagamento da fatura aberta ou distribua compras entre cartões para ficar abaixo de 30% do limite.',
+  },
+  punctuality: {
+    title: 'Coloque as faturas em dia',
+    tip: 'Há faturas atrasadas ou vencendo em breve. Marque-as como pagas em Cartões assim que quitar e programe débito automático para não repetir.',
+  },
+  projection: {
+    title: 'Cuide da projeção de 30 dias',
+    tip: 'O saldo projetado ficará baixo. Veja Fluxo de Caixa, remaneje pagamentos grandes ou antecipe recebimentos para evitar saldo negativo.',
+  },
+  reserve: {
+    title: 'Monte sua reserva de emergência',
+    tip: 'Ideal: 6 meses de despesas guardados. Crie uma meta em Metas e faça aportes mensais fixos até atingir esse valor.',
+  },
+  goals: {
+    title: 'Avance nas suas metas',
+    tip: 'Suas metas estão pouco progredidas. Defina aportes mensais realistas e registre contribuições em Metas para acompanhar a evolução.',
+  },
+  budget: {
+    title: 'Ajuste seu orçamento',
+    tip: 'Você está estourando limites por categoria. Revise em Orçamento — aumente limites realistas ou reduza gastos nas categorias mais caras.',
+  },
+  debt: {
+    title: 'Reduza suas dívidas',
+    tip: 'Empréstimos ativos pesam no score. Priorize quitar dívidas com juros altos primeiro e evite novos financiamentos até baixar o comprometimento.',
+  },
+};
 
 export function ScoreBadge({ compact = false }: { compact?: boolean }) {
   const { score, grade, factors } = useScore();
