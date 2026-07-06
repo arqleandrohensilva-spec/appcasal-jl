@@ -22,6 +22,7 @@ import {
   Receipt,
 } from 'lucide-react';
 import { accentFor } from '@/lib/accent';
+import { PdfImportButton } from './transacoes';
 
 export const Route = createFileRoute('/app/extrato')({
   component: Extrato,
