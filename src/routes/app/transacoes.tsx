@@ -1488,7 +1488,7 @@ function statementInvoiceMonth(statement: ParsedStatement | null, card: { closin
   return invoiceMonthOf(anchorDate, card.closingDay);
 }
 
-function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
+export function PdfImportButton({ owner, defaultDestination, triggerLabel, triggerClassName }: { owner: 'leandro' | 'jonathan'; defaultDestination?: string; triggerLabel?: string; triggerClassName?: string }) {
   const { cards, accounts, transactions, addTransaction } = useData();
   const fileRef = useRef<HTMLInputElement>(null);
   const parseFn = useServerFn(parseBankStatement);
