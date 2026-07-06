@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/context';
 import { useData, type UserAccount, type UserTransaction } from '@/lib/store';
+import { invoiceMonthOf, invoiceDueDateISO } from '@/lib/finance';
 import { CATEGORIES, formatCurrency } from '@/lib/mockData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
