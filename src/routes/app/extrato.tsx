@@ -301,9 +301,14 @@ function Extrato() {
             Como no seu banco: cada entrada, saída e transferência com o saldo evoluindo linha por linha.
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
-          <Download className="h-4 w-4" /> Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
+            <Download className="h-4 w-4" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={exportPDF}>
+            <Download className="h-4 w-4" /> PDF
+          </Button>
+        </div>
       </header>
 
       {/* Seletor de conta */}
