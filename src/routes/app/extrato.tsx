@@ -302,7 +302,15 @@ function Extrato() {
             Como no seu banco: cada entrada, saída e transferência com o saldo evoluindo linha por linha.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {account && (
+            <PdfImportButton
+              owner={account.owner === 'jonathan' ? 'jonathan' : 'leandro'}
+              defaultDestination={`account:${account.id}`}
+              triggerLabel="Importar extrato do banco"
+              triggerClassName="gap-2 h-9"
+            />
+          )}
           <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
             <Download className="h-4 w-4" /> CSV
           </Button>
