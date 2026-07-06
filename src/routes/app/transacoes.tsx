@@ -1501,6 +1501,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   const [rows, setRows] = useState<PdfRow[]>([]);
   const [destination, setDestination] = useState<string>('');
   const [invoiceMonthOverride, setInvoiceMonthOverride] = useState<string>('');
+  const [setupConfirmed, setSetupConfirmed] = useState(false);
 
   const myCards = cards.filter(c => c.owner === owner);
   const myAccounts = accounts.filter(a => a.owner === owner);
