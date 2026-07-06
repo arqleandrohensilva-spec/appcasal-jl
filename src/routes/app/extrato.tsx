@@ -401,11 +401,13 @@ function Extrato() {
       {/* Resumo do período */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <SummaryCard
-          label="Saldo inicial"
-          value={openingBalance}
-          icon={Calendar}
-          hint={new Date(start + 'T00:00:00').toLocaleDateString('pt-BR')}
+          label="Saldo atual"
+          value={account?.balance ?? 0}
+          icon={Landmark}
+          hint="hoje, igual ao banco"
+          bold
         />
+
         <SummaryCard label="Entradas" value={entradas} icon={ArrowDownLeft} tone="pos" />
         <SummaryCard label="Saídas" value={saidas} icon={ArrowUpRight} tone="neg" />
         <SummaryCard
