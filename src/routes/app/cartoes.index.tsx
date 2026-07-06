@@ -32,22 +32,22 @@ function Cartoes() {
     const totals = new Map<string, { current: number; committed: number; currentCount: number }>();
     for (const card of myCards) {
       const currentKey = invoiceMonthOf(todayISO, card.closingDay);
-      const cardTx = transactions.filter(t => t.cardId === card.id && t.type === 'despesa');
+      const cardTx = transactions.filter(t => t.cardId === card.id);
       let current = 0;
       let committed = 0;
       let currentCount = 0;
 
       for (const tx of cardTx) {
-        const value = Math.abs(tx.amount);
+        const signed = tx.type === 'despesa' ? Math.abs(tx.amount) : -Math.abs(tx.amount);
         const txInvoiceKey = invoiceMonthOf(tx.date, card.closingDay);
-        if (!card.paidInvoices?.[txInvoiceKey]) committed += value;
+        if (!card.paidInvoices?.[txInvoiceKey]) committed += signed;
         if (txInvoiceKey === currentKey) {
-          current += value;
-          currentCount += 1;
+          current += signed;
+          if (tx.type === 'despesa') currentCount += 1;
         }
       }
 
-      totals.set(card.id, { current, committed, currentCount });
+      totals.set(card.id, { current, committed: Math.max(0, committed), currentCount });
     }
     return totals;
   }, [myCards, todayISO, transactions]);
