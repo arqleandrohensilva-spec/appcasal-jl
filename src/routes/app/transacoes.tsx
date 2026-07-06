@@ -88,6 +88,7 @@ function Transacoes() {
     setDescription(''); setAmount(''); setCategory('');
     setPaymentId(''); setIsInstallment(false); setInstallments('2');
     setRecurrence('none');
+    setWeeklyMode('every7'); setWeeklyDays([]); setWeeklyInterval('7');
     setDate(new Date().toISOString().slice(0, 10));
     setSalaryMode(false); setSalaryFixedAmount(''); setSalaryThursdayAmount('');
     setTags([]);
