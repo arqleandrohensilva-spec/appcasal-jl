@@ -113,11 +113,18 @@ function Extrato() {
       .sort((x, y) => x.date.localeCompare(y.date) || x.createdAt.localeCompare(y.createdAt));
   }, [transactions, account]);
 
-  // Reconstrói saldo do zero: saldo_atual = balance; saldo_inicial_all_time = balance - sum(all deltas)
+  // Reconstrói saldo do zero.
+  // IMPORTANTE: account.balance reflete apenas movimentos JÁ REALIZADOS (data <= hoje),
+  // pois é isso que o store atualiza ao criar/editar transações. Portanto o saldo
+  // inicial "antes de tudo" = balance - soma(deltas realizados). Lançamentos futuros
+  // continuam aparecendo no extrato, mas não deslocam o saldo atual.
   const runningRows = useMemo(() => {
     if (!account) return [] as { tx: UserTransaction; running: number; delta: number }[];
-    const totalDelta = accountMoves.reduce((s, t) => s + txDelta(t), 0);
-    let running = account.balance - totalDelta; // saldo antes do primeiro movimento
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const realizedDelta = accountMoves
+      .filter(t => t.date <= todayISO)
+      .reduce((s, t) => s + txDelta(t), 0);
+    let running = account.balance - realizedDelta; // saldo antes do primeiro movimento
     return accountMoves.map(tx => {
       const delta = txDelta(tx);
       running += delta;
@@ -136,12 +143,15 @@ function Extrato() {
     if (!account) return 0;
     const before = runningRows.filter(r => r.tx.date < start);
     if (before.length === 0) {
-      // Nada antes: saldo inicial é o saldo hipotético anterior a tudo.
-      const totalDelta = accountMoves.reduce((s, t) => s + txDelta(t), 0);
-      return account.balance - totalDelta;
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const realizedDelta = accountMoves
+        .filter(t => t.date <= todayISO)
+        .reduce((s, t) => s + txDelta(t), 0);
+      return account.balance - realizedDelta;
     }
     return before[before.length - 1].running;
   }, [runningRows, accountMoves, account, start]);
+
 
   // Filtro busca (apenas exibição — saldo corrente permanece o real).
   const q = search.trim().toLowerCase();
