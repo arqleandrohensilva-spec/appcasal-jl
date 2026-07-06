@@ -1645,7 +1645,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     const plan: InstallmentSlot[] = Array.from({ length: total }, (_, k) => {
       const slotIndex = k + 1;
       const monthKey = addMonthsToKey(targetInvoiceKey, slotIndex - current);
-      const expected = dayAfterInvoiceClosingISO(monthKey, card.closingDay);
+      const expected = invoiceAnchorDateISO(monthKey, card.closingDay);
       const found = transactions.find(t =>
         Math.abs(Math.abs(t.amount) - amt) < 0.01
         && t.cardId === card.id
