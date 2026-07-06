@@ -3,10 +3,10 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAppContext } from '@/lib/context';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA, formatCurrency } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, Heart, Flame, Sparkles, X, History } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, ArrowDownRight, Sparkles, X, History } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DailyBalanceProjection, CardRecommendationWidget } from '@/components/dashboard/BalanceProjection';
@@ -38,12 +38,25 @@ function Dashboard() {
     () => monthlyStats(transactions, activeProfile, now.getFullYear(), now.getMonth()),
     [transactions, activeProfile, now.getFullYear(), now.getMonth()],
   );
+  const prevStats = useMemo(() => {
+    const p = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return monthlyStats(transactions, activeProfile, p.getFullYear(), p.getMonth());
+  }, [transactions, activeProfile, now.getFullYear(), now.getMonth()]);
+  const pct = (curr: number, prev: number): number | null => {
+    if (prev <= 0) return curr > 0 ? 100 : null;
+    return Math.round(((curr - prev) / prev) * 100);
+  };
+  const receitaPct = pct(stats.receita, prevStats.receita);
+  const gastosPct = pct(stats.gastos, prevStats.gastos);
+  const sobraMes = stats.receita - stats.gastos;
+  const poupancaPct = stats.receita > 0 ? Math.round((sobraMes / stats.receita) * 100) : 0;
   const saldoTotal = useMemo(
     () => accounts
       .filter(a => activeProfile === 'casal' || a.owner === activeProfile)
       .reduce((s, a) => s + a.balance, 0),
     [accounts, activeProfile],
   );
+
   const userGoals = useMemo(
     () => goals.filter(g => activeProfile === 'casal' || g.owner === activeProfile).slice(0, 3),
     [goals, activeProfile],
@@ -114,15 +127,13 @@ function Dashboard() {
           <p className="text-muted-foreground">Bem-vindo ao seu dashboard financeiro</p>
         </div>
         <div className="flex items-center gap-4">
-           <div className="flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
-             <Flame className="h-4 w-4 fill-current" /> 12 Semanas
-           </div>
-           <div className="text-right">
-             <p className="text-xs text-muted-foreground uppercase font-semibold">Saúde Financeira</p>
-             <Badge className={cn("mt-1", data.color)}>{data.score}/100</Badge>
-           </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Saldo total</p>
+            <p className="text-lg font-bold tabular-nums">{formatCurrency(saldoTotal)}</p>
+          </div>
         </div>
       </header>
+
 
       {/* Briefing Diário */}
       <Card className="bg-gradient-to-r from-purple-50 via-white to-emerald-50 border-none shadow-sm relative overflow-hidden group">
@@ -177,33 +188,48 @@ function Dashboard() {
           <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Receita do Mês</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(data.receita)}</div>
-            <p className="text-xs text-emerald-600 flex items-center mt-1"><ArrowUpRight className="h-3 w-3 mr-1" /> +12% vs mês ant.</p>
+            {receitaPct === null ? (
+              <p className="text-xs text-muted-foreground mt-1">Sem base do mês anterior</p>
+            ) : (
+              <p className={cn('text-xs flex items-center mt-1', receitaPct >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                {receitaPct >= 0 ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
+                {receitaPct >= 0 ? '+' : ''}{receitaPct}% vs mês ant.
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Gastos do Mês</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(data.gastos)}</div>
-            <p className="text-xs text-red-600 flex items-center mt-1"><ArrowDownRight className="h-3 w-3 mr-1" /> +5% vs mês ant.</p>
+            {gastosPct === null ? (
+              <p className="text-xs text-muted-foreground mt-1">Sem base do mês anterior</p>
+            ) : (
+              <p className={cn('text-xs flex items-center mt-1', gastosPct <= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                {gastosPct <= 0 ? <ArrowDownRight className="h-3 w-3 mr-1" /> : <ArrowUpRight className="h-3 w-3 mr-1" />}
+                {gastosPct >= 0 ? '+' : ''}{gastosPct}% vs mês ant.
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Poupança</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Sobra do Mês</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(data.poupanca)}</div>
-            <p className="text-xs text-emerald-600 mt-1">{('poupancaPercent' in data ? (data as any).poupancaPercent : 31)}% da receita</p>
+            <div className={cn('text-2xl font-bold', sobraMes >= 0 ? 'text-emerald-600' : 'text-red-600')}>{formatCurrency(sobraMes)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.receita > 0 ? `${poupancaPct}% da receita` : 'Sem receita no mês'}
+            </p>
           </CardContent>
         </Card>
-        {activeProfile === 'casal' && (
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Patrimônio Líquido</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency((data as any).patrimonio)}</div>
-              <p className="text-xs text-emerald-600 mt-1">Crescimento constante</p>
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground uppercase">Saldo em Contas</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(saldoTotal)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Somatório das contas visíveis</p>
+          </CardContent>
+        </Card>
       </div>
+
 
       {/* Diagnóstico exclusivo do casal */}
       {activeProfile === 'casal' && <CoupleDiagnostic />}
