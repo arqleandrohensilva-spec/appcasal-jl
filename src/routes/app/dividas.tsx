@@ -1,14 +1,24 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '@/components/ui/select';
 import { formatCurrency } from '@/lib/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ArrowDownCircle, Info, TrendingDown, Zap, CreditCard, Receipt } from 'lucide-react';
+import { ArrowDownCircle, Info, TrendingDown, Zap, CreditCard, Receipt, Plus, HandCoins, Trash2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/store';
 import { openCardBills, openInstallments } from '@/lib/insights';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/app/dividas')({
   component: Dividas,
