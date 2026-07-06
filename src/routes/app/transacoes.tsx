@@ -1890,8 +1890,8 @@ export function PdfImportButton({ owner, defaultDestination, triggerLabel, trigg
           e.currentTarget.value = '';
         }}
       />
-      <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
-        <FileText className="h-4 w-4" /> Importar PDF ou prints
+      <Button variant="outline" className={triggerClassName ?? 'gap-2'} onClick={() => fileRef.current?.click()}>
+        <FileText className="h-4 w-4" /> {triggerLabel ?? 'Importar PDF ou prints'}
       </Button>
 
       <Dialog open={open} onOpenChange={(o) => { if (!loading) setOpen(o); }}>
