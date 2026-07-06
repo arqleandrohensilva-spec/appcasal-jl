@@ -184,10 +184,9 @@ export function goalProgressByOwner(contributions: GoalContribution[], goalId: s
  */
 export function invoiceMonthOf(dateISO: string, closingDay: number): string {
   const [y, m, d] = dateISO.split('-').map(Number);
-  // Se a compra é feita no fechamento ou antes → fatura fecha nesse mês
-  // e vence no próximo mês (mesmo mês do fechamento + 1).
-  // Se é depois do fechamento → fatura fecha no próximo mês e vence no seguinte.
-  const monthsAhead = d <= closingDay ? 1 : 2;
+  // Compra até o dia de fechamento entra na fatura que vence no MESMO mês.
+  // Compra após o fechamento entra na fatura do mês seguinte.
+  const monthsAhead = d <= closingDay ? 0 : 1;
   const dt = new Date(y, m - 1 + monthsAhead, 1);
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
 }
