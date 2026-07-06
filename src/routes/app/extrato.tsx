@@ -1,13 +1,21 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/context';
 import { useData, type UserAccount, type UserTransaction } from '@/lib/store';
-import { formatCurrency } from '@/lib/mockData';
+import { CATEGORIES, formatCurrency } from '@/lib/mockData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   Landmark,
   Wallet,
@@ -16,13 +24,14 @@ import {
   ArrowLeftRight,
   Search,
   Download,
-  Calendar,
   TrendingUp,
   TrendingDown,
   Receipt,
+  Trash2,
 } from 'lucide-react';
 import { accentFor } from '@/lib/accent';
 import { PdfImportButton } from './transacoes';
+
 
 export const Route = createFileRoute('/app/extrato')({
   component: Extrato,
