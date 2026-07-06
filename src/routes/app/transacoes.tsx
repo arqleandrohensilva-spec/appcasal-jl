@@ -1063,6 +1063,15 @@ function MonthStrip({
   );
 }
 
+function cssColor(name: string): string {
+  const map: Record<string, string> = {
+    purple: '#a855f7', blue: '#3b82f6', gray: '#6b7280', orange: '#f97316',
+    green: '#22c55e', red: '#ef4444', pink: '#ec4899', yellow: '#eab308',
+    black: '#111827', teal: '#14b8a6', emerald: '#10b981', rose: '#f43f5e',
+    amber: '#f59e0b', cyan: '#06b6d4', slate: '#64748b',
+  };
+  return map[name] || '#6b7280';
+}
 
 
 function TxRow({
