@@ -127,15 +127,13 @@ function Dashboard() {
           <p className="text-muted-foreground">Bem-vindo ao seu dashboard financeiro</p>
         </div>
         <div className="flex items-center gap-4">
-           <div className="flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
-             <Flame className="h-4 w-4 fill-current" /> 12 Semanas
-           </div>
-           <div className="text-right">
-             <p className="text-xs text-muted-foreground uppercase font-semibold">Saúde Financeira</p>
-             <Badge className={cn("mt-1", data.color)}>{data.score}/100</Badge>
-           </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Saldo total</p>
+            <p className="text-lg font-bold tabular-nums">{formatCurrency(saldoTotal)}</p>
+          </div>
         </div>
       </header>
+
 
       {/* Briefing Diário */}
       <Card className="bg-gradient-to-r from-purple-50 via-white to-emerald-50 border-none shadow-sm relative overflow-hidden group">
