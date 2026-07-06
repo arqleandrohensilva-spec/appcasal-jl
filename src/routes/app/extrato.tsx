@@ -15,6 +15,8 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { expandRecurring } from '@/lib/finance';
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Landmark,
@@ -69,7 +71,7 @@ function labelDate(iso: string) {
   return d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
 }
 
-type PeriodPreset = 'mes' | 'anterior' | '30d' | '90d' | 'ano' | 'custom';
+type PeriodPreset = 'mes' | 'anterior' | '30d' | '90d' | 'ano' | 'prox30' | 'prox60' | 'custom';
 
 function accountIcon(type: UserAccount['type']) {
   switch (type) {
@@ -108,22 +110,34 @@ function Extrato() {
       case 'anterior': return { start: firstDayOfMonthISO(-1), end: lastDayOfMonthISO(-1) };
       case '30d': return { start: isoAddDays(todayISO(), -29), end: todayISO() };
       case '90d': return { start: isoAddDays(todayISO(), -89), end: todayISO() };
+      case 'prox30': return { start: todayISO(), end: isoAddDays(todayISO(), 30) };
+      case 'prox60': return { start: todayISO(), end: isoAddDays(todayISO(), 60) };
       case 'ano': {
         const y = new Date().getFullYear();
         return { start: `${y}-01-01`, end: `${y}-12-31` };
       }
       case 'custom': return { start: customStart, end: customEnd };
+      default: return { start: firstDayOfMonthISO(), end: lastDayOfMonthISO() };
     }
   }, [preset, customStart, customEnd]);
 
-  // Movimentos que afetam esta conta.
+  // Movimentos que afetam esta conta. Inclui instâncias virtuais de recorrências
+  // apenas para o FUTURO (não deslocam saldo passado nem o saldo atual do banco).
   const accountMoves = useMemo(() => {
     if (!account) return [] as UserTransaction[];
-    return transactions
-      .filter(t => t.accountId === account.id)
+    const today = todayISO();
+    const rangeEnd = isoAddDays(end, 31);
+    const expanded = expandRecurring(transactions, today, rangeEnd);
+    // remove instâncias virtuais que caíram em data passada (só nos interessa futuro).
+    const filtered = expanded.filter(t => {
+      const isVirtual = t.id.includes('__r');
+      if (isVirtual && t.date <= today) return false;
+      return t.accountId === account.id;
+    });
+    return filtered
       .slice()
       .sort((x, y) => x.date.localeCompare(y.date) || x.createdAt.localeCompare(y.createdAt));
-  }, [transactions, account]);
+  }, [transactions, account, end]);
 
   // Reconstrói saldo do zero.
   // IMPORTANTE: account.balance reflete apenas movimentos JÁ REALIZADOS (data <= hoje),
@@ -379,6 +393,8 @@ function Extrato() {
           ['anterior', 'Mês passado'],
           ['30d', 'Últimos 30d'],
           ['90d', 'Últimos 90d'],
+          ['prox30', 'Próximos 30d'],
+          ['prox60', 'Próximos 60d'],
           ['ano', 'Este ano'],
           ['custom', 'Personalizado'],
         ] as const).map(([k, label]) => (
@@ -432,6 +448,23 @@ function Extrato() {
 
       </div>
 
+      {/* Alerta de saldo negativo */}
+      {(() => {
+        const todayStr = todayISO();
+        const negFuture = byDay.filter(d => d.date >= todayStr && d.endBalance < 0);
+        if (negFuture.length === 0) return null;
+        const first = negFuture[negFuture.length - 1]; // byDay é ordenado desc; o "primeiro no tempo" é o último aqui
+        return (
+          <div className="flex items-start gap-2 rounded-lg border border-rose-300/60 bg-rose-50 dark:bg-rose-950/30 dark:border-rose-900/60 px-3 py-2 text-sm">
+            <AlertTriangle className="h-4 w-4 text-rose-600 mt-0.5 shrink-0" />
+            <div className="text-rose-800 dark:text-rose-200">
+              Atenção: com os lançamentos previstos, o saldo dessa conta fica <strong>negativo em {negFuture.length} {negFuture.length === 1 ? 'dia' : 'dias'}</strong>.
+              A partir de <strong>{labelDate(first.date)}</strong> — saldo previsto <strong className="tabular-nums">{formatCurrency(first.endBalance)}</strong>.
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Extrato */}
       {byDay.length === 0 ? (
         <Card>
@@ -444,12 +477,22 @@ function Extrato() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {byDay.map(day => (
+          {byDay.map(day => {
+            const isFuture = day.date > todayISO();
+            const negative = day.endBalance < 0;
+            return (
             <div key={day.date}>
               <div className="flex items-center justify-between text-xs text-muted-foreground px-1 mb-1.5">
-                <span className="font-semibold uppercase tracking-wide">{labelDate(day.date)}</span>
+                <span className="font-semibold uppercase tracking-wide flex items-center gap-2">
+                  {labelDate(day.date)}
+                  {isFuture && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground normal-case tracking-normal">
+                      previsto
+                    </span>
+                  )}
+                </span>
                 <span>
-                  Saldo do dia: <strong className="text-foreground tabular-nums">{formatCurrency(day.endBalance)}</strong>
+                  Saldo do dia: <strong className={cn('tabular-nums', negative ? 'text-rose-600 dark:text-rose-400' : 'text-foreground')}>{formatCurrency(day.endBalance)}</strong>
                 </span>
               </div>
               <Card>
@@ -516,7 +559,8 @@ function Extrato() {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
