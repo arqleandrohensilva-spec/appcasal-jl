@@ -159,7 +159,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
               </Avatar>
               <div className="overflow-hidden flex-1 text-left">
                 <p className="font-medium truncate text-sm">{currentData.name}</p>
-                <p className="text-xs text-muted-foreground">Score: {currentData.score}</p>
+                <div onClick={(e) => e.stopPropagation()}><ScoreBadge /></div>
               </div>
               <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-gray-700 shrink-0" />
             </button>
