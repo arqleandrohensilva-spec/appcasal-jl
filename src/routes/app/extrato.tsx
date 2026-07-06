@@ -411,12 +411,13 @@ function Extrato() {
         <SummaryCard label="Entradas" value={entradas} icon={ArrowDownLeft} tone="pos" />
         <SummaryCard label="Saídas" value={saidas} icon={ArrowUpRight} tone="neg" />
         <SummaryCard
-          label="Saldo final"
+          label="Saldo previsto no fim"
           value={closingBalance}
-          icon={Landmark}
-          hint={new Date(end + 'T00:00:00').toLocaleDateString('pt-BR')}
+          icon={TrendingUp}
+          hint={`inclui futuros até ${new Date(end + 'T00:00:00').toLocaleDateString('pt-BR')}`}
           bold
         />
+
       </div>
 
       {/* Extrato */}
