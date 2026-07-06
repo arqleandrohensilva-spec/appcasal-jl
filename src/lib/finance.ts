@@ -38,7 +38,38 @@ export function expandRecurring(
     const endLimit = t.recurrenceEndDate ? parseISO(t.recurrenceEndDate) : to;
     const stopAt = endLimit < to ? endLimit : to;
 
-    const stepDays = t.recurrence === 'weekly' ? 7 : 0;
+    // ---- Semanal com dias da semana específicos ----
+    // Ex.: repete toda seg/qua/sex a partir da data inicial.
+    if (t.recurrence === 'weekly' && t.recurrenceWeekdays && t.recurrenceWeekdays.length > 0) {
+      const days = Array.from(new Set(t.recurrenceWeekdays.map(n => ((n % 7) + 7) % 7)));
+      const startDate = parseISO(t.date);
+      // Varre dia a dia entre max(from, startDate) e stopAt
+      const walkStart = from > startDate ? new Date(from) : new Date(startDate);
+      const cursor = new Date(walkStart);
+      let idx = 0;
+      while (cursor <= stopAt) {
+        if (cursor > startDate && days.includes(cursor.getDay())) {
+          idx += 1;
+          result.push({
+            ...t,
+            id: `${t.id}__rw${idx}`,
+            date: toISO(cursor),
+            groupId: t.id,
+            installmentInfo: undefined,
+            recurrence: undefined,
+          });
+          if (idx > 1500) break;
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      continue;
+    }
+
+    // Intervalo em dias: prioriza `recurrenceIntervalDays` quando informado (weekly).
+    const stepDays =
+      t.recurrence === 'weekly'
+        ? (t.recurrenceIntervalDays && t.recurrenceIntervalDays > 0 ? t.recurrenceIntervalDays : 7)
+        : 0;
     const stepMonths = t.recurrence === 'monthly' ? 1 : 0;
 
     // gera ocorrências para frente
@@ -62,7 +93,7 @@ export function expandRecurring(
       if (i > 600) break;
     }
 
-    // gera ocorrências para trás
+    // gera ocorrências para trás (apenas semanal fixo ou mensal — não faz sentido em dias-da-semana)
     i = 1;
     while (true) {
       const d = parseISO(t.date);
