@@ -1534,6 +1534,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     setStatement(null);
     setRows([]);
     setInvoiceMonthOverride('');
+    setSetupConfirmed(false);
+    setDestination('');
     setProgress(3);
     setStatus(files.length > 1 ? `Preparando ${files.length} arquivos…` : 'Preparando o arquivo…');
 
