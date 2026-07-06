@@ -456,7 +456,12 @@ function Extrato() {
                     const positive = delta > 0;
                     const Icon = isTransfer ? ArrowLeftRight : positive ? ArrowDownLeft : ArrowUpRight;
                     return (
-                      <div key={tx.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/30 transition-colors">
+                      <button
+                        key={tx.id}
+                        type="button"
+                        onClick={() => setEditingId(tx.id)}
+                        className="w-full text-left flex items-center gap-3 px-3 py-2.5 hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none transition-colors"
+                      >
                         <div className={cn(
                           'h-9 w-9 rounded-full flex items-center justify-center shrink-0',
                           isTransfer
@@ -489,9 +494,10 @@ function Extrato() {
                             saldo {formatCurrency(running)}
                           </p>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
+
                 </CardContent>
               </Card>
               <div className="flex items-center justify-end gap-4 text-[11px] text-muted-foreground mt-1 px-1">
