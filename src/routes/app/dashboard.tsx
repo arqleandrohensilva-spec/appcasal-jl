@@ -228,9 +228,8 @@ function Dashboard() {
             <p className="text-xs text-muted-foreground mt-1">Somatório das contas visíveis</p>
           </CardContent>
         </Card>
-
-        )}
       </div>
+
 
       {/* Diagnóstico exclusivo do casal */}
       {activeProfile === 'casal' && <CoupleDiagnostic />}
