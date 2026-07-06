@@ -110,11 +110,14 @@ function Extrato() {
       case 'anterior': return { start: firstDayOfMonthISO(-1), end: lastDayOfMonthISO(-1) };
       case '30d': return { start: isoAddDays(todayISO(), -29), end: todayISO() };
       case '90d': return { start: isoAddDays(todayISO(), -89), end: todayISO() };
+      case 'prox30': return { start: todayISO(), end: isoAddDays(todayISO(), 30) };
+      case 'prox60': return { start: todayISO(), end: isoAddDays(todayISO(), 60) };
       case 'ano': {
         const y = new Date().getFullYear();
         return { start: `${y}-01-01`, end: `${y}-12-31` };
       }
       case 'custom': return { start: customStart, end: customEnd };
+      default: return { start: firstDayOfMonthISO(), end: lastDayOfMonthISO() };
     }
   }, [preset, customStart, customEnd]);
 
