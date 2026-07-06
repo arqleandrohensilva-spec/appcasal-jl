@@ -2291,12 +2291,21 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
             </>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
-            <Button onClick={confirm} disabled={loading || !statement || toImport.length === 0 || !destination}>
-              Importar {toImport.length}
-            </Button>
-          </DialogFooter>
+          {(loading || setupConfirmed) && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
+              {setupConfirmed && (
+                <>
+                  <Button variant="ghost" onClick={() => setSetupConfirmed(false)} disabled={loading}>
+                    ← Voltar
+                  </Button>
+                  <Button onClick={confirm} disabled={loading || !statement || toImport.length === 0 || !destination}>
+                    Importar {toImport.length}
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </>
