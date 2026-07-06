@@ -381,9 +381,91 @@ function Transacoes() {
                       <SelectItem value="monthly">Todo mês</SelectItem>
                     </SelectContent>
                   </Select>
+                  {recurrence === 'weekly' && (
+                    <div className="space-y-2 pt-1">
+                      <div className="flex flex-wrap gap-1.5">
+                        {([
+                          ['every7', 'A cada 7 dias'],
+                          ['weekdays', 'Dias da semana'],
+                          ['interval', 'A cada N dias'],
+                        ] as const).map(([k, label]) => (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => setWeeklyMode(k)}
+                            className={cn(
+                              'text-xs px-2.5 py-1 rounded-full border transition',
+                              weeklyMode === k
+                                ? 'bg-emerald-600 text-white border-emerald-600'
+                                : 'bg-white dark:bg-transparent border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/40',
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {weeklyMode === 'weekdays' && (
+                        <div className="space-y-1.5">
+                          <p className="text-[11px] text-emerald-800 dark:text-emerald-200">Marque os dias em que a receita/despesa cai:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { n: 1, l: 'Seg' },
+                              { n: 2, l: 'Ter' },
+                              { n: 3, l: 'Qua' },
+                              { n: 4, l: 'Qui' },
+                              { n: 5, l: 'Sex' },
+                              { n: 6, l: 'Sáb' },
+                              { n: 0, l: 'Dom' },
+                            ].map(({ n, l }) => {
+                              const active = weeklyDays.includes(n);
+                              return (
+                                <button
+                                  key={n}
+                                  type="button"
+                                  onClick={() => setWeeklyDays(prev => active ? prev.filter(x => x !== n) : [...prev, n])}
+                                  className={cn(
+                                    'w-9 h-9 rounded-lg text-xs font-semibold border transition',
+                                    active
+                                      ? 'bg-emerald-600 text-white border-emerald-600'
+                                      : 'bg-white dark:bg-transparent border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/40',
+                                  )}
+                                >
+                                  {l}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {weeklyMode === 'interval' && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-emerald-800 dark:text-emerald-200">A cada</span>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={365}
+                            value={weeklyInterval}
+                            onChange={e => setWeeklyInterval(e.target.value)}
+                            className="w-20 h-8"
+                          />
+                          <span className="text-xs text-emerald-800 dark:text-emerald-200">dias, a partir de {date ? new Date(date + 'T00:00:00').toLocaleDateString('pt-BR') : 'hoje'}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {recurrence !== 'none' && (
                     <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                      ✓ Vai aparecer automaticamente {recurrence === 'weekly' ? 'toda semana' : 'todo mês'} na projeção e nos relatórios.
+                      ✓ Vai aparecer automaticamente {
+                        recurrence === 'monthly'
+                          ? 'todo mês'
+                          : weeklyMode === 'weekdays' && weeklyDays.length > 0
+                            ? `em ${weeklyDays.length} ${weeklyDays.length === 1 ? 'dia' : 'dias'} da semana`
+                            : weeklyMode === 'interval'
+                              ? `a cada ${weeklyInterval || 'N'} dias`
+                              : 'toda semana (a cada 7 dias)'
+                      } na projeção e nos relatórios.
                     </p>
                   )}
                 </div>
