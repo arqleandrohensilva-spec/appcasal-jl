@@ -1,10 +1,54 @@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Info } from 'lucide-react';
+import { Info, Lightbulb } from 'lucide-react';
 import { useScore } from '@/hooks/useScore';
 import { cn } from '@/lib/utils';
 
+const RECOMMENDATIONS: Record<string, { title: string; tip: string }> = {
+  balance: {
+    title: 'Aumente seu saldo em conta',
+    tip: 'Deixe uma reserva mínima na conta corrente. Programe transferências automáticas no dia do salário para separar o que sobra.',
+  },
+  flow: {
+    title: 'Melhore o fluxo do mês',
+    tip: 'Suas despesas estão próximas (ou acima) das receitas. Revise categorias com maior gasto em Transações e corte assinaturas ou supérfluos.',
+  },
+  card: {
+    title: 'Reduza o uso do cartão',
+    tip: 'Você está usando uma fatia alta do limite. Antecipe pagamento da fatura aberta ou distribua compras entre cartões para ficar abaixo de 30% do limite.',
+  },
+  punctuality: {
+    title: 'Coloque as faturas em dia',
+    tip: 'Há faturas atrasadas ou vencendo em breve. Marque-as como pagas em Cartões assim que quitar e programe débito automático para não repetir.',
+  },
+  projection: {
+    title: 'Cuide da projeção de 30 dias',
+    tip: 'O saldo projetado ficará baixo. Veja Fluxo de Caixa, remaneje pagamentos grandes ou antecipe recebimentos para evitar saldo negativo.',
+  },
+  reserve: {
+    title: 'Monte sua reserva de emergência',
+    tip: 'Ideal: 6 meses de despesas guardados. Crie uma meta em Metas e faça aportes mensais fixos até atingir esse valor.',
+  },
+  goals: {
+    title: 'Avance nas suas metas',
+    tip: 'Suas metas estão pouco progredidas. Defina aportes mensais realistas e registre contribuições em Metas para acompanhar a evolução.',
+  },
+  budget: {
+    title: 'Ajuste seu orçamento',
+    tip: 'Você está estourando limites por categoria. Revise em Orçamento — aumente limites realistas ou reduza gastos nas categorias mais caras.',
+  },
+  debt: {
+    title: 'Reduza suas dívidas',
+    tip: 'Empréstimos ativos pesam no score. Priorize quitar dívidas com juros altos primeiro e evite novos financiamentos até baixar o comprometimento.',
+  },
+};
+
 export function ScoreBadge({ compact = false }: { compact?: boolean }) {
   const { score, grade, factors } = useScore();
+  const worst = [...factors]
+    .filter((f) => f.value < 70)
+    .sort((a, b) => a.value * a.weight - b.value * b.weight)
+    .slice(0, 3);
+
 
   const color =
     score >= 850 ? 'text-emerald-500' :
@@ -60,6 +104,26 @@ export function ScoreBadge({ compact = false }: { compact?: boolean }) {
             </div>
           ))}
         </div>
+        {worst.length > 0 && (
+          <div className="mt-4 pt-3 border-t space-y-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <Lightbulb className="h-3 w-3" /> Como melhorar seu score
+            </p>
+            {worst.map((f) => {
+              const rec = RECOMMENDATIONS[f.key];
+              if (!rec) return null;
+              return (
+                <div key={f.key} className="text-xs bg-muted/40 rounded p-2">
+                  <p className="font-semibold flex items-center justify-between gap-2">
+                    <span>{rec.title}</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">{f.label} · {Math.round(f.value)}/100</span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{rec.tip}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
         <p className="text-[10px] text-muted-foreground mt-3 leading-snug">
           Calculado em tempo real com base em saldo, fluxo do mês, uso de cartão, pagamento em dia, projeção 30d, reserva de emergência, metas, orçamento e dívidas.
         </p>
