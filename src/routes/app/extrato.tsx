@@ -388,6 +388,8 @@ function Extrato() {
           ['anterior', 'Mês passado'],
           ['30d', 'Últimos 30d'],
           ['90d', 'Últimos 90d'],
+          ['prox30', 'Próximos 30d'],
+          ['prox60', 'Próximos 60d'],
           ['ano', 'Este ano'],
           ['custom', 'Personalizado'],
         ] as const).map(([k, label]) => (
