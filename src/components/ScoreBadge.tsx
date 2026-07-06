@@ -125,6 +125,12 @@ export function ScoreBadge({ compact = false }: { compact?: boolean }) {
             })}
           </div>
         )}
+        <Link
+          to="/app/simulador-score"
+          className="mt-3 inline-flex items-center justify-center gap-1.5 w-full rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium py-2 transition-colors"
+        >
+          <Sparkles className="h-3 w-3" /> Simular melhorias no score
+        </Link>
         <p className="text-[10px] text-muted-foreground mt-3 leading-snug">
           Calculado em tempo real com base em saldo, fluxo do mês, uso de cartão, pagamento em dia, projeção 30d, reserva de emergência, metas, orçamento e dívidas.
         </p>
