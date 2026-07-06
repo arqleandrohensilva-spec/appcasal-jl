@@ -91,6 +91,7 @@ interface DataContextType {
   updateAccount: (id: string, patch: Partial<Omit<UserAccount, 'id'>>) => void;
   removeAccount: (id: string) => void;
   addTransaction: (input: {
+    groupId?: string;
     description: string;
     amount: number;
     date: string;
@@ -98,6 +99,7 @@ interface DataContextType {
     paymentMethod: string;
     cardId?: string;
     accountId?: string;
+    installmentInfo?: { current: number; total: number };
     installments?: number;
     type: 'receita' | 'despesa';
     owner: UserProfile;
@@ -312,7 +314,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addTransaction: DataContextType['addTransaction'] = (input) => {
     if (!guard()) return 0;
     const n = Math.max(1, Math.min(input.installments || 1, 60));
-    const groupId = n > 1 ? uid() : null;
+    const groupId = input.groupId ?? (n > 1 ? uid() : null);
     const valuePerInstallment = input.amount / n;
     const sign = input.type === 'receita' ? 1 : -1;
     const todayISO = new Date().toISOString().slice(0, 10);
@@ -322,14 +324,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const created: UserTransaction[] = Array.from({ length: n }, (_, i) => ({
       id: uid(),
       groupId: groupId ?? undefined,
-      description: n > 1 ? `${input.description} (${i + 1}/${n})` : input.description,
+      description: input.installmentInfo ? input.description : (n > 1 ? `${input.description} (${i + 1}/${n})` : input.description),
       amount: sign * Math.abs(valuePerInstallment),
       date: addMonths(input.date, i),
       category: input.category,
       paymentMethod: input.paymentMethod,
       cardId: input.cardId,
       accountId: input.accountId,
-      installmentInfo: n > 1 ? { current: i + 1, total: n } : undefined,
+      installmentInfo: input.installmentInfo ?? (n > 1 ? { current: i + 1, total: n } : undefined),
       type: input.type,
       owner: input.owner,
       createdAt,

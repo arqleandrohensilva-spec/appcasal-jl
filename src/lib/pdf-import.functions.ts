@@ -21,6 +21,7 @@ const EntrySchema = z.object({
 const StatementSchema = z.object({
   statementType: z.enum(['card', 'account', 'unknown']),
   bank: z.string(),
+  invoiceMonth: z.string().nullish().optional(),
   periodStart: z.string(),
   periodEnd: z.string(),
   entries: z.array(EntrySchema),
@@ -89,6 +90,8 @@ Regras:
    Em caso de dúvida entre despesa/receita e transferência, escolha "transferencia" só se houver sinal claro; senão mantenha despesa/receita.
 - transferReason: quando type="transferencia", explique em 3-6 palavras (ex: "PIX entre contas próprias", "Pagamento fatura cartão", "Aplicação CDB"). Nos outros tipos, use null.
 - Parcelamento: se a linha indicar parcela (ex: "PARC 03/10", "3/10", "10X", "PARCELA 3 DE 10"), preencha installmentCurrent (3) e installmentTotal (10). Caso à vista, use null nos dois campos. Nunca marque transferência como parcelada.
+- Para fatura de cartão, preencha invoiceMonth no formato YYYY-MM com o mês da FATURA que está sendo importada (ex: "Fatura de Julho/2026", "Jul/26" ou vencimento em julho => "2026-07"). Não confunda com periodEnd: se o ciclo fecha em junho mas a fatura/vencimento é julho, invoiceMonth deve ser julho. Para extrato de conta, use null.
+- Parcelamento: se a linha indicar parcela (ex: "PARC 03/10", "3/10", "10X", "PARCELA 3 DE 10"), preencha installmentCurrent (3) e installmentTotal (10) exatamente como aparece na fatura. Caso à vista, use null nos dois campos. Nunca marque transferência como parcelada.
 - category (escolha UMA): Alimentação, Moradia, Saúde, Transporte, Lazer, Vestuário, Educação, Assinaturas, Investimentos, Outros. Se type="transferencia", use "Transferência".
 - date no formato YYYY-MM-DD. Se aparecer só dia/mês, use o ano do período do extrato; se o ano não aparecer no print, use ${currentYear}.
 - periodStart / periodEnd em YYYY-MM-DD. Se for print e não der pra determinar, use a primeira e última data visíveis.
@@ -135,6 +138,7 @@ Regras:
       if (parsed.success) {
         return {
           ...parsed.data,
+          invoiceMonth: parsed.data.invoiceMonth ?? null,
           entries: parsed.data.entries.map(e => ({
             ...e,
             installmentCurrent: e.installmentCurrent ?? null,
@@ -157,6 +161,7 @@ Regras:
       return {
         statementType: (anyRaw?.statementType as ParsedStatement['statementType']) ?? 'unknown',
         bank: (anyRaw?.bank as string) ?? '',
+        invoiceMonth: (anyRaw?.invoiceMonth as string | null) ?? null,
         periodStart: (anyRaw?.periodStart as string) ?? '',
         periodEnd: (anyRaw?.periodEnd as string) ?? '',
         entries,

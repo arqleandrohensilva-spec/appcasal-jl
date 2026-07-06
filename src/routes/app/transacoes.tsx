@@ -1388,11 +1388,42 @@ function addMonthsISO(iso: string, months: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function isMonthKey(value?: string | null): value is string {
+  return !!value && /^\d{4}-\d{2}$/.test(value);
+}
+
+function newUuid() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+function parseInstallmentLabel(description: string) {
+  const match = description.match(/\(([0-9]{1,2})\/([0-9]{1,2})\)\s*$/);
+  if (!match) return null;
+  const current = Number(match[1]);
+  const total = Number(match[2]);
+  if (!current || !total || current > total) return null;
+  return {
+    current,
+    total,
+    base: description.replace(/\s*\([0-9]{1,2}\/[0-9]{1,2}\)\s*$/, '').trim(),
+  };
+}
+
 // Retorna uma data-âncora que, segundo invoiceMonthOf, cai NA fatura de `monthKey`.
 // Usamos o próprio dia de fechamento (dia <= closingDay => mesma fatura). Isso garante
 // que a parcela criada seja atribuída à fatura correta, sem deslocamento de mês.
 function invoiceAnchorDateISO(monthKey: string, closingDay: number) {
   return invoiceClosingDateISO(monthKey, closingDay);
+}
+
+function statementInvoiceMonth(statement: ParsedStatement | null, card: { closingDay: number }, override?: string) {
+  if (isMonthKey(override)) return override;
+  if (isMonthKey(statement?.invoiceMonth)) return statement.invoiceMonth;
+  const anchorDate = statement?.periodEnd || statement?.periodStart;
+  if (!anchorDate) return '';
+  return invoiceMonthOf(anchorDate, card.closingDay);
 }
 
 function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
@@ -1407,6 +1438,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   const [statement, setStatement] = useState<ParsedStatement | null>(null);
   const [rows, setRows] = useState<PdfRow[]>([]);
   const [destination, setDestination] = useState<string>('');
+  const [invoiceMonthOverride, setInvoiceMonthOverride] = useState<string>('');
 
   const myCards = cards.filter(c => c.owner === owner);
   const myAccounts = accounts.filter(a => a.owner === owner);
@@ -1437,6 +1469,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     setOpen(true);
     setStatement(null);
     setRows([]);
+    setInvoiceMonthOverride('');
     setProgress(3);
     setStatus(files.length > 1 ? `Preparando ${files.length} arquivos…` : 'Preparando o arquivo…');
 
@@ -1453,6 +1486,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     let statementTypeAcc: ParsedStatement['statementType'] | null = null;
     let periodStart: string | null = null;
     let periodEnd: string | null = null;
+    let invoiceMonth: string | null = null;
 
     try {
       for (let idx = 0; idx < files.length; idx++) {
@@ -1477,6 +1511,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         }
         if (result.periodStart && (!periodStart || result.periodStart < periodStart)) periodStart = result.periodStart;
         if (result.periodEnd && (!periodEnd || result.periodEnd > periodEnd)) periodEnd = result.periodEnd;
+        if (isMonthKey(result.invoiceMonth) && !invoiceMonth) invoiceMonth = result.invoiceMonth;
 
         (result.entries ?? []).forEach(e => allEntries.push({ ...e, _sourceFile: file.name }));
 
@@ -1489,11 +1524,13 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         ...(firstStatement as ParsedStatement),
         bank: banks.size > 0 ? Array.from(banks).join(' + ') : (firstStatement?.bank ?? ''),
         statementType: statementTypeAcc ?? firstStatement?.statementType ?? 'unknown',
+        invoiceMonth: invoiceMonth ?? firstStatement?.invoiceMonth ?? null,
         periodStart: periodStart ?? firstStatement?.periodStart ?? '',
         periodEnd: periodEnd ?? firstStatement?.periodEnd ?? '',
         entries: allEntries,
       };
       setStatement(combinedStatement);
+      if (isMonthKey(combinedStatement.invoiceMonth)) setInvoiceMonthOverride(combinedStatement.invoiceMonth);
       setStatus('Organizando transações e detectando duplicatas…');
       setProgress(95);
 
@@ -1634,9 +1671,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     const cardId = destination.slice('card:'.length);
     const card = cards.find(c => c.id === cardId);
     if (!card) return r;
-    const anchorDate = statement.periodEnd || statement.periodStart;
-    if (!anchorDate) return r;
-    const targetInvoiceKey = invoiceMonthOf(anchorDate, card.closingDay);
+    const targetInvoiceKey = statementInvoiceMonth(statement, card, invoiceMonthOverride);
+    if (!targetInvoiceKey) return r;
 
     const total = r.installmentTotal!;
     const current = Math.min(r.installmentCurrent!, total);
@@ -1729,6 +1765,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
         const total = r.installmentTotal!;
         const plan = r._installmentPlan!;
         const missing = plan.filter(s => !s.exists);
+        const importGroupId = newUuid();
         skipped += plan.length - missing.length;
         if (missing.length === 0) continue;
         // Cria cada parcela faltante individualmente (installments:1) para não recriar as que já existem.
@@ -1741,6 +1778,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
             paymentMethod: method,
             cardId: card?.id,
             accountId: account?.id,
+            groupId: importGroupId,
+            installmentInfo: { current: slot.index, total },
             type: effectiveType,
             owner,
           });
@@ -1863,6 +1902,17 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
                   )}
                   {statement.statementType === 'account' && !isAccount && (
                     <p className="text-[10px] text-orange-600">Detectamos extrato de conta — o ideal é lançar em uma conta.</p>
+                  )}
+                  {isCard && card && (
+                    <div className="space-y-1 pt-1">
+                      <Label className="text-xs">Fatura alvo</Label>
+                      <Input
+                        type="month"
+                        className="h-8 text-xs"
+                        value={statementInvoiceMonth(statement, card, invoiceMonthOverride)}
+                        onChange={e => setInvoiceMonthOverride(e.target.value)}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
