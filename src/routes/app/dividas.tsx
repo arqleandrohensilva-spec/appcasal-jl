@@ -391,19 +391,26 @@ function LoanDialog({
             <Input placeholder="Ex.: Empréstimo Nubank" value={name} onChange={e => setName(e.target.value)} />
           </div>
 
+          <div className="space-y-1.5">
+            <Label>Conta</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+              <SelectContent>
+                {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Valor total contratado</Label>
+              <Label>Valor escolhido (recebido)</Label>
               <Input type="number" step="0.01" placeholder="10000,00" value={principal} onChange={e => setPrincipal(e.target.value)} />
+              <p className="text-[10px] text-muted-foreground">Valor que cai na sua conta</p>
             </div>
             <div className="space-y-1.5">
-              <Label>Conta</Label>
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>
-                  {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Valor contratado (com juros/IOF)</Label>
+              <Input type="number" step="0.01" placeholder="12500,00" value={contracted} onChange={e => setContracted(e.target.value)} />
+              <p className="text-[10px] text-muted-foreground">Total a pagar ao banco</p>
             </div>
           </div>
 
@@ -414,7 +421,12 @@ function LoanDialog({
             </div>
             <div className="space-y-1.5">
               <Label>Valor da parcela</Label>
-              <Input type="number" step="0.01" placeholder="450,00" value={monthlyValue} onChange={e => setMonthlyValue(e.target.value)} />
+              <Input
+                type="number" step="0.01" placeholder="450,00"
+                value={monthlyValue}
+                onChange={e => { setMonthlyTouched(true); setMonthlyValue(e.target.value); }}
+              />
+              <p className="text-[10px] text-muted-foreground">Auto: contratado ÷ parcelas</p>
             </div>
           </div>
 
