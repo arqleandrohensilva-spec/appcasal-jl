@@ -28,7 +28,8 @@ function Dividas() {
   const [method, setMethod] = useState<'snowball' | 'avalanche'>('avalanche');
   const [isMounted, setIsMounted] = useState(false);
   const { activeProfile } = useAppContext();
-  const { transactions, cards } = useData();
+  const { transactions, cards, accounts, addTransaction, removeTransaction } = useData();
+  const [loanOpen, setLoanOpen] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
 
