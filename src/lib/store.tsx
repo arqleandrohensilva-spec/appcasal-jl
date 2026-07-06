@@ -124,6 +124,8 @@ interface DataContextType {
     type: 'receita' | 'despesa';
     recurrence: Recurrence;
     recurrenceEndDate?: string;
+    recurrenceWeekdays?: number[];
+    recurrenceIntervalDays?: number;
     tags: string[];
   }>) => void;
   markInvoicePaid: (cardId: string, monthKey: string, accountId: string, amount: number, dateISO: string) => void;
