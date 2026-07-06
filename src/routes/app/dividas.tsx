@@ -315,8 +315,10 @@ function LoanDialog({
   const [name, setName] = useState('');
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
   const [principal, setPrincipal] = useState('');
+  const [contracted, setContracted] = useState('');
   const [installmentsN, setInstallmentsN] = useState('12');
   const [monthlyValue, setMonthlyValue] = useState('');
+  const [monthlyTouched, setMonthlyTouched] = useState(false);
   const [firstDueDate, setFirstDueDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
@@ -327,13 +329,25 @@ function LoanDialog({
 
   const nParcelas = Math.max(1, Math.min(parseInt(installmentsN) || 1, 240));
   const principalNum = parseFloat(principal) || 0;
+  const contractedNum = parseFloat(contracted) || 0;
   const monthlyNum = parseFloat(monthlyValue) || 0;
-  const totalPago = monthlyNum * nParcelas;
+  const effectiveMonthly = monthlyTouched && monthlyNum > 0
+    ? monthlyNum
+    : (contractedNum > 0 ? contractedNum / nParcelas : 0);
+  const totalPago = monthlyTouched && monthlyNum > 0 ? monthlyNum * nParcelas : contractedNum;
   const juros = totalPago - principalNum;
+
+  // Auto-preenche parcela a partir do valor contratado (se usuário não editou manualmente)
+  useEffect(() => {
+    if (!monthlyTouched && contractedNum > 0 && nParcelas > 0) {
+      setMonthlyValue((contractedNum / nParcelas).toFixed(2));
+    }
+  }, [contractedNum, nParcelas, monthlyTouched]);
 
   useEffect(() => {
     if (!open) {
-      setName(''); setPrincipal(''); setInstallmentsN('12'); setMonthlyValue('');
+      setName(''); setPrincipal(''); setContracted(''); setInstallmentsN('12'); setMonthlyValue('');
+      setMonthlyTouched(false);
       setCreditNow(true); setCreditDate(new Date().toISOString().slice(0, 10));
       const d = new Date(); d.setMonth(d.getMonth() + 1);
       setFirstDueDate(d.toISOString().slice(0, 10));
