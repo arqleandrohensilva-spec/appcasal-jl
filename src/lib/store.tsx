@@ -48,6 +48,10 @@ export interface UserTransaction {
   createdAt: string;
   recurrence?: Recurrence;
   recurrenceEndDate?: string;
+  /** Dias da semana em que repete (0=Dom … 6=Sáb). Só usado quando recurrence === 'weekly'. */
+  recurrenceWeekdays?: number[];
+  /** Intervalo em dias entre ocorrências. Só usado quando recurrence === 'weekly'. */
+  recurrenceIntervalDays?: number;
   tags?: string[];
 }
 
@@ -105,6 +109,8 @@ interface DataContextType {
     owner: UserProfile;
     recurrence?: Recurrence;
     recurrenceEndDate?: string;
+    recurrenceWeekdays?: number[];
+    recurrenceIntervalDays?: number;
     tags?: string[];
   }) => number;
   updateTransaction: (id: string, patch: Partial<{
@@ -118,6 +124,8 @@ interface DataContextType {
     type: 'receita' | 'despesa';
     recurrence: Recurrence;
     recurrenceEndDate?: string;
+    recurrenceWeekdays?: number[];
+    recurrenceIntervalDays?: number;
     tags: string[];
   }>) => void;
   markInvoicePaid: (cardId: string, monthKey: string, accountId: string, amount: number, dateISO: string) => void;
@@ -154,6 +162,8 @@ type DbTransaction = {
   installment_current: number | null; installment_total: number | null; type: 'receita' | 'despesa';
   owner: UserProfile; recurrence: Recurrence | null; recurrence_end_date: string | null; created_at: string;
   tags: string[] | null;
+  recurrence_weekdays: number[] | null;
+  recurrence_interval_days: number | null;
 };
 type DbGoal = { id: string; name: string; target: number | string; deadline: string | null; owner: UserProfile; created_at: string };
 type DbContrib = { id: string; goal_id: string; amount: number | string; date: string; owner: UserProfile; note: string | null };
@@ -170,6 +180,8 @@ const mapTx = (r: DbTransaction): UserTransaction => ({
   installmentInfo: r.installment_current && r.installment_total ? { current: r.installment_current, total: r.installment_total } : undefined,
   type: r.type, owner: r.owner, createdAt: r.created_at,
   recurrence: r.recurrence ?? undefined, recurrenceEndDate: r.recurrence_end_date ?? undefined,
+  recurrenceWeekdays: r.recurrence_weekdays ?? undefined,
+  recurrenceIntervalDays: r.recurrence_interval_days ?? undefined,
   tags: r.tags ?? undefined,
 });
 const mapGoal = (r: DbGoal): UserGoal => ({ id: r.id, name: r.name, target: num(r.target), deadline: r.deadline ?? '', owner: r.owner, createdAt: r.created_at });
@@ -337,6 +349,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt,
       recurrence: n === 1 ? recurrence : undefined,
       recurrenceEndDate: n === 1 ? input.recurrenceEndDate : undefined,
+      recurrenceWeekdays: n === 1 && recurrence === 'weekly' && input.recurrenceWeekdays && input.recurrenceWeekdays.length
+        ? input.recurrenceWeekdays : undefined,
+      recurrenceIntervalDays: n === 1 && recurrence === 'weekly' && input.recurrenceIntervalDays && input.recurrenceIntervalDays > 0
+        ? input.recurrenceIntervalDays : undefined,
       tags: input.tags && input.tags.length ? input.tags : undefined,
     }));
 
@@ -352,6 +368,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       type: t.type, owner: t.owner, pessoa: t.owner,
       recurrence: t.recurrence ?? null,
       recurrence_end_date: t.recurrenceEndDate ?? null,
+      recurrence_weekdays: t.recurrenceWeekdays ?? null,
+      recurrence_interval_days: t.recurrenceIntervalDays ?? null,
       tags: t.tags ?? [],
     }));
     supabase.from('transactions').insert(rows).then(({ error }) => {
@@ -405,6 +423,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       card_id: next.cardId ?? null, account_id: next.accountId ?? null,
       type: next.type, owner: next.owner, pessoa: next.owner,
       recurrence: next.recurrence ?? null, recurrence_end_date: next.recurrenceEndDate ?? null,
+      recurrence_weekdays: next.recurrenceWeekdays ?? null,
+      recurrence_interval_days: next.recurrenceIntervalDays ?? null,
     };
     if (patch.tags !== undefined) dbPatch.tags = next.tags ?? [];
     supabase.from('transactions').update(dbPatch).eq('id', id).then(({ error }) => { if (error) refetchAll(wsId!); });

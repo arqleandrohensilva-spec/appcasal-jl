@@ -365,6 +365,8 @@ export type Database = {
           pessoa: Database["public"]["Enums"]["pessoa"]
           recurrence: Database["public"]["Enums"]["recurrence"] | null
           recurrence_end_date: string | null
+          recurrence_interval_days: number | null
+          recurrence_weekdays: number[] | null
           tags: string[]
           type: Database["public"]["Enums"]["tx_type"]
           workspace_id: string
@@ -386,6 +388,8 @@ export type Database = {
           pessoa: Database["public"]["Enums"]["pessoa"]
           recurrence?: Database["public"]["Enums"]["recurrence"] | null
           recurrence_end_date?: string | null
+          recurrence_interval_days?: number | null
+          recurrence_weekdays?: number[] | null
           tags?: string[]
           type: Database["public"]["Enums"]["tx_type"]
           workspace_id: string
@@ -407,6 +411,8 @@ export type Database = {
           pessoa?: Database["public"]["Enums"]["pessoa"]
           recurrence?: Database["public"]["Enums"]["recurrence"] | null
           recurrence_end_date?: string | null
+          recurrence_interval_days?: number | null
+          recurrence_weekdays?: number[] | null
           tags?: string[]
           type?: Database["public"]["Enums"]["tx_type"]
           workspace_id?: string
