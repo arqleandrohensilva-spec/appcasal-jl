@@ -71,7 +71,7 @@ function labelDate(iso: string) {
   return d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
 }
 
-type PeriodPreset = 'mes' | 'anterior' | '30d' | '90d' | 'ano' | 'custom';
+type PeriodPreset = 'mes' | 'anterior' | '30d' | '90d' | 'ano' | 'prox30' | 'prox60' | 'custom';
 
 function accountIcon(type: UserAccount['type']) {
   switch (type) {
