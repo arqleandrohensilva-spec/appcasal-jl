@@ -48,6 +48,10 @@ export interface UserTransaction {
   createdAt: string;
   recurrence?: Recurrence;
   recurrenceEndDate?: string;
+  /** Dias da semana em que repete (0=Dom … 6=Sáb). Só usado quando recurrence === 'weekly'. */
+  recurrenceWeekdays?: number[];
+  /** Intervalo em dias entre ocorrências. Só usado quando recurrence === 'weekly'. */
+  recurrenceIntervalDays?: number;
   tags?: string[];
 }
 
