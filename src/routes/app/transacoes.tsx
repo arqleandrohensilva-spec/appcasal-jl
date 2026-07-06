@@ -1127,6 +1127,7 @@ function TxRow({
 }
 
 function EditTxDialog({ tx, onUpdate }: { tx: UserTransaction; onUpdate: ReturnType<typeof useData>['updateTransaction'] }) {
+  const { transactions, cards } = useData();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState(tx.description);
   const [amount, setAmount] = useState(String(Math.abs(tx.amount)));
@@ -1134,6 +1135,37 @@ function EditTxDialog({ tx, onUpdate }: { tx: UserTransaction; onUpdate: ReturnT
   const [category, setCategory] = useState(tx.category);
   const [type, setType] = useState<'receita' | 'despesa'>(tx.type);
   const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>(tx.recurrence || 'none');
+  const [lastInvoiceMonth, setLastInvoiceMonth] = useState('');
+
+  const card = tx.cardId ? cards.find(c => c.id === tx.cardId) : undefined;
+  const parsedInstallment = tx.installmentInfo ?? parseInstallmentLabel(tx.description);
+  const canAdjustInstallments = !!card && !!parsedInstallment && parsedInstallment.total > 1;
+
+  const installmentSiblings = useMemo(() => {
+    if (!parsedInstallment) return [];
+    if (tx.groupId) return transactions.filter(t => t.groupId === tx.groupId);
+    const base = parseInstallmentLabel(tx.description)?.base ?? tx.description;
+    const amountAbs = Math.abs(tx.amount);
+    return transactions.filter(t => {
+      const p = parseInstallmentLabel(t.description);
+      return t.cardId === tx.cardId
+        && p?.total === parsedInstallment.total
+        && descOverlap(p.base, base) >= 0.6
+        && Math.abs(Math.abs(t.amount) - amountAbs) < 0.01;
+    });
+  }, [parsedInstallment, transactions, tx]);
+
+  const installmentPreview = useMemo(() => {
+    if (!canAdjustInstallments || !card || !parsedInstallment || !lastInvoiceMonth) return [];
+    return installmentSiblings
+      .map(sibling => {
+        const meta = sibling.installmentInfo ?? parseInstallmentLabel(sibling.description);
+        if (!meta) return null;
+        const monthKey = addMonthsToKey(lastInvoiceMonth, meta.current - parsedInstallment.total);
+        return { id: sibling.id, current: meta.current, date: invoiceAnchorDateISO(monthKey, card.closingDay), monthKey };
+      })
+      .filter(Boolean) as { id: string; current: number; date: string; monthKey: string }[];
+  }, [canAdjustInstallments, card, parsedInstallment, lastInvoiceMonth, installmentSiblings]);
 
   const reopen = (o: boolean) => {
     setOpen(o);
@@ -1144,7 +1176,21 @@ function EditTxDialog({ tx, onUpdate }: { tx: UserTransaction; onUpdate: ReturnT
       setCategory(tx.category);
       setType(tx.type);
       setRecurrence(tx.recurrence || 'none');
+      const meta = tx.installmentInfo ?? parseInstallmentLabel(tx.description);
+      const txCard = tx.cardId ? cards.find(c => c.id === tx.cardId) : undefined;
+      if (meta && txCard) {
+        setLastInvoiceMonth(addMonthsToKey(invoiceMonthOf(tx.date, txCard.closingDay), meta.total - meta.current));
+      } else {
+        setLastInvoiceMonth('');
+      }
     }
+  };
+
+  const applyInstallmentRealignment = () => {
+    if (!canAdjustInstallments || !lastInvoiceMonth || installmentPreview.length === 0) return;
+    installmentPreview.forEach(item => onUpdate(item.id, { date: item.date }));
+    toast.success(`${installmentPreview.length} parcela${installmentPreview.length === 1 ? '' : 's'} ajustada${installmentPreview.length === 1 ? '' : 's'}`);
+    setOpen(false);
   };
 
   return (
@@ -1195,6 +1241,22 @@ function EditTxDialog({ tx, onUpdate }: { tx: UserTransaction; onUpdate: ReturnT
                   <SelectItem value="monthly">Todo mês</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          {canAdjustInstallments && (
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+              <div className="space-y-1.5">
+                <Label>Última parcela deve cair na fatura</Label>
+                <Input type="month" value={lastInvoiceMonth} onChange={e => setLastInvoiceMonth(e.target.value)} />
+              </div>
+              {installmentPreview.length > 0 && (
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Vai ajustar {installmentPreview.length} parcela{installmentPreview.length === 1 ? '' : 's'}: {labelMonthKey(installmentPreview[0].monthKey)} → {labelMonthKey(installmentPreview[installmentPreview.length - 1].monthKey)}.
+                </p>
+              )}
+              <Button type="button" variant="outline" size="sm" className="w-full" onClick={applyInstallmentRealignment} disabled={!lastInvoiceMonth || installmentPreview.length === 0}>
+                Ajustar parcelamento inteiro
+              </Button>
             </div>
           )}
         </div>
