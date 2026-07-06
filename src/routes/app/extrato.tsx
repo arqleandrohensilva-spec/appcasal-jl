@@ -121,14 +121,18 @@ function Extrato() {
     }
   }, [preset, customStart, customEnd]);
 
-  // Movimentos que afetam esta conta.
+  // Movimentos que afetam esta conta, incluindo expansão de recorrências no range visível.
   const accountMoves = useMemo(() => {
     if (!account) return [] as UserTransaction[];
-    return transactions
+    // range amplo para cobrir período (com folga) mesmo se end > hoje
+    const rangeStart = isoAddDays(start, -31);
+    const rangeEnd = isoAddDays(end, 31);
+    const expanded = expandRecurring(transactions, rangeStart, rangeEnd);
+    return expanded
       .filter(t => t.accountId === account.id)
       .slice()
       .sort((x, y) => x.date.localeCompare(y.date) || x.createdAt.localeCompare(y.createdAt));
-  }, [transactions, account]);
+  }, [transactions, account, start, end]);
 
   // Reconstrói saldo do zero.
   // IMPORTANTE: account.balance reflete apenas movimentos JÁ REALIZADOS (data <= hoje),
