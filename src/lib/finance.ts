@@ -212,13 +212,10 @@ export function invoiceDueDateISO(monthKey: string, dueDay: number): string {
   return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-/** Data de fechamento (ISO) da fatura de um mês (o fechamento ocorre no mês anterior). */
+/** Data de fechamento (ISO) da fatura de um mês (fecha no mesmo mês do vencimento). */
 export function invoiceClosingDateISO(monthKey: string, closingDay: number): string {
   const [y, m] = monthKey.split('-').map(Number);
-  const dt = new Date(y, m - 2, 1); // mês anterior ao vencimento
-  const yy = dt.getFullYear();
-  const mm = dt.getMonth() + 1;
-  const lastDay = new Date(yy, mm, 0).getDate();
+  const lastDay = new Date(y, m, 0).getDate();
   const day = Math.min(closingDay, lastDay);
-  return `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
