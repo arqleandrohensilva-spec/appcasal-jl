@@ -640,7 +640,24 @@ export function CardInvoiceView({
             </div>
 
             {/* Navegador de mês (-12 a +12) */}
-            <MonthStrip baseKey={currentInvoiceKey} offset={offset} onChange={setOffset} range={12} />
+            <MonthStrip
+              baseKey={currentInvoiceKey}
+              offset={offset}
+              onChange={setOffset}
+              range={12}
+              getMonthMeta={(k) => {
+                let value = 0;
+                for (const tx of cardTx) {
+                  if (!card) continue;
+                  if (invoiceMonthOf(tx.date, card.closingDay) !== k) continue;
+                  value += tx.type === 'despesa' ? Math.abs(tx.amount) : -Math.abs(tx.amount);
+                }
+                const paid = !!card?.paidInvoices?.[k];
+                const status: 'paid' | 'current' | 'past' | 'future' =
+                  paid ? 'paid' : k === currentInvoiceKey ? 'current' : k < currentInvoiceKey ? 'past' : 'future';
+                return { total: value, status };
+              }}
+            />
 
             {card && (
               <PayInvoiceDialog
