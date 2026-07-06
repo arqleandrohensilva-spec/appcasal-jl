@@ -1488,7 +1488,7 @@ function statementInvoiceMonth(statement: ParsedStatement | null, card: { closin
   return invoiceMonthOf(anchorDate, card.closingDay);
 }
 
-function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
+export function PdfImportButton({ owner, defaultDestination, triggerLabel, triggerClassName }: { owner: 'leandro' | 'jonathan'; defaultDestination?: string; triggerLabel?: string; triggerClassName?: string }) {
   const { cards, accounts, transactions, addTransaction } = useData();
   const fileRef = useRef<HTMLInputElement>(null);
   const parseFn = useServerFn(parseBankStatement);
@@ -1709,9 +1709,10 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
       }
       setRows(parsed);
 
-      // Sugere destino
+      // Sugere destino (respeitando defaultDestination quando informado)
       const st = combinedStatement.statementType;
-      if (st === 'card' && myCards.length > 0) setDestination(`card:${myCards[0].id}`);
+      if (defaultDestination) setDestination(defaultDestination);
+      else if (st === 'card' && myCards.length > 0) setDestination(`card:${myCards[0].id}`);
       else if (st === 'account' && myAccounts.length > 0) setDestination(`account:${myAccounts[0].id}`);
       else if (myCards.length > 0) setDestination(`card:${myCards[0].id}`);
       else if (myAccounts.length > 0) setDestination(`account:${myAccounts[0].id}`);
@@ -1889,8 +1890,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
           e.currentTarget.value = '';
         }}
       />
-      <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
-        <FileText className="h-4 w-4" /> Importar PDF ou prints
+      <Button variant="outline" className={triggerClassName ?? 'gap-2'} onClick={() => fileRef.current?.click()}>
+        <FileText className="h-4 w-4" /> {triggerLabel ?? 'Importar PDF ou prints'}
       </Button>
 
       <Dialog open={open} onOpenChange={(o) => { if (!loading) setOpen(o); }}>
