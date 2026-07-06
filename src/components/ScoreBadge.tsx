@@ -44,6 +44,11 @@ const RECOMMENDATIONS: Record<string, { title: string; tip: string }> = {
 
 export function ScoreBadge({ compact = false }: { compact?: boolean }) {
   const { score, grade, factors } = useScore();
+  const worst = [...factors]
+    .filter((f) => f.value < 70)
+    .sort((a, b) => a.value * a.weight - b.value * b.weight)
+    .slice(0, 3);
+
 
   const color =
     score >= 850 ? 'text-emerald-500' :
