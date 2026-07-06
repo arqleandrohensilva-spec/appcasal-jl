@@ -13,6 +13,8 @@ import { useAppContext } from '@/lib/context';
 import { useAuth } from '@/lib/auth';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
+import { ScoreBadge } from '@/components/ScoreBadge';
+import { useScore } from '@/hooks/useScore';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
