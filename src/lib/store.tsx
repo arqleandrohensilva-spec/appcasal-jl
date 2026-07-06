@@ -109,6 +109,8 @@ interface DataContextType {
     owner: UserProfile;
     recurrence?: Recurrence;
     recurrenceEndDate?: string;
+    recurrenceWeekdays?: number[];
+    recurrenceIntervalDays?: number;
     tags?: string[];
   }) => number;
   updateTransaction: (id: string, patch: Partial<{
