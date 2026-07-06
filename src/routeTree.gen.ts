@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTransferenciaRouteImport } from './routes/app/transferencia'
 import { Route as AppTransacoesRouteImport } from './routes/app/transacoes'
+import { Route as AppSimuladorScoreRouteImport } from './routes/app/simulador-score'
 import { Route as AppScannerRouteImport } from './routes/app/scanner'
 import { Route as AppRetrospectivaRouteImport } from './routes/app/retrospectiva'
 import { Route as AppRelatoriosRouteImport } from './routes/app/relatorios'
@@ -63,6 +64,11 @@ const AppTransferenciaRoute = AppTransferenciaRouteImport.update({
 const AppTransacoesRoute = AppTransacoesRouteImport.update({
   id: '/transacoes',
   path: '/transacoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSimuladorScoreRoute = AppSimuladorScoreRouteImport.update({
+  id: '/simulador-score',
+  path: '/simulador-score',
   getParentRoute: () => AppRoute,
 } as any)
 const AppScannerRoute = AppScannerRouteImport.update({
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
+  '/app/simulador-score': typeof AppSimuladorScoreRoute
   '/app/transacoes': typeof AppTransacoesRoute
   '/app/transferencia': typeof AppTransferenciaRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
@@ -247,6 +254,7 @@ export interface FileRoutesByTo {
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
+  '/app/simulador-score': typeof AppSimuladorScoreRoute
   '/app/transacoes': typeof AppTransacoesRoute
   '/app/transferencia': typeof AppTransferenciaRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
@@ -280,6 +288,7 @@ export interface FileRoutesById {
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/retrospectiva': typeof AppRetrospectivaRoute
   '/app/scanner': typeof AppScannerRoute
+  '/app/simulador-score': typeof AppSimuladorScoreRoute
   '/app/transacoes': typeof AppTransacoesRoute
   '/app/transferencia': typeof AppTransferenciaRoute
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/app/relatorios'
     | '/app/retrospectiva'
     | '/app/scanner'
+    | '/app/simulador-score'
     | '/app/transacoes'
     | '/app/transferencia'
     | '/app/assistente/$threadId'
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/app/relatorios'
     | '/app/retrospectiva'
     | '/app/scanner'
+    | '/app/simulador-score'
     | '/app/transacoes'
     | '/app/transferencia'
     | '/app/assistente/$threadId'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/app/relatorios'
     | '/app/retrospectiva'
     | '/app/scanner'
+    | '/app/simulador-score'
     | '/app/transacoes'
     | '/app/transferencia'
     | '/app/assistente/$threadId'
@@ -427,6 +439,13 @@ declare module '@tanstack/react-router' {
       path: '/transacoes'
       fullPath: '/app/transacoes'
       preLoaderRoute: typeof AppTransacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/simulador-score': {
+      id: '/app/simulador-score'
+      path: '/simulador-score'
+      fullPath: '/app/simulador-score'
+      preLoaderRoute: typeof AppSimuladorScoreRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/scanner': {
@@ -642,6 +661,7 @@ interface AppRouteChildren {
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppRetrospectivaRoute: typeof AppRetrospectivaRoute
   AppScannerRoute: typeof AppScannerRoute
+  AppSimuladorScoreRoute: typeof AppSimuladorScoreRoute
   AppTransacoesRoute: typeof AppTransacoesRoute
   AppTransferenciaRoute: typeof AppTransferenciaRoute
   AppAssistenteThreadIdRoute: typeof AppAssistenteThreadIdRoute
@@ -669,6 +689,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppRetrospectivaRoute: AppRetrospectivaRoute,
   AppScannerRoute: AppScannerRoute,
+  AppSimuladorScoreRoute: AppSimuladorScoreRoute,
   AppTransacoesRoute: AppTransacoesRoute,
   AppTransferenciaRoute: AppTransferenciaRoute,
   AppAssistenteThreadIdRoute: AppAssistenteThreadIdRoute,
