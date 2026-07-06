@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/context';
 import { useData, type UserAccount, type UserTransaction } from '@/lib/store';
+import { invoiceMonthOf, invoiceDueDateISO } from '@/lib/finance';
 import { CATEGORIES, formatCurrency } from '@/lib/mockData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -85,7 +86,7 @@ function accountIcon(type: UserAccount['type']) {
 
 function Extrato() {
   const { activeProfile } = useAppContext();
-  const { accounts, transactions, updateTransaction, removeTransaction } = useData();
+  const { accounts, cards, transactions, updateTransaction, removeTransaction } = useData();
   const a = accentFor(activeProfile);
 
   const visibleAccounts = useMemo(
@@ -121,23 +122,67 @@ function Extrato() {
     }
   }, [preset, customStart, customEnd]);
 
-  // Movimentos que afetam esta conta. Inclui instâncias virtuais de recorrências
-  // apenas para o FUTURO (não deslocam saldo passado nem o saldo atual do banco).
+  // Movimentos que afetam esta conta. Inclui:
+  // - transações reais da conta (passado e futuro)
+  // - instâncias virtuais de recorrências (apenas para o FUTURO)
+  // - pagamentos previstos de faturas de cartão em aberto (apenas FUTURO),
+  //   atribuídos a esta conta quando o cartão pertence ao mesmo titular.
   const accountMoves = useMemo(() => {
     if (!account) return [] as UserTransaction[];
     const today = todayISO();
     const rangeEnd = isoAddDays(end, 31);
     const expanded = expandRecurring(transactions, today, rangeEnd);
-    // remove instâncias virtuais que caíram em data passada (só nos interessa futuro).
-    const filtered = expanded.filter(t => {
+
+    // 1) Transações reais + recorrências futuras da conta
+    const own = expanded.filter(t => {
       const isVirtual = t.id.includes('__r');
       if (isVirtual && t.date <= today) return false;
       return t.accountId === account.id;
     });
-    return filtered
-      .slice()
+
+    // 2) Faturas de cartão em aberto (do mesmo titular da conta) que vencem
+    //    entre hoje e rangeEnd. Só entra 1 vez por (cartão, mês da fatura).
+    const cardBills: UserTransaction[] = [];
+    const ownerCards = cards.filter(c => c.owner === account.owner);
+    // Agrupa gastos de cartão por (cardId, monthKey) usando invoiceMonthOf
+    const grouped = new Map<string, { cardId: string; monthKey: string; total: number }>();
+    for (const t of transactions) {
+      if (!t.cardId) continue;
+      const card = ownerCards.find(c => c.id === t.cardId);
+      if (!card) continue;
+      const mk = invoiceMonthOf(t.date, card.closingDay);
+      const key = `${card.id}::${mk}`;
+      const prev = grouped.get(key) ?? { cardId: card.id, monthKey: mk, total: 0 };
+      const sign = t.type === 'despesa' ? 1 : -1; // estornos reduzem fatura
+      prev.total += sign * Math.abs(t.amount);
+      grouped.set(key, prev);
+    }
+    for (const g of grouped.values()) {
+      const card = ownerCards.find(c => c.id === g.cardId);
+      if (!card) continue;
+      if (card.paidInvoices?.[g.monthKey]) continue; // já paga
+      const due = invoiceDueDateISO(g.monthKey, card.dueDay);
+      if (due <= today) continue; // atrasada ou de hoje — sem previsão futura
+      if (due > rangeEnd) continue;
+      if (g.total <= 0) continue;
+      cardBills.push({
+        id: `__bill:${card.id}:${g.monthKey}`,
+        description: `Fatura ${card.name} (previsto)`,
+        amount: -g.total,
+        date: due,
+        category: 'Pagamento de fatura',
+        paymentMethod: account.name,
+        accountId: account.id,
+        type: 'despesa',
+        owner: account.owner,
+        createdAt: new Date(0).toISOString(),
+        tags: ['fatura', 'previsto', card.name.toLowerCase()],
+      });
+    }
+
+    return [...own, ...cardBills]
       .sort((x, y) => x.date.localeCompare(y.date) || x.createdAt.localeCompare(y.createdAt));
-  }, [transactions, account, end]);
+  }, [transactions, cards, account, end]);
 
   // Reconstrói saldo do zero.
   // IMPORTANTE: account.balance reflete apenas movimentos JÁ REALIZADOS (data <= hoje),
