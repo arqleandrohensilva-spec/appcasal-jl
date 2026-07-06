@@ -349,6 +349,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt,
       recurrence: n === 1 ? recurrence : undefined,
       recurrenceEndDate: n === 1 ? input.recurrenceEndDate : undefined,
+      recurrenceWeekdays: n === 1 && recurrence === 'weekly' && input.recurrenceWeekdays && input.recurrenceWeekdays.length
+        ? input.recurrenceWeekdays : undefined,
+      recurrenceIntervalDays: n === 1 && recurrence === 'weekly' && input.recurrenceIntervalDays && input.recurrenceIntervalDays > 0
+        ? input.recurrenceIntervalDays : undefined,
       tags: input.tags && input.tags.length ? input.tags : undefined,
     }));
 
