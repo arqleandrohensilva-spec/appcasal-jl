@@ -13,6 +13,8 @@ import { useAppContext } from '@/lib/context';
 import { useAuth } from '@/lib/auth';
 import { LEANDRO_DATA, JONATHAN_DATA, CASAL_DATA } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
+import { ScoreBadge } from '@/components/ScoreBadge';
+import { useScore } from '@/hooks/useScore';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -157,7 +159,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
               </Avatar>
               <div className="overflow-hidden flex-1 text-left">
                 <p className="font-medium truncate text-sm">{currentData.name}</p>
-                <p className="text-xs text-muted-foreground">Score: {currentData.score}</p>
+                <div onClick={(e) => e.stopPropagation()}><ScoreBadge /></div>
               </div>
               <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-gray-700 shrink-0" />
             </button>
@@ -185,7 +187,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                     {Icon && <Icon className="h-3 w-3 fill-current text-rose-500" />}
                     {data.name}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">Score: {data.score}</p>
+                  <ProfileScoreLine profile={id} />
                 </div>
                 {activeProfile === id && <Check className="h-4 w-4 text-emerald-600" />}
               </DropdownMenuItem>
@@ -333,4 +335,10 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
     </>
   );
 }
+
+function ProfileScoreLine({ profile }: { profile: 'leandro' | 'jonathan' | 'casal' }) {
+  const { score } = useScore(profile);
+  return <p className="text-[10px] text-muted-foreground">Score: {score}</p>;
+}
+
 
