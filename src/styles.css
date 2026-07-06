@@ -145,8 +145,23 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     overflow-x: hidden;
     max-width: 100vw;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 
   /* Permite que filhos de grid/flex encolham dentro do container em telas
@@ -157,6 +172,7 @@
     min-width: 0;
   }
 }
+
 
 /* Sonner: contain toast width so it never ultrapassa a linha do cabeçalho no mobile */
 [data-sonner-toaster] {
