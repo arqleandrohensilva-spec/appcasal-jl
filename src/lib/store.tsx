@@ -368,6 +368,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       type: t.type, owner: t.owner, pessoa: t.owner,
       recurrence: t.recurrence ?? null,
       recurrence_end_date: t.recurrenceEndDate ?? null,
+      recurrence_weekdays: t.recurrenceWeekdays ?? null,
+      recurrence_interval_days: t.recurrenceIntervalDays ?? null,
       tags: t.tags ?? [],
     }));
     supabase.from('transactions').insert(rows).then(({ error }) => {
