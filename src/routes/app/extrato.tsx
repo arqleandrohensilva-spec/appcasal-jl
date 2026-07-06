@@ -554,7 +554,8 @@ function Extrato() {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
