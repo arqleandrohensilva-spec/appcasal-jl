@@ -75,6 +75,7 @@ const GROUPS: NavGroup[] = [
       { name: 'Patrimônio', path: '/app/patrimonio', icon: PieChart },
       { name: 'Consórcio', path: '/app/consorcio', icon: Calculator },
       { name: 'Dívidas', path: '/app/dividas', icon: ShieldCheck },
+      { name: 'Simulador de Score', path: '/app/simulador-score', icon: Sparkles },
     ],
   },
   {
