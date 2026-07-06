@@ -1388,11 +1388,11 @@ function addMonthsISO(iso: string, months: number) {
   return d.toISOString().slice(0, 10);
 }
 
-function dayAfterInvoiceClosingISO(monthKey: string, closingDay: number) {
-  const closing = invoiceClosingDateISO(monthKey, closingDay);
-  const [year, month, day] = closing.split('-').map(Number);
-  const nextDay = new Date(year, month - 1, day + 1);
-  return `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+// Retorna uma data-âncora que, segundo invoiceMonthOf, cai NA fatura de `monthKey`.
+// Usamos o próprio dia de fechamento (dia <= closingDay => mesma fatura). Isso garante
+// que a parcela criada seja atribuída à fatura correta, sem deslocamento de mês.
+function invoiceAnchorDateISO(monthKey: string, closingDay: number) {
+  return invoiceClosingDateISO(monthKey, closingDay);
 }
 
 function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
