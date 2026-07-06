@@ -357,14 +357,15 @@ function LoanDialog({
   const submit = () => {
     if (!name.trim()) { toast.error('Dê um nome ao empréstimo.'); return; }
     if (!accountId) { toast.error('Escolha uma conta.'); return; }
-    if (principalNum <= 0) { toast.error('Informe o valor do empréstimo.'); return; }
-    if (monthlyNum <= 0) { toast.error('Informe o valor da parcela.'); return; }
+    if (principalNum <= 0) { toast.error('Informe o valor escolhido (recebido).'); return; }
+    if (contractedNum <= 0) { toast.error('Informe o valor contratado (com juros/IOF).'); return; }
+    if (effectiveMonthly <= 0) { toast.error('Informe o valor da parcela.'); return; }
     if (nParcelas < 1) { toast.error('Número de parcelas inválido.'); return; }
     onCreate({
       name: name.trim(), accountId,
       principal: principalNum,
       installmentsN: nParcelas,
-      monthlyValue: monthlyNum,
+      monthlyValue: effectiveMonthly,
       firstDueDate,
       creditNow,
       creditDate,
