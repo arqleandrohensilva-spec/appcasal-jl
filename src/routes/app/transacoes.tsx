@@ -153,12 +153,16 @@ function Transacoes() {
       toast.error('Informe o valor.');
       return;
     }
+    const useWeeklyDays = canRecur && recurrence === 'weekly' && weeklyMode === 'weekdays' && weeklyDays.length > 0;
+    const useWeeklyInterval = canRecur && recurrence === 'weekly' && weeklyMode === 'interval' && parseInt(weeklyInterval) > 0;
     const count = addTransaction({
       description, amount: valorNum, date, category, paymentMethod: method,
       cardId: kind === 'card' ? id : undefined,
       accountId: kind === 'account' ? id : undefined,
       installments: parcelasNum, type, owner,
       recurrence: canRecur ? recurrence : 'none',
+      recurrenceWeekdays: useWeeklyDays ? weeklyDays : undefined,
+      recurrenceIntervalDays: useWeeklyInterval ? parseInt(weeklyInterval) : undefined,
       tags: tags.length ? tags : undefined,
     });
     if (count > 1) toast.success(`${count} parcelas lançadas no calendário!`);
