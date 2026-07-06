@@ -34,6 +34,7 @@ import { Route as AppComparadorRouteImport } from './routes/app/comparador'
 import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
 import { Route as AppAgenteRouteImport } from './routes/app/agente'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AppCartoesIndexRouteImport } from './routes/app/cartoes.index'
 import { Route as AppAssistenteIndexRouteImport } from './routes/app/assistente.index'
 import { Route as AppCartoesCardIdRouteImport } from './routes/app/cartoes.$cardId'
 import { Route as AppAssistenteThreadIdRouteImport } from './routes/app/assistente.$threadId'
@@ -163,6 +164,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppCartoesIndexRoute = AppCartoesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppCartoesRoute,
+} as any)
 const AppAssistenteIndexRoute = AppAssistenteIndexRouteImport.update({
   id: '/assistente/',
   path: '/assistente/',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
   '/app/cartoes/$cardId': typeof AppCartoesCardIdRoute
   '/app/assistente/': typeof AppAssistenteIndexRoute
+  '/app/cartoes/': typeof AppCartoesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -215,7 +222,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
-  '/app/cartoes': typeof AppCartoesRouteWithChildren
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -238,6 +244,7 @@ export interface FileRoutesByTo {
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
   '/app/cartoes/$cardId': typeof AppCartoesCardIdRoute
   '/app/assistente': typeof AppAssistenteIndexRoute
+  '/app/cartoes': typeof AppCartoesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -269,6 +276,7 @@ export interface FileRoutesById {
   '/app/assistente/$threadId': typeof AppAssistenteThreadIdRoute
   '/app/cartoes/$cardId': typeof AppCartoesCardIdRoute
   '/app/assistente/': typeof AppAssistenteIndexRoute
+  '/app/cartoes/': typeof AppCartoesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -301,6 +309,7 @@ export interface FileRouteTypes {
     | '/app/assistente/$threadId'
     | '/app/cartoes/$cardId'
     | '/app/assistente/'
+    | '/app/cartoes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -308,7 +317,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/api/chat'
     | '/app/agente'
-    | '/app/cartoes'
     | '/app/comparador'
     | '/app/comportamento'
     | '/app/configuracoes'
@@ -331,6 +339,7 @@ export interface FileRouteTypes {
     | '/app/assistente/$threadId'
     | '/app/cartoes/$cardId'
     | '/app/assistente'
+    | '/app/cartoes'
   id:
     | '__root__'
     | '/'
@@ -361,6 +370,7 @@ export interface FileRouteTypes {
     | '/app/assistente/$threadId'
     | '/app/cartoes/$cardId'
     | '/app/assistente/'
+    | '/app/cartoes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -547,6 +557,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/cartoes/': {
+      id: '/app/cartoes/'
+      path: '/'
+      fullPath: '/app/cartoes/'
+      preLoaderRoute: typeof AppCartoesIndexRouteImport
+      parentRoute: typeof AppCartoesRoute
+    }
     '/app/assistente/': {
       id: '/app/assistente/'
       path: '/assistente'
@@ -573,10 +590,12 @@ declare module '@tanstack/react-router' {
 
 interface AppCartoesRouteChildren {
   AppCartoesCardIdRoute: typeof AppCartoesCardIdRoute
+  AppCartoesIndexRoute: typeof AppCartoesIndexRoute
 }
 
 const AppCartoesRouteChildren: AppCartoesRouteChildren = {
   AppCartoesCardIdRoute: AppCartoesCardIdRoute,
+  AppCartoesIndexRoute: AppCartoesIndexRoute,
 }
 
 const AppCartoesRouteWithChildren = AppCartoesRoute._addFileChildren(
