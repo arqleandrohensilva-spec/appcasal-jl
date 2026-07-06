@@ -38,12 +38,25 @@ function Dashboard() {
     () => monthlyStats(transactions, activeProfile, now.getFullYear(), now.getMonth()),
     [transactions, activeProfile, now.getFullYear(), now.getMonth()],
   );
+  const prevStats = useMemo(() => {
+    const p = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return monthlyStats(transactions, activeProfile, p.getFullYear(), p.getMonth());
+  }, [transactions, activeProfile, now.getFullYear(), now.getMonth()]);
+  const pct = (curr: number, prev: number): number | null => {
+    if (prev <= 0) return curr > 0 ? 100 : null;
+    return Math.round(((curr - prev) / prev) * 100);
+  };
+  const receitaPct = pct(stats.receita, prevStats.receita);
+  const gastosPct = pct(stats.gastos, prevStats.gastos);
+  const sobraMes = stats.receita - stats.gastos;
+  const poupancaPct = stats.receita > 0 ? Math.round((sobraMes / stats.receita) * 100) : 0;
   const saldoTotal = useMemo(
     () => accounts
       .filter(a => activeProfile === 'casal' || a.owner === activeProfile)
       .reduce((s, a) => s + a.balance, 0),
     [accounts, activeProfile],
   );
+
   const userGoals = useMemo(
     () => goals.filter(g => activeProfile === 'casal' || g.owner === activeProfile).slice(0, 3),
     [goals, activeProfile],
