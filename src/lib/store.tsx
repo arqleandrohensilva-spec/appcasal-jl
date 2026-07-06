@@ -180,6 +180,8 @@ const mapTx = (r: DbTransaction): UserTransaction => ({
   installmentInfo: r.installment_current && r.installment_total ? { current: r.installment_current, total: r.installment_total } : undefined,
   type: r.type, owner: r.owner, createdAt: r.created_at,
   recurrence: r.recurrence ?? undefined, recurrenceEndDate: r.recurrence_end_date ?? undefined,
+  recurrenceWeekdays: r.recurrence_weekdays ?? undefined,
+  recurrenceIntervalDays: r.recurrence_interval_days ?? undefined,
   tags: r.tags ?? undefined,
 });
 const mapGoal = (r: DbGoal): UserGoal => ({ id: r.id, name: r.name, target: num(r.target), deadline: r.deadline ?? '', owner: r.owner, createdAt: r.created_at });
