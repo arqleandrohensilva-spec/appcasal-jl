@@ -1501,6 +1501,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
   const [rows, setRows] = useState<PdfRow[]>([]);
   const [destination, setDestination] = useState<string>('');
   const [invoiceMonthOverride, setInvoiceMonthOverride] = useState<string>('');
+  const [setupConfirmed, setSetupConfirmed] = useState(false);
 
   const myCards = cards.filter(c => c.owner === owner);
   const myAccounts = accounts.filter(a => a.owner === owner);
@@ -1533,6 +1534,8 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     setStatement(null);
     setRows([]);
     setInvoiceMonthOverride('');
+    setSetupConfirmed(false);
+    setDestination('');
     setProgress(3);
     setStatus(files.length > 1 ? `Preparando ${files.length} arquivos…` : 'Preparando o arquivo…');
 
@@ -1871,6 +1874,7 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
     setOpen(false);
     setStatement(null);
     setRows([]);
+    setSetupConfirmed(false);
   };
 
   return (
@@ -1914,7 +1918,84 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
             </div>
           )}
 
-          {!loading && statement && (
+          {!loading && statement && !setupConfirmed && (
+            <div className="flex-1 overflow-auto space-y-4 py-2">
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-1">
+                <p className="text-xs uppercase tracking-wide text-primary font-semibold flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5" /> Leitura concluída
+                </p>
+                <p className="text-sm">
+                  A IA identificou <strong>{rows.length}</strong> lançamento{rows.length === 1 ? '' : 's'}
+                  {statement.bank ? <> · <strong>{statement.bank}</strong></> : null}
+                  {statement.statementType === 'card' ? ' · fatura de cartão' : statement.statementType === 'account' ? ' · extrato de conta' : ''}.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Antes de revisar, confirme onde essas transações devem entrar. É obrigatório escolher.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold flex items-center gap-1.5">
+                  <CardIcon className="h-4 w-4" /> Em qual {statement.statementType === 'account' ? 'conta' : 'cartão / conta'} devo lançar? <span className="text-rose-500">*</span>
+                </Label>
+                <Select value={destination} onValueChange={setDestination}>
+                  <SelectTrigger className="h-11"><SelectValue placeholder="Selecione o destino" /></SelectTrigger>
+                  <SelectContent>
+                    {myCards.length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">Cartões</div>
+                        {myCards.map(c => <SelectItem key={c.id} value={`card:${c.id}`}>💳 {c.name}</SelectItem>)}
+                      </>
+                    )}
+                    {myAccounts.length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">Contas</div>
+                        {myAccounts.map(a => <SelectItem key={a.id} value={`account:${a.id}`}>🏦 {a.name}</SelectItem>)}
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                {statement.statementType === 'card' && destination && !destination.startsWith('card:') && (
+                  <p className="text-[11px] text-orange-600">A IA detectou fatura de cartão — o ideal é escolher um cartão.</p>
+                )}
+                {statement.statementType === 'account' && destination && !destination.startsWith('account:') && (
+                  <p className="text-[11px] text-orange-600">A IA detectou extrato de conta — o ideal é escolher uma conta.</p>
+                )}
+              </div>
+
+              {destination.startsWith('card:') && importCard && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold flex items-center gap-1.5">
+                    📅 Para qual fatura? <span className="text-rose-500">*</span>
+                  </Label>
+                  <Input
+                    type="month"
+                    className="h-11"
+                    value={statementInvoiceMonth(statement, importCard, invoiceMonthOverride)}
+                    onChange={e => setInvoiceMonthOverride(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Ex.: fatura de julho/2026. As parcelas serão distribuídas a partir dessa fatura.
+                  </p>
+                </div>
+              )}
+
+              <DialogFooter className="pt-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button
+                  disabled={
+                    !destination ||
+                    (destination.startsWith('card:') && !isMonthKey(statementInvoiceMonth(statement, importCard!, invoiceMonthOverride)))
+                  }
+                  onClick={() => setSetupConfirmed(true)}
+                >
+                  Continuar para revisão
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {!loading && statement && setupConfirmed && (
             <>
               <div className="grid md:grid-cols-3 gap-3">
                 <div className="p-3 rounded-lg border border-border bg-muted/30">
@@ -2211,12 +2292,21 @@ function PdfImportButton({ owner }: { owner: 'leandro' | 'jonathan' }) {
             </>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
-            <Button onClick={confirm} disabled={loading || !statement || toImport.length === 0 || !destination}>
-              Importar {toImport.length}
-            </Button>
-          </DialogFooter>
+          {(loading || setupConfirmed) && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
+              {setupConfirmed && (
+                <>
+                  <Button variant="ghost" onClick={() => setSetupConfirmed(false)} disabled={loading}>
+                    ← Voltar
+                  </Button>
+                  <Button onClick={confirm} disabled={loading || !statement || toImport.length === 0 || !destination}>
+                    Importar {toImport.length}
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </>
