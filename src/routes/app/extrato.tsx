@@ -83,7 +83,7 @@ function accountIcon(type: UserAccount['type']) {
 
 function Extrato() {
   const { activeProfile } = useAppContext();
-  const { accounts, transactions } = useData();
+  const { accounts, transactions, updateTransaction, removeTransaction } = useData();
   const a = accentFor(activeProfile);
 
   const visibleAccounts = useMemo(
@@ -98,6 +98,9 @@ function Extrato() {
   const [customStart, setCustomStart] = useState<string>(firstDayOfMonthISO());
   const [customEnd, setCustomEnd] = useState<string>(todayISO());
   const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editingTx = editingId ? transactions.find(t => t.id === editingId) ?? null : null;
+
 
   const { start, end } = useMemo(() => {
     switch (preset) {
