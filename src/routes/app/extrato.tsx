@@ -86,7 +86,7 @@ function accountIcon(type: UserAccount['type']) {
 
 function Extrato() {
   const { activeProfile } = useAppContext();
-  const { accounts, transactions, updateTransaction, removeTransaction } = useData();
+  const { accounts, cards, transactions, updateTransaction, removeTransaction } = useData();
   const a = accentFor(activeProfile);
 
   const visibleAccounts = useMemo(
