@@ -40,7 +40,7 @@ function Cartoes() {
       for (const tx of cardTx) {
         const value = Math.abs(tx.amount);
         const txInvoiceKey = invoiceMonthOf(tx.date, card.closingDay);
-        committed += value;
+        if (!card.paidInvoices?.[txInvoiceKey]) committed += value;
         if (txInvoiceKey === currentKey) {
           current += value;
           currentCount += 1;
