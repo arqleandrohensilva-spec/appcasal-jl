@@ -104,6 +104,26 @@ export function ScoreBadge({ compact = false }: { compact?: boolean }) {
             </div>
           ))}
         </div>
+        {worst.length > 0 && (
+          <div className="mt-4 pt-3 border-t space-y-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <Lightbulb className="h-3 w-3" /> Como melhorar seu score
+            </p>
+            {worst.map((f) => {
+              const rec = RECOMMENDATIONS[f.key];
+              if (!rec) return null;
+              return (
+                <div key={f.key} className="text-xs bg-muted/40 rounded p-2">
+                  <p className="font-semibold flex items-center justify-between gap-2">
+                    <span>{rec.title}</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">{f.label} · {Math.round(f.value)}/100</span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{rec.tip}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
         <p className="text-[10px] text-muted-foreground mt-3 leading-snug">
           Calculado em tempo real com base em saldo, fluxo do mês, uso de cartão, pagamento em dia, projeção 30d, reserva de emergência, metas, orçamento e dívidas.
         </p>
