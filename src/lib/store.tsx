@@ -423,6 +423,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       card_id: next.cardId ?? null, account_id: next.accountId ?? null,
       type: next.type, owner: next.owner, pessoa: next.owner,
       recurrence: next.recurrence ?? null, recurrence_end_date: next.recurrenceEndDate ?? null,
+      recurrence_weekdays: next.recurrenceWeekdays ?? null,
+      recurrence_interval_days: next.recurrenceIntervalDays ?? null,
     };
     if (patch.tags !== undefined) dbPatch.tags = next.tags ?? [];
     supabase.from('transactions').update(dbPatch).eq('id', id).then(({ error }) => { if (error) refetchAll(wsId!); });
