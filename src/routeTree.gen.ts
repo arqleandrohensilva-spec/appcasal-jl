@@ -31,6 +31,7 @@ import { Route as AppConquistasRouteImport } from './routes/app/conquistas'
 import { Route as AppConfiguracoesRouteImport } from './routes/app/configuracoes'
 import { Route as AppComportamentoRouteImport } from './routes/app/comportamento'
 import { Route as AppComparadorRouteImport } from './routes/app/comparador'
+import { Route as AppCartoesRouteImport } from './routes/app/cartoes'
 import { Route as AppAgenteRouteImport } from './routes/app/agente'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AppAssistenteIndexRouteImport } from './routes/app/assistente.index'
@@ -147,6 +148,11 @@ const AppComparadorRoute = AppComparadorRouteImport.update({
   path: '/comparador',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCartoesRoute = AppCartoesRouteImport.update({
+  id: '/cartoes',
+  path: '/cartoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAgenteRoute = AppAgenteRouteImport.update({
   id: '/agente',
   path: '/agente',
@@ -163,9 +169,9 @@ const AppAssistenteIndexRoute = AppAssistenteIndexRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppCartoesCardIdRoute = AppCartoesCardIdRouteImport.update({
-  id: '/cartoes/$cardId',
-  path: '/cartoes/$cardId',
-  getParentRoute: () => AppRoute,
+  id: '/$cardId',
+  path: '/$cardId',
+  getParentRoute: () => AppCartoesRoute,
 } as any)
 const AppAssistenteThreadIdRoute = AppAssistenteThreadIdRouteImport.update({
   id: '/assistente/$threadId',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
+  '/app/cartoes': typeof AppCartoesRouteWithChildren
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
+  '/app/cartoes': typeof AppCartoesRouteWithChildren
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/app/agente': typeof AppAgenteRoute
+  '/app/cartoes': typeof AppCartoesRouteWithChildren
   '/app/comparador': typeof AppComparadorRoute
   '/app/comportamento': typeof AppComportamentoRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/api/chat'
     | '/app/agente'
+    | '/app/cartoes'
     | '/app/comparador'
     | '/app/comportamento'
     | '/app/configuracoes'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/api/chat'
     | '/app/agente'
+    | '/app/cartoes'
     | '/app/comparador'
     | '/app/comportamento'
     | '/app/configuracoes'
@@ -327,6 +338,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/api/chat'
     | '/app/agente'
+    | '/app/cartoes'
     | '/app/comparador'
     | '/app/comportamento'
     | '/app/configuracoes'
@@ -514,6 +526,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppComparadorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/cartoes': {
+      id: '/app/cartoes'
+      path: '/cartoes'
+      fullPath: '/app/cartoes'
+      preLoaderRoute: typeof AppCartoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/agente': {
       id: '/app/agente'
       path: '/agente'
@@ -537,10 +556,10 @@ declare module '@tanstack/react-router' {
     }
     '/app/cartoes/$cardId': {
       id: '/app/cartoes/$cardId'
-      path: '/cartoes/$cardId'
+      path: '/$cardId'
       fullPath: '/app/cartoes/$cardId'
       preLoaderRoute: typeof AppCartoesCardIdRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppCartoesRoute
     }
     '/app/assistente/$threadId': {
       id: '/app/assistente/$threadId'
@@ -552,8 +571,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppCartoesRouteChildren {
+  AppCartoesCardIdRoute: typeof AppCartoesCardIdRoute
+}
+
+const AppCartoesRouteChildren: AppCartoesRouteChildren = {
+  AppCartoesCardIdRoute: AppCartoesCardIdRoute,
+}
+
+const AppCartoesRouteWithChildren = AppCartoesRoute._addFileChildren(
+  AppCartoesRouteChildren,
+)
+
 interface AppRouteChildren {
   AppAgenteRoute: typeof AppAgenteRoute
+  AppCartoesRoute: typeof AppCartoesRouteWithChildren
   AppComparadorRoute: typeof AppComparadorRoute
   AppComportamentoRoute: typeof AppComportamentoRoute
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
@@ -574,12 +606,12 @@ interface AppRouteChildren {
   AppTransacoesRoute: typeof AppTransacoesRoute
   AppTransferenciaRoute: typeof AppTransferenciaRoute
   AppAssistenteThreadIdRoute: typeof AppAssistenteThreadIdRoute
-  AppCartoesCardIdRoute: typeof AppCartoesCardIdRoute
   AppAssistenteIndexRoute: typeof AppAssistenteIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAgenteRoute: AppAgenteRoute,
+  AppCartoesRoute: AppCartoesRouteWithChildren,
   AppComparadorRoute: AppComparadorRoute,
   AppComportamentoRoute: AppComportamentoRoute,
   AppConfiguracoesRoute: AppConfiguracoesRoute,
@@ -600,7 +632,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppTransacoesRoute: AppTransacoesRoute,
   AppTransferenciaRoute: AppTransferenciaRoute,
   AppAssistenteThreadIdRoute: AppAssistenteThreadIdRoute,
-  AppCartoesCardIdRoute: AppCartoesCardIdRoute,
   AppAssistenteIndexRoute: AppAssistenteIndexRoute,
 }
 
