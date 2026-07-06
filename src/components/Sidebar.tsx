@@ -336,3 +336,9 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
   );
 }
 
+function ProfileScoreLine({ profile }: { profile: 'leandro' | 'jonathan' | 'casal' }) {
+  const { score } = useScore(profile);
+  return <p className="text-[10px] text-muted-foreground">Score: {score}</p>;
+}
+
+
