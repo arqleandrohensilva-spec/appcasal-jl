@@ -47,6 +47,7 @@ function Transacoes() {
   const [paymentId, setPaymentId] = useState('');
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
+  const [currentInstallment, setCurrentInstallment] = useState('1');
   const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>('none');
   const [weeklyMode, setWeeklyMode] = useState<'every7' | 'weekdays' | 'interval'>('every7');
   const [weeklyDays, setWeeklyDays] = useState<number[]>([]);
