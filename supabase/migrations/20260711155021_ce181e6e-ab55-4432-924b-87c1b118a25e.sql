@@ -1,0 +1,1 @@
+DELETE FROM public.transactions WHERE card_id = '500406f4-c22e-4e39-a515-9f50707bcdb5';
