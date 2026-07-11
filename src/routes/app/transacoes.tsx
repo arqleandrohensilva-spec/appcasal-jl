@@ -87,7 +87,7 @@ function Transacoes() {
 
   const reset = () => {
     setDescription(''); setAmount(''); setCategory('');
-    setPaymentId(''); setIsInstallment(false); setInstallments('2');
+    setPaymentId(''); setIsInstallment(false); setInstallments('2'); setCurrentInstallment('1');
     setRecurrence('none');
     setWeeklyMode('every7'); setWeeklyDays([]); setWeeklyInterval('7');
     setDate(new Date().toISOString().slice(0, 10));
