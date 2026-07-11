@@ -161,6 +161,7 @@ function Transacoes() {
       cardId: kind === 'card' ? id : undefined,
       accountId: kind === 'account' ? id : undefined,
       installments: parcelasNum, type, owner,
+      startInstallment: isInstallment ? Math.max(1, Math.min(parseInt(currentInstallment) || 1, parcelasNum)) : 1,
       recurrence: canRecur ? recurrence : 'none',
       recurrenceWeekdays: useWeeklyDays ? weeklyDays : undefined,
       recurrenceIntervalDays: useWeeklyInterval ? parseInt(weeklyInterval) : undefined,
