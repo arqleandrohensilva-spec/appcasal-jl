@@ -53,9 +53,11 @@ export const parseBankStatement = createServerFn({ method: 'POST' })
       || 'application/pdf';
     const isImage = detected.startsWith('image/');
 
-    // Para prints/imagens o Pro faz OCR muito melhor (lê valor, parcela e
-    // descrição em screenshots de celular). PDFs usam Flash (mais barato/rápido).
-    const model = gateway(isImage ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash');
+    // Para prints/imagens tentamos primeiro o Pro (melhor OCR de screenshots de
+    // celular), mas caímos para o Flash automaticamente se der 402/429/5xx —
+    // assim o import nunca falha por rate limit ou créditos do Pro.
+    const primaryModelId = isImage ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash';
+    const fallbackModelId = 'google/gemini-2.5-flash';
     const currentYear = new Date().getFullYear();
 
     const system = `Você é especialista em extratos bancários e faturas de cartão brasileiros.
@@ -168,24 +170,46 @@ Regras:
       };
     };
 
-    try {
+    const isRetriableGatewayError = (err: unknown): boolean => {
+      const anyErr = err as { statusCode?: number; status?: number; message?: string; data?: { error?: { code?: number } } } | undefined;
+      const code = anyErr?.statusCode ?? anyErr?.status ?? anyErr?.data?.error?.code;
+      if (code === 402 || code === 429 || (typeof code === 'number' && code >= 500)) return true;
+      const msg = anyErr?.message ?? '';
+      return /402|429|payment required|rate limit|quota|overloaded|unavailable|insufficient/i.test(msg);
+    };
+
+    const runWithModel = async (modelId: string) => {
       const result = await generateText({
-        model,
+        model: gateway(modelId),
         experimental_output: Output.object({ schema: StatementSchema }),
         messages,
       });
       return normalize(result.experimental_output);
-    } catch (err) {
-      // Se a validação do schema falhou mas o modelo devolveu texto/JSON,
-      // tenta recuperar o JSON bruto antes de propagar o erro.
-      if (NoObjectGeneratedError.isInstance(err) && err.text) {
-        try {
-          const cleaned = err.text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
-          const raw = JSON.parse(cleaned);
-          return normalize(raw);
-        } catch {
-          // cai para o throw abaixo
+    };
+
+    const attempt = async (modelId: string) => {
+      try {
+        return await runWithModel(modelId);
+      } catch (err) {
+        if (NoObjectGeneratedError.isInstance(err) && err.text) {
+          try {
+            const cleaned = err.text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+            const raw = JSON.parse(cleaned);
+            return normalize(raw);
+          } catch {
+            // segue para o throw
+          }
         }
+        throw err;
+      }
+    };
+
+    try {
+      return await attempt(primaryModelId);
+    } catch (err) {
+      if (primaryModelId !== fallbackModelId && isRetriableGatewayError(err)) {
+        console.warn(`[pdf-import] ${primaryModelId} falhou (${(err as { statusCode?: number }).statusCode ?? 'err'}), tentando ${fallbackModelId}`);
+        return await attempt(fallbackModelId);
       }
       throw err;
     }

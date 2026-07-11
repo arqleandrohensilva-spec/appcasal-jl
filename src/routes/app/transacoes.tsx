@@ -1811,7 +1811,14 @@ export function PdfImportButton({ owner, defaultDestination, triggerLabel, trigg
       setStatus(`Pronto! ${parsed.length} lançamentos encontrados${files.length > 1 ? ` em ${files.length} arquivos` : ''}.`);
     } catch (err) {
       console.error(err);
-      toast.error('Não foi possível ler um dos arquivos. Envie o PDF original do banco ou prints nítidos da fatura.');
+      const msg = (err as { message?: string })?.message ?? '';
+      if (/402|payment required|quota|insufficient|credits/i.test(msg)) {
+        toast.error('Créditos de IA insuficientes no momento. Tente novamente em alguns minutos.');
+      } else if (/429|rate limit|overloaded/i.test(msg)) {
+        toast.error('A IA está sobrecarregada. Aguarde alguns segundos e tente de novo.');
+      } else {
+        toast.error('Não foi possível ler um dos arquivos. Envie o PDF original do banco ou prints nítidos da fatura.');
+      }
       setOpen(false);
     } finally {
       clearInterval(tick);
