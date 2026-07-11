@@ -105,6 +105,8 @@ interface DataContextType {
     accountId?: string;
     installmentInfo?: { current: number; total: number };
     installments?: number;
+    /** Número da parcela em que a `date` cai (1-based). Padrão 1. */
+    startInstallment?: number;
     type: 'receita' | 'despesa';
     owner: UserProfile;
     recurrence?: Recurrence;
