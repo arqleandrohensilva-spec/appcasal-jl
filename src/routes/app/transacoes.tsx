@@ -47,6 +47,7 @@ function Transacoes() {
   const [paymentId, setPaymentId] = useState('');
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
+  const [currentInstallment, setCurrentInstallment] = useState('1');
   const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>('none');
   const [weeklyMode, setWeeklyMode] = useState<'every7' | 'weekdays' | 'interval'>('every7');
   const [weeklyDays, setWeeklyDays] = useState<number[]>([]);
@@ -86,7 +87,7 @@ function Transacoes() {
 
   const reset = () => {
     setDescription(''); setAmount(''); setCategory('');
-    setPaymentId(''); setIsInstallment(false); setInstallments('2');
+    setPaymentId(''); setIsInstallment(false); setInstallments('2'); setCurrentInstallment('1');
     setRecurrence('none');
     setWeeklyMode('every7'); setWeeklyDays([]); setWeeklyInterval('7');
     setDate(new Date().toISOString().slice(0, 10));
@@ -160,6 +161,7 @@ function Transacoes() {
       cardId: kind === 'card' ? id : undefined,
       accountId: kind === 'account' ? id : undefined,
       installments: parcelasNum, type, owner,
+      startInstallment: isInstallment ? Math.max(1, Math.min(parseInt(currentInstallment) || 1, parcelasNum)) : 1,
       recurrence: canRecur ? recurrence : 'none',
       recurrenceWeekdays: useWeeklyDays ? weeklyDays : undefined,
       recurrenceIntervalDays: useWeeklyInterval ? parseInt(weeklyInterval) : undefined,
@@ -346,23 +348,44 @@ function Transacoes() {
                   </div>
                   {isInstallment && (
                     <>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Número de parcelas</Label>
-                        <Select value={installments} onValueChange={setInstallments}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent className="max-h-60">
-                            {Array.from({ length: 59 }, (_, i) => i + 2).map(n => (
-                              <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Total de parcelas</Label>
+                          <Select value={installments} onValueChange={(v) => {
+                            setInstallments(v);
+                            const total = parseInt(v) || 2;
+                            if ((parseInt(currentInstallment) || 1) > total) setCurrentInstallment(String(total));
+                          }}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent className="max-h-60">
+                              {Array.from({ length: 59 }, (_, i) => i + 2).map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Parcela atual (esta compra)</Label>
+                          <Select value={currentInstallment} onValueChange={setCurrentInstallment}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent className="max-h-60">
+                              {Array.from({ length: parcelasNum }, (_, i) => i + 1).map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}/{parcelasNum}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       {valorNum > 0 && (
                         <div className="flex gap-2 items-start text-xs text-orange-800 dark:text-orange-200">
                           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                           <div>
                             <p className="font-bold">{parcelasNum}x de {formatCurrency(valorParcela)}</p>
-                            <p>As {parcelasNum} parcelas serão criadas automaticamente nos próximos meses.</p>
+                            <p>
+                              A data informada é da parcela <strong>{currentInstallment}/{parcelasNum}</strong>.
+                              As {parcelasNum} parcelas serão criadas — {parseInt(currentInstallment) > 1 ? `${parseInt(currentInstallment) - 1} anteriores e ` : ''}
+                              {parcelasNum - parseInt(currentInstallment)} futuras.
+                            </p>
                           </div>
                         </div>
                       )}
