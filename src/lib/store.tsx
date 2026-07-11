@@ -328,6 +328,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addTransaction: DataContextType['addTransaction'] = (input) => {
     if (!guard()) return 0;
     const n = Math.max(1, Math.min(input.installments || 1, 60));
+    const start = Math.max(1, Math.min(input.startInstallment ?? 1, n));
     const groupId = input.groupId ?? (n > 1 ? uid() : null);
     const valuePerInstallment = input.amount / n;
     const sign = input.type === 'receita' ? 1 : -1;
@@ -340,7 +341,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       groupId: groupId ?? undefined,
       description: input.installmentInfo ? input.description : (n > 1 ? `${input.description} (${i + 1}/${n})` : input.description),
       amount: sign * Math.abs(valuePerInstallment),
-      date: addMonths(input.date, i),
+      date: addMonths(input.date, i - (start - 1)),
       category: input.category,
       paymentMethod: input.paymentMethod,
       cardId: input.cardId,
