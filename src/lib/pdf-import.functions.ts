@@ -53,9 +53,11 @@ export const parseBankStatement = createServerFn({ method: 'POST' })
       || 'application/pdf';
     const isImage = detected.startsWith('image/');
 
-    // Para prints/imagens o Pro faz OCR muito melhor (lê valor, parcela e
-    // descrição em screenshots de celular). PDFs usam Flash (mais barato/rápido).
-    const model = gateway(isImage ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash');
+    // Para prints/imagens tentamos primeiro o Pro (melhor OCR de screenshots de
+    // celular), mas caímos para o Flash automaticamente se der 402/429/5xx —
+    // assim o import nunca falha por rate limit ou créditos do Pro.
+    const primaryModelId = isImage ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash';
+    const fallbackModelId = 'google/gemini-2.5-flash';
     const currentYear = new Date().getFullYear();
 
     const system = `Você é especialista em extratos bancários e faturas de cartão brasileiros.
