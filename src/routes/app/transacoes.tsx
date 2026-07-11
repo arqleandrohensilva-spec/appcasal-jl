@@ -703,8 +703,17 @@ export function CardInvoiceView({
             <div className="rounded-lg border p-3 space-y-2 bg-gradient-to-br from-muted/40 to-transparent">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fatura de {labelMonthKey(invoiceKey)}</p>
-                  <p className={cn('text-2xl font-bold tabular-nums', paidInfo && 'line-through text-muted-foreground')}>{formatCurrency(Math.max(0, total))}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Fatura de {labelMonthKey(invoiceKey)}
+                    {total < 0 && ' · crédito'}
+                  </p>
+                  <p className={cn(
+                    'text-2xl font-bold tabular-nums',
+                    paidInfo && 'line-through text-muted-foreground',
+                    !paidInfo && total < 0 && 'text-emerald-600 dark:text-emerald-400',
+                  )}>
+                    {total < 0 ? '−' : ''}{formatCurrency(Math.abs(total))}
+                  </p>
                 </div>
                 <Badge
                   variant="outline"
